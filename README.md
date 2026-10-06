@@ -29,7 +29,13 @@ python3 -m http.server 4173
 
 Then open <http://localhost:4173>.
 
-## Next implementation slice
+## Genome / Lyra agent cores
+
+Server-side role prompts, policy and injectable provider runtime now live in `src/agents/`.
+Run `npm test` and `npm run evaluate:agents`. See [agent usage and verification boundaries](docs/agents.md).
+The frontend is still a mock; live model/Hub/device acceptance is not claimed.
+
+### Frontend integration still pending
 
 1. Freeze the Hub request/response schema.
 2. Add a real `hub-adapter` boundary without exposing credentials to the browser.

@@ -1,0 +1,17 @@
+name: Genome and Lyra checks
+on:
+  push:
+  pull_request:
+permissions:
+  contents: read
+jobs:
+  agents:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm run check
+      - run: npm test
+      - run: npm run evaluate:agents

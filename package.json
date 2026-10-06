@@ -4,6 +4,8 @@
   "private": true,
   "description": "Metropolis Genome Hub surface for Shop, Office, and Greenhouse.",
   "scripts": {
-    "check": "node --check app.js"
+    "check": "node --check app.js && node --check src/agents/policy.mjs && node --check src/agents/prompts.mjs && node --check src/agents/runtime.mjs",
+    "test": "node --test test/*.test.mjs",
+    "evaluate:agents": "node scripts/evaluate-agents.mjs"
   }
 }
