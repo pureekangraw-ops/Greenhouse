@@ -1,0 +1,9 @@
+{
+  "name": "greenhouse-metropolis",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Metropolis Genome Hub surface for Shop, Office, and Greenhouse.",
+  "scripts": {
+    "check": "node --check app.js"
+  }
+}

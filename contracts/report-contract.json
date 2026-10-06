@@ -1,0 +1,49 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Genome Hub Report",
+  "type": "object",
+  "required": [
+    "reportId",
+    "requestedBy",
+    "observedAt",
+    "ownerSource",
+    "freshness",
+    "confidence",
+    "evidence",
+    "nextAction",
+    "limitations"
+  ],
+  "properties": {
+    "reportId": { "type": "string", "minLength": 1 },
+    "requestedBy": {
+      "type": "string",
+      "enum": ["SHOP", "OFFICE", "GREENHOUSE"]
+    },
+    "observedAt": { "type": "string", "format": "date-time" },
+    "workId": { "type": ["string", "null"] },
+    "ownerSource": { "type": "string", "minLength": 1 },
+    "freshness": {
+      "type": "string",
+      "enum": ["CURRENT", "STALE", "UNKNOWN"]
+    },
+    "workStatus": {
+      "type": ["string", "null"],
+      "enum": ["BLOCKED", "WAITING", null]
+    },
+    "confidence": {
+      "type": "string",
+      "enum": ["CONFIRMED", "PROBABLE", "UNKNOWN"]
+    },
+    "evidence": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "nextAction": { "type": ["string", "null"] },
+    "limitations": {
+      "type": "array",
+      "items": { "type": "string" }
+    },
+    "receiptId": { "type": ["string", "null"] }
+  },
+  "additionalProperties": false
+}
