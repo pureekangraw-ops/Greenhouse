@@ -6,6 +6,7 @@
   "scripts": {
     "check": "node --check app.js && node --check server.mjs && node --check src/hub/metropolis-read.mjs && node --check src/agents/policy.mjs && node --check src/agents/prompts.mjs && node --check src/agents/runtime.mjs",
     "test": "node --test test/*.test.mjs",
-    "evaluate:agents": "node scripts/evaluate-agents.mjs"
+    "evaluate:agents": "node scripts/evaluate-agents.mjs",
+    "preview": "node server.mjs"
   }
 }
