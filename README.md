@@ -37,7 +37,29 @@ The frontend is still a mock; live model/Hub/device acceptance is not claimed.
 
 ### Frontend integration still pending
 
-1. Freeze the Hub request/response schema.
-2. Add a real `hub-adapter` boundary without exposing credentials to the browser.
-3. Run one read-only report round trip.
-4. Verify the response against the report contract before adding mutations.
+1. Implement the owner-authorized OAuth login/callback and server-side token storage.
+2. Perform and verify one authenticated Greenhouse backend → Metropolis live Work readback.
+3. Add explicit owner login before any public deployment or multi-user access.
+4. Connect Genome's report action to the validated owner adapter; preserve read-only permissions.
+
+## Genome Office: read-only Metropolis connection (in development)
+
+The Office page now includes a Work ID reader powered by an optional **local-only backend** (`server.mjs`).
+The backend requests `metropolis_work:read` from Metropolis with a server-side
+owner-delegated credential and returns a sanitized report. It never creates Work
+or controls Metropolis. Source update age is kept separate from read time.
+
+```bash
+npm run check && npm test && npm run evaluate:agents
+npm run preview
+```
+
+Open `http://127.0.0.1:4173` → Genome Office.
+Without a server-owned delegated OAuth access token, the reader shows
+`OWNER_CONNECTION_REQUIRED`; other pages remain explicitly mock.
+The existing ChatGPT connection is **not** a credential that this application
+can copy or reuse automatically. Do not paste OAuth tokens into browser inputs.
+Production authentication, owner consent callback, and live Greenhouse-to-Metropolis
+end-to-end acceptance are not yet complete.
+
+See [owner-readback integration and restrictions](docs/metropolis-office-read.md).
