@@ -1,0 +1,26 @@
+name: GREENHOUSE contract and read-adapter checks
+
+on:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  offline-acceptance:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Syntax and interface guards
+        run: npm run check
+      - name: Metropolis read adapter and agent tests
+        run: npm test
+      - name: Offline Genome / Lyra evaluation
+        run: npm run evaluate:agents
