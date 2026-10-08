@@ -81,16 +81,16 @@ function renderHome() {
       <div class="intro-actions"><button class="button" data-action="request-report">ขอรีพอร์ต</button><button class="button button--primary" data-view-action="office">เปิด Office</button></div>
     </section>
     <section class="metric-grid" aria-label="Hub summary">
-      <article class="metric-card"><p class="metric-label">Open requests</p><p class="metric-value">08</p><p class="metric-foot"><strong>+2</strong> since last readback</p></article>
-      <article class="metric-card"><p class="metric-label">Waiting</p><p class="metric-value">03</p><p class="metric-foot">Needs a source response</p></article>
-      <article class="metric-card"><p class="metric-label">Readbacks</p><p class="metric-value">14</p><p class="metric-foot"><strong>100%</strong> traceable format</p></article>
+      <article class="metric-card"><p class="metric-label">Open requests</p><p class="metric-value">—</p><p class="metric-foot">Demo · no owner-source count</p></article>
+      <article class="metric-card"><p class="metric-label">Waiting</p><p class="metric-value">—</p><p class="metric-foot">Demo · not queried</p></article>
+      <article class="metric-card"><p class="metric-label">Readbacks</p><p class="metric-value">—</p><p class="metric-foot">Demo · no verified aggregate</p></article>
       <article class="metric-card"><p class="metric-label">Connections</p><p class="metric-value">00</p><p class="metric-foot">Runtime <strong>not connected</strong></p></article>
     </section>
     <div class="dashboard-grid">
-      <section class="panel"><div class="panel-header"><div><h3>Requests in the Hub</h3><p>คำขอที่เข้ามาจากสาม Genome</p></div><button class="link-button" data-view-action="reports">ดูทั้งหมด →</button></div>
+      <section class="panel"><div class="panel-header"><div><h3>Requests in the Hub</h3><p>รายการตัวอย่าง (Mock) จากสาม Genome</p></div><button class="link-button" data-view-action="reports">ดูทั้งหมด →</button></div>
         ${data.requests.map((item) => `<div class="request-row"><div><p class="request-title">${item.title}</p><div class="request-meta"><span>${item.meta}</span><span class="meta-separator">·</span>${badge(item.freshness)}${badge(item.state)}${badge(item.confidence)}</div></div><button class="button" data-action="open-report">เปิดรายงาน</button></div>`).join("")}
       </section>
-      <section class="panel"><div class="panel-header"><div><h3>Hub readback</h3><p>โครงข้อมูลล่าสุดที่ส่งกลับ</p></div><span class="badge badge--orange">mock</span></div>${reportMarkup()}</section>
+      <section class="panel"><div class="panel-header"><div><h3>Hub readback</h3><p>ตัวอย่างรายงาน · ยังไม่ใช่ live readback</p></div><span class="badge badge--orange">mock</span></div>${reportMarkup()}</section>
     </div>
     <div class="section-heading"><div><h3>Three Genomes</h3><p>แต่ละ Genome ถือ domain ของตัวเอง Hub เป็นผู้ประสาน</p></div></div>
     <section class="card-grid">${data.genomes.map(genomeCard).join("")}</section>`;
