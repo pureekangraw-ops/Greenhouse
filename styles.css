@@ -180,3 +180,11 @@ button:focus-visible { outline: 3px solid rgba(59, 117, 200, .35); outline-offse
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { transition-duration: .01ms !important; animation-duration: .01ms !important; }
 }
+/* Genome Office: local owner-readback panel (read-only). */
+.owner-reader { margin-bottom: 16px; }
+.owner-reader-form { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+.owner-reader-form label { font-size: 12px; font-weight: 700; }
+.owner-reader-form input { min-width: 220px; flex: 1 1 250px; border-radius: 8px; border: 1px solid var(--line); padding: 11px 12px; font: inherit; color: var(--ink); background: white; }
+.owner-reader-form input:focus-visible { outline: 3px solid rgba(59,117,200,.35); outline-offset: 1px; }
+.owner-reader-form button:disabled { cursor: progress; opacity: .65; }
+.owner-reader-note { font-size: 12px; line-height: 1.5; margin: 12px 0 0; }
