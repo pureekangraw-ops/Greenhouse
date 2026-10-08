@@ -1,3 +1,5 @@
+let liveOfficeReport = null;
+
 const report = {
   reportId: "RPT-DEMO-001",
   requestedBy: "OFFICE",
@@ -39,28 +41,35 @@ const currentViewLabel = document.querySelector("#current-view-label");
 const toast = document.querySelector("#toast");
 let toastTimer;
 
+function escapeHtml(value) {
+  return String(value ?? '').replace(/[&<>"']/g, char => ({
+    '&':'&amp;', '<':'&lt;', '>':'&gt;', '"':'&quot;', "'":'&#39;'
+  })[char]);
+}
 function badge(value) {
   if (!value) return "";
   const tone = value === "CURRENT" || value === "CONFIRMED" ? "green" : value === "STALE" || value === "WAITING" || value === "PROBABLE" ? "orange" : value === "BLOCKED" ? "red" : value === "UNKNOWN" ? "neutral" : "blue";
-  return `<span class="badge badge--${tone}">${value}</span>`;
+  return `<span class="badge badge--${tone}">${escapeHtml(value)}</span>`;
 }
 
 function formatDate(value) {
-  return new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(new Date(value));
+  const parsed = new Date(value);
+  return Number.isNaN(parsed.getTime()) ? "UNKNOWN" :
+    new Intl.DateTimeFormat("th-TH", { dateStyle: "medium", timeStyle: "short", timeZone: "Asia/Bangkok" }).format(parsed);
 }
 
 function reportMarkup(item = report) {
   return `
     <div class="report-card report-card--featured">
-      <div class="report-kicker"><h4>Latest readback</h4><span class="badge badge--neutral">${item.reportId}</span></div>
+      <div class="report-kicker"><h4>Latest readback</h4><span class="badge badge--neutral">${escapeHtml(item.reportId)}</span></div>
       <dl>
         <dt>Observed at</dt><dd>${formatDate(item.observedAt)}</dd>
-        <dt>Work ID</dt><dd>${item.workId || "—"}</dd>
-        <dt>Owner Source</dt><dd class="muted">${item.ownerSource}</dd>
+        <dt>Work ID</dt><dd>${escapeHtml(item.workId || "—")}</dd>
+        <dt>Owner Source</dt><dd class="muted">${escapeHtml(item.ownerSource)}</dd>
         <dt>State</dt><dd>${badge(item.freshness)} ${badge(item.workStatus)} ${badge(item.confidence)}</dd>
-        <dt>Evidence</dt><dd><ul>${item.evidence.map((entry) => `<li>${entry}</li>`).join("")}</ul></dd>
-        <dt>Next Action</dt><dd>${item.nextAction}</dd>
-        <dt>Limitations</dt><dd class="muted">${item.limitations.join(" · ")}</dd>
+        <dt>Evidence</dt><dd><ul>${item.evidence.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}</ul></dd>
+        <dt>Next Action</dt><dd>${escapeHtml(item.nextAction)}</dd>
+        <dt>Limitations</dt><dd class="muted">${escapeHtml(item.limitations.join(" · "))}</dd>
       </dl>
     </div>`;
 }
