@@ -49,6 +49,9 @@ test('real-shaped delegated MCP read creates bounded, source-backed Office repor
   assert.equal(report.requestedBy, 'OFFICE');
   assert.equal(report.workId, workId);
   assert.equal(report.ownerSource, 'Metropolis City Hall / OBSERVATORY');
+  assert.equal(report.ownerState, 'WAITING');
+  assert.equal(report.checkpointId, workId + ':CP-01');
+  assert.equal(report.sourceUpdatedAt, new Date(TIME-5000).toISOString());
   assert.equal(report.freshness, 'CURRENT');
   assert.equal(report.workStatus, 'WAITING');
   assert.equal(report.confidence, 'CONFIRMED');
