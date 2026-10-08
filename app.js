@@ -100,13 +100,28 @@ function genomeCard(item) {
   return `<article class="genome-card"><div class="card-top"><div class="genome-icon">${item.icon}</div><span class="badge badge--${item.tone}">${item.badge}</span></div><h4>${item.title}</h4><p>${item.description}</p><button class="card-link" data-view-action="${item.view}">เข้า Genome →</button></article>`;
 }
 
+function officeReaderMarkup() {
+  return `<section class="panel owner-reader">
+    <div class="panel-header"><div><h3>อ่าน Work จริงจาก Metropolis</h3>
+      <p>BIG เป็นเจ้าของสิทธิ์ · GO อ่านแทน · ไม่สร้างหรือแก้ไข Work</p></div>
+      <span class="badge badge--${liveOfficeReport ? 'green' : 'orange'}">${liveOfficeReport ? 'Source readback' : 'ยังไม่มีผลจริง'}</span>
+    </div>
+    <form data-office-work-form class="owner-reader-form">
+      <label for="office-work-id">Work ID</label>
+      <input id="office-work-id" name="workId" type="text" placeholder="WORK-..." maxlength="133" autocomplete="off" spellcheck="false" required />
+      <button class="button button--primary" type="submit">อ่านสถานะ</button>
+    </form>
+    <p class="muted owner-reader-note">อ่านผ่าน backend เฉพาะเครื่อง · ไม่ส่ง Token ให้เบราว์เซอร์ · หากไม่ได้ต่อ OAuth จะไม่สร้างผลจำลอง</p>
+  </section>`;
+}
+
 function renderGenome(view) {
   const config = {
     shop: { icon: "▦", title: "Genome Shop", desc: "หน้าเว็บสินค้าและการขาย — Hub ช่วยรับคำขอและคืนรายงานที่มี source ชัดเจน.", items: [["Product launch pipeline", "4 products · 1 waiting for review", "WAITING"], ["Marketplace performance", "Last owner readback not connected", "UNKNOWN"], ["Sales / revenue snapshot", "Prepared for source adapter", "PROBABLE"]], connections: [["Product registry", "Owner source · not connected"], ["Sales worksheet", "External source · pending"], ["Marketplace", "Connection contract · unknown"]] },
     office: { icon: "▤", title: "Genome Office", desc: "หน้าเว็บงานสำนักงาน — จุดดู Work เดิม งานค้าง และคำขอที่ต้องประสานกับ Agent.", items: [["GO / LIGHT pending work report", "Work ID linked · waiting for source", "WAITING"], ["Office intake queue", "5 active works · 2 waiting", "CURRENT"], ["Return verification", "2 readbacks need review", "PROBABLE"]], connections: [["Work source", "Work identity · not connected"], ["HERMES", "Intake / route contract · mock"], ["MIMIR", "Return / organization contract · mock"]] },
     greenhouse: { icon: "♧", title: "Genome Greenhouse", desc: "หน้าเว็บสำหรับการสร้างและดูแลระบบ — build candidates, technical artifacts และ verification.", items: [["Metropolis v0.1 scaffold", "Local draft · visual QA pending", "CURRENT"], ["Hub adapter", "No live contract verified", "UNKNOWN"], ["Report contract", "Defined in this work", "CONFIRMED"]], connections: [["Repository", "Greenhouse · direct GitHub pending"], ["Build runner", "Not configured"], ["Verification", "Local only"]] }
   }[view];
-  app.innerHTML = `<section class="page-intro"><div class="detail-hero"><div class="genome-icon">${config.icon}</div><div><h2>${config.title}</h2><p>${config.desc}</p></div></div><div class="intro-actions"><button class="button" data-action="request-report">ขอรีพอร์ต</button><button class="button button--primary" data-action="new-request">สร้างคำขอ</button></div></section><div class="detail-grid"><section class="panel"><div class="panel-header"><div><h3>Current work</h3><p>แสดง read model เท่านั้น ไม่แทน Owner Source</p></div><span class="badge badge--neutral">${config.items.length} items</span></div><div class="list-block">${config.items.map(([title, desc, state]) => `<div class="list-item"><div><h4>${title}</h4><p>${desc}</p></div>${badge(state)}</div>`).join("")}</div></section><div class="side-stack"><section class="panel"><div class="panel-header"><div><h3>Connections</h3><p>ปลายทางของ Genome</p></div></div><div class="connection-list">${config.connections.map(([title, state], index) => `<div class="connection"><div class="connection-symbol">${index + 1}</div><div><strong>${title}</strong><span>${state}</span></div></div>`).join("")}</div></section><section class="panel"><div class="panel-header"><div><h3>Latest readback</h3><p>Contract sample</p></div></div>${reportMarkup()}</section></div></div>`;
+  app.innerHTML = `<section class="page-intro"><div class="detail-hero"><div class="genome-icon">${config.icon}</div><div><h2>${config.title}</h2><p>${config.desc}</p></div></div><div class="intro-actions"><button class="button" data-action="request-report">ขอรีพอร์ต</button><button class="button button--primary" data-action="new-request">สร้างคำขอ</button></div></section>${view === "office" ? officeReaderMarkup() : ""}<div class="detail-grid"><section class="panel"><div class="panel-header"><div><h3>รายการตัวอย่าง (Mock)</h3><p>ข้อมูลต่อไปนี้เป็นโครงทดลอง ไม่ใช่สถานะจริงจากเจ้าของ Work</p></div><span class="badge badge--neutral">${config.items.length} items</span></div><div class="list-block">${config.items.map(([title, desc, state]) => `<div class="list-item"><div><h4>${title}</h4><p>${desc}</p></div>${badge(state)}</div>`).join("")}</div></section><div class="side-stack"><section class="panel"><div class="panel-header"><div><h3>Connections</h3><p>ปลายทางของ Genome</p></div></div><div class="connection-list">${config.connections.map(([title, state], index) => `<div class="connection"><div class="connection-symbol">${index + 1}</div><div><strong>${title}</strong><span>${state}</span></div></div>`).join("")}</div></section><section class="panel"><div class="panel-header"><div><h3>Latest readback</h3><p>${view === "office" && liveOfficeReport ? "Metropolis source readback" : "ตัวอย่างโครงรายงาน (Mock)"}</p></div></div>${reportMarkup(view === "office" && liveOfficeReport ? liveOfficeReport : report)}</section></div></div>`;
 }
 
 function renderReports() {
