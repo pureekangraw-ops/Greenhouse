@@ -148,6 +148,35 @@ function render(view = "home") {
   else renderActivity();
 }
 
+document.addEventListener('submit', async event => {
+  const form = event.target.closest('[data-office-work-form]');
+  if (!form) return;
+  event.preventDefault();
+  const workId = String(new FormData(form).get('workId') || '').trim();
+  const submit = form.querySelector('button[type="submit"]');
+  submit.disabled = true;
+  submit.textContent = 'กำลังอ่าน...';
+  try {
+    const response = await fetch('/api/office/work?workId=' + encodeURIComponent(workId), {
+      method: 'GET', cache: 'no-store', credentials: 'same-origin'
+    });
+    const payload = await response.json();
+    if (!response.ok || payload.source !== 'METROPOLIS_OWNER_READBACK' || !payload.report) {
+      throw new Error(String(payload.code || 'OWNER_READ_FAILED'));
+    }
+    liveOfficeReport = payload.report;
+    render('office');
+    showToast('อ่านจาก Metropolis แล้ว · ' + liveOfficeReport.freshness);
+  } catch (error) {
+    showToast('ยังอ่าน Work จริงไม่ได้: ' + String(error.message || 'UNKNOWN'));
+  } finally {
+    if (submit.isConnected) {
+      submit.disabled = false;
+      submit.textContent = 'อ่านสถานะ';
+    }
+  }
+});
+
 document.addEventListener("click", (event) => {
   const nav = event.target.closest("[data-view]");
   const viewAction = event.target.closest("[data-view-action]");
