@@ -64,7 +64,7 @@ function reportMarkup(item = report) {
       <div class="report-kicker"><h4>Latest readback</h4><span class="badge badge--neutral">${escapeHtml(item.reportId)}</span></div>
       <dl>
         <dt>Observed at</dt><dd>${formatDate(item.observedAt)}</dd>
-        <dt>Work ID</dt><dd>${escapeHtml(item.workId || "—")}</dd>
+        <dt>Work ID</dt><dd>${escapeHtml(item.workId || "—")}</dd>\n        <dt>Checkpoint</dt><dd>${escapeHtml(item.checkpointId || "—")}</dd>\n        <dt>Owner state</dt><dd>${escapeHtml(item.ownerState || "UNKNOWN")}</dd>\n        <dt>Source updated</dt><dd>${item.sourceUpdatedAt ? formatDate(item.sourceUpdatedAt) : "UNKNOWN"}</dd>
         <dt>Owner Source</dt><dd class="muted">${escapeHtml(item.ownerSource)}</dd>
         <dt>State</dt><dd>${badge(item.freshness)} ${badge(item.workStatus)} ${badge(item.confidence)}</dd>
         <dt>Evidence</dt><dd><ul>${item.evidence.map((entry) => `<li>${escapeHtml(entry)}</li>`).join("")}</ul></dd>
