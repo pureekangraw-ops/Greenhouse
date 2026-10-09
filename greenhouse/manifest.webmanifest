@@ -1,0 +1,11 @@
+{
+  "name": "Greenhouse Owner Inbox",
+  "short_name": "Greenhouse",
+  "description": "Owner inbox for verified readbacks from existing authorized systems.",
+  "start_url": "/greenhouse/",
+  "scope": "/greenhouse/",
+  "display": "standalone",
+  "background_color": "#f5f7f4",
+  "theme_color": "#10251f",
+  "icons": [{"src":"/greenhouse/icon.svg","sizes":"any","type":"image/svg+xml","purpose":"any maskable"}]
+}

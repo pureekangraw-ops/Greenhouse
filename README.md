@@ -79,3 +79,9 @@ Production authentication, owner consent callback, and live Greenhouse-to-Metrop
 end-to-end acceptance are not yet complete.
 
 See [owner-readback integration and restrictions](docs/metropolis-office-read.md).
+
+## Greenhouse Owner Inbox PWA candidate
+
+A separate installable shell is available at `/greenhouse/`. The offline worker caches only the static shell, never `/api/*` or private readbacks. The signed event endpoint forwards through an existing-Hub sink and delegates deduplication/receipt ownership to that Hub; the inbox is a read-only projection. Session, inbox, event-sink and command adapters are deliberately unconfigured in the local preview, so live operations fail closed.
+
+See [Greenhouse Owner Inbox v1 implementation boundary](docs/greenhouse-full-v1.md) for the integration gates and exact status. This candidate is not merged or deployed.
