@@ -193,3 +193,30 @@ test('Hub event receipt with blank identifier is rejected rather than reported a
   assert.equal(response.status, 502);
   assert.deepEqual(await response.json(), { code: 'HUB_RECEIPT_INVALID' });
 });
+
+test('inbox never exposes an invalid upstream readback', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => ({ items: 'not-an-array', observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { code: 'HUB_READBACK_INVALID' });
+});
+
+test('inbox never substitutes cached or invented data after upstream failure', async t => {
+  let calls = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => {
+      calls++;
+      if (calls === 1) return { items: [{ title: 'Earlier work', workId: 'WORK-123', ownerSource: 'Hub', observedAt: new Date(now).toISOString(), confidence: 'CONFIRMED', freshness: 'CURRENT' }], observedAt: new Date(now).toISOString() };
+      throw new Error('Hub unavailable');
+    },
+  });
+  assert.equal((await fetch(base + '/api/greenhouse/inbox')).status, 200);
+  const failed = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(failed.status, 502);
+  assert.deepEqual(await failed.json(), { code: 'HUB_READBACK_FAILED' });
+  assert.equal(failed.headers.get('cache-control'), 'no-store');
+});
