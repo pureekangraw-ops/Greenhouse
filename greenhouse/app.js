@@ -37,11 +37,20 @@ function renderWorkItem(item) {
   const freshness = text(item.freshness || 'UNKNOWN');
   const confidence = text(item.confidence || 'UNKNOWN');
   const workId = text(item.workId || 'ไม่มี Work ID ในผลอ่านกลับ');
+  const checkpointId = text(item.checkpointId || 'UNKNOWN');
+  const ownerState = text(item.ownerState || 'UNKNOWN');
+  const workStatus = text(item.workStatus || 'UNKNOWN');
   const title = text(item.title || 'ผลอ่านกลับจากระบบเจ้าของ');
   const nextAction = item.nextAction
     ? text(item.nextAction)
     : 'UNKNOWN — ยังไม่มี Next Action ใน readback contract';
-  return `<article class="readback"><h3>${title}</h3><p>แหล่งข้อมูล: ${ownerSource} · ความเชื่อมั่น: ${confidence}</p><p>เวลาที่ตรวจ: ${observedAt} · ความใหม่: ${freshness}</p><code>${workId}</code><p class="readback-next"><strong>Next Action:</strong> ${nextAction}</p></article>`;
+  const evidence = Array.isArray(item.evidence) && item.evidence.length
+    ? `<ul>${item.evidence.map(ref => `<li>${text(ref)}</li>`).join('')}</ul>`
+    : '<p>ยังไม่มี evidence reference ใน readback</p>';
+  const limitations = Array.isArray(item.limitations) && item.limitations.length
+    ? `<ul>${item.limitations.map(note => `<li>${text(note)}</li>`).join('')}</ul>`
+    : '<p>UNKNOWN — ไม่มีข้อจำกัดแนบมาใน readback</p>';
+  return `<article class="readback"><h3>${title}</h3><p>แหล่งข้อมูล: ${ownerSource} · ความเชื่อมั่น: ${confidence}</p><p>เวลาที่ตรวจ: ${observedAt} · ความใหม่: ${freshness}</p><p>สถานะ Work: ${ownerState} · สถานะประสานงาน: ${workStatus}</p><code>Work: ${workId} · Checkpoint: ${checkpointId}</code><p class="readback-next"><strong>Next Action จาก readback:</strong> ${nextAction}</p><div class="readback-detail"><strong>Evidence references</strong>${evidence}</div><div class="readback-detail"><strong>ข้อจำกัด</strong>${limitations}</div></article>`;
 }
 async function loadInbox() {
   refreshButton.disabled = true;

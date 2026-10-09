@@ -59,16 +59,27 @@ test('owner inbox requires an owner session and returns only upstream readback',
   let seen;
   const base = await withServer(t, {
     ownerSessionResolver: async () => ({ actorId:'owner-verified' }),
-    inboxReader: async input => { seen=input; return { items:[{ title:'Verified work', workId:'WORK-123', ownerSource:'Owner System', observedAt:new Date(now).toISOString(), confidence:'CONFIRMED', freshness:'CURRENT', payload:'must-not-leak' }], observedAt:new Date(now).toISOString(), nextCursor:null, rawSecret:'must-not-leak' }; },
+    inboxReader: async input => { seen=input; return { items:[{ title:'Verified work', workId:'WORK-123', checkpointId:'WORK-123:CP-1', ownerSource:'Owner System', observedAt:new Date(now).toISOString(), sourceUpdatedAt:new Date(now-5000).toISOString(), confidence:'CONFIRMED', freshness:'CURRENT', ownerState:'OPEN', workStatus:null, nextAction:'Verify the operation with its owner system', evidence:['evidence://work/123'], limitations:['Work readback does not verify tool execution'], payload:'must-not-leak' }], observedAt:new Date(now).toISOString(), nextCursor:null, rawSecret:'must-not-leak' }; },
   });
   const response = await fetch(base + '/api/greenhouse/inbox?cursor=cursor-1');
   assert.equal(response.status, 200);
   assert.deepEqual(seen, { session:{ actorId:'owner-verified' }, cursor:'cursor-1' });
   const body = await response.json();
   assert.deepEqual(Object.keys(body), ['items','observedAt','nextCursor']);
-  assert.deepEqual(Object.keys(body.items[0]), ['title','ownerSource','confidence','observedAt','freshness','workId']);
+  assert.deepEqual(Object.keys(body.items[0]), ['title','ownerSource','confidence','observedAt','freshness','workId','checkpointId','ownerState','sourceUpdatedAt','nextAction','evidence','limitations']);
+  assert.equal(body.items[0].nextAction, 'Verify the operation with its owner system');
+  assert.deepEqual(body.items[0].evidence, ['evidence://work/123']);
   assert.equal(JSON.stringify(body).includes('must-not-leak'), false);
   assert.equal(response.headers.get('cache-control'), 'no-store');
+});
+test('inbox rejects malformed or oversized evidence and limitation lists', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId:'owner-verified' }),
+    inboxReader: async () => ({ items:[{ evidence:Array(17).fill('ref') }], observedAt:new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { code:'HUB_READBACK_INVALID' });
 });
 test('commands refuse by default; configured relay receives server actor and requires CSRF origin', async t => {
   const off = await withServer(t);

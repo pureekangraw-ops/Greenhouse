@@ -32,6 +32,9 @@ test('workspace sections are projections, do not invent Work or Parcel records, 
   assert.match(html, /ผู้มีอำนาจดำเนินการเอง/);
   assert.match(html, /ไม่มี review queue หรือ command adapter เปิดใช้งาน/);
   assert.match(app, /UNKNOWN — ยังไม่มี Next Action ใน readback contract/);
+  assert.match(app, /Next Action จาก readback/);
+  assert.match(app, /item\.evidence\.map\(ref => `\<li>\$\{text\(ref\)\}<\/li>`\)/);
+  assert.match(app, /item\.limitations\.map\(note => `\<li>\$\{text\(note\)\}<\/li>`\)/);
   assert.match(app, /workList\.innerHTML = readbacks/);
 });
 

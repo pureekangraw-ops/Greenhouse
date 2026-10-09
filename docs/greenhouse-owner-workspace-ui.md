@@ -37,7 +37,7 @@ Greenhouse presents an **All-in-One AI Workplace** shell. Meetings are not a pri
 
 - The existing Greenhouse backend has an optional read-only Metropolis Work adapter, but production owner login/session, global inbox adapter, event sink, command adapters, and production host are not established by this UI change.
 - Tool cards other than the partial Metropolis source-read path remain `UNKNOWN`; do not infer readiness from a label or card.
-- The inbox server currently sanitizes only a small readback field allowlist. If a source omits `nextAction`, the UI shows `UNKNOWN` rather than inventing one.
+- The inbox server passes a bounded allowlist of Work/Checkpoint status, `nextAction`, evidence references, and limitations from the existing readback. Unknown or omitted values stay UNKNOWN; the UI does not infer tool execution from a City Hall receipt.
 - The PWA service worker caches only static application-shell assets and excludes `/api/*` and private responses.
 
 ## Verification for this slice
@@ -52,7 +52,7 @@ These checks validate local code and offline policy only. They do not prove OAut
 
 ## Next safe integration step
 
-Inspect the existing Work/inbox owner contract and registered Runner/Station capabilities. Then select one read-only path and verify:
+Keep the bridge small: verify one read-only path and show the source-owned readback fields before adding any tool command or runner path:
 
 ```text
 Metropolis authorization
