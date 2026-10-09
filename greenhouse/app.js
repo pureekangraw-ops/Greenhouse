@@ -36,7 +36,8 @@ async function loadInbox() {
     const statusRes = await fetch('/api/greenhouse/status', {cache:'no-store', credentials:'same-origin'});
     const status = await statusRes.json();
     if (!statusRes.ok) { showFailure(status.code); return; }
-    if (!status.ownerSession || !status.inboxReader) { showFailure('HUB_READER_UNAVAILABLE'); return; }
+    if (!status.ownerSession) { showFailure('OWNER_SESSION_REQUIRED'); return; }
+    if (!status.inboxReader) { showFailure('HUB_READER_UNAVAILABLE'); return; }
     const response = await fetch('/api/greenhouse/inbox', {cache:'no-store', credentials:'same-origin'});
     const payload = await response.json();
     if (!response.ok || !Array.isArray(payload.items)) { showFailure(payload.code || 'HUB_READBACK_FAILED'); return; }
