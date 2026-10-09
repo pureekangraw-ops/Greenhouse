@@ -168,7 +168,7 @@ export function createGreenhouseServer({
           event,
           idempotencyKey: event.source + ':' + event.eventId,
         });
-        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId || typeof receipt.duplicate !== 'boolean') {
+        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() || typeof receipt.duplicate !== 'boolean') {
           return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
         }
         return send(response, receipt.duplicate ? 200 : 202, {
@@ -189,7 +189,7 @@ export function createGreenhouseServer({
       let session;
       try { session = await ownerSessionResolver(request); }
       catch { return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' }); }
-if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+      if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
       const csrf = request.headers['x-csrf-token'];
       if (typeof session.csrfToken !== 'string' || typeof csrf !== 'string' || csrf !== session.csrfToken) {
         return send(response, 403, { code: 'CSRF_TOKEN_INVALID' });
