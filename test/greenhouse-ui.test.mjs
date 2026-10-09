@@ -26,7 +26,10 @@ test('workspace sections are projections, do not invent Work or Parcel records, 
   const views = [...html.matchAll(/data-view="([^"]+)"/g)].map(match => match[1]);
   assert.deepEqual(views, ['home', 'work', 'tools', 'express', 'artifacts', 'observatory', 'review']);
   assert.doesNotMatch(html, /ประชุม|Meetings/);
-  assert.match(html, /METROPOLIS[\s\S]*PIXIE Branch[\s\S]*Greenhouse[\s\S]*PIXIE HQ[\s\S]*Existing Runner \/ Tool/);
+  assert.match(html, /METROPOLIS[\s\S]*Greenhouse[\s\S]*Authorized Agent \/ Tool[\s\S]*Owner System readback[\s\S]*Existing return path/);
+  assert.match(html, /Work System เป็นเจ้าของ Work Lifecycle/);
+  assert.match(html, /PIXIE เก็บ technical lineage ไม่ใช่ผู้คุม Lifecycle/);
+  assert.match(html, /บทบาทและ contract ของ PIXIE EXPRESS ยังไม่ยืนยัน/);
   assert.match(html, /ไม่มีสถานะ Parcel จำลอง/);
   assert.match(html, /GO และ LIGHT ตรวจทั้งคู่/);
   assert.match(html, /ผู้มีอำนาจดำเนินการเอง/);

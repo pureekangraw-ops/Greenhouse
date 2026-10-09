@@ -5,7 +5,9 @@ Status: DESIGN ONLY. No live wiring, no deployment, no authority change.
 ## Existing foundation
 - Reuse `pureekangraw-ops/Greenhouse` main scaffold and existing `contracts/report-contract.json`.
 - PR #1 contains Genome/Lyra cores; Draft PR #2 and Draft PR #3 both target the PR #1 branch and contain overlapping read-only Metropolis adapters. Review/deduplicate before integration; do not merge either blindly.
-- Metropolis remains Work/Checkpoint/authority owner. Greenhouse is an interface and coordination consumer, never a second Work ledger.
+- Metropolis remains the connection/access/authority boundary. The existing Work System owns Work identity, lifecycle, and continuity; Greenhouse is an interface and coordination consumer, never a second Work ledger.
+- PIXIE is technical knowledge and creation/modification lineage, not a Work Lifecycle controller or executor. Do not assign it lifecycle transitions without an existing, verified contract.
+- CITY HALL owns intake/return and records/data handling; HERMES and MIMIR retain their existing intake and return/indexing roles.
 
 ## Surfaces
 1. **Subdomain SDK/widget**: optional authenticated owner-side panel; public pages can emit only allowlisted business events via their own server-side boundary. No privileged tokens in browser JavaScript.

@@ -11,20 +11,21 @@ Greenhouse presents an **All-in-One AI Workplace** shell. Meetings are not a pri
 - Overview — owner connection state and read-only Hub readback
 - Work — read-only projection of the same readback
 - Tools — connector/capability readiness with unknown states kept explicit
-- PIXIE EXPRESS — intended Branch → Greenhouse → HQ → existing Runner/Tool flow
+- PIXIE EXPRESS — proposed coordination/return view; its live contract and exact runtime role are not verified
 - Artifacts — references returned by an authorized source; no copied or fabricated artifacts
 - Observatory — observation/evidence view; observation is not execution
 - Review — policy preview only; no review queue or command action is connected
 
 ## Responsibility boundary
 
-- METROPOLIS remains the identity/access/Work-resolution boundary.
-- The existing Work-truth owner remains the only source of Work identity/lifecycle truth; this UI does not create a Work Ledger.
-- CITY HALL/its existing intake-return path owns the durable handoff/receipt path where configured.
-- PIXIE Branch preflights Parcel shape and correlation; it does not mint permission.
-- PIXIE HQ routes and tracks through existing capabilities; it is not an execution runtime.
+- METROPOLIS remains the connection and authority boundary; it resolves access to existing Work without replacing its owner.
+- The Work System remains the source of Work identity, lifecycle, and continuity truth; this UI does not create a Work Ledger.
+- CITY HALL owns intake, return, and records/data handling through its existing path where configured.
+- HERMES handles intake/registration/index; MIMIR handles return/organization/index, within their existing contracts.
+- PIXIE owns technical knowledge and creation/modification lineage; it does not control Work Lifecycle or execute the work.
+- PIXIE EXPRESS routing, Branch/HQ roles, and runtime are UNKNOWN until verified from their existing contract.
 - Existing Runner/Station and destination Owner System perform the work and own domain truth.
-- Greenhouse displays sanitized readbacks and evidence references only.
+- Greenhouse coordinates agents/tools within existing authority and scope, then displays sanitized readbacks and evidence references. It does not create authority or lifecycle state.
 
 ## Automation / review policy
 
@@ -55,11 +56,12 @@ These checks validate local code and offline policy only. They do not prove OAut
 Keep the bridge small: verify one read-only path and show the source-owned readback fields before adding any tool command or runner path:
 
 ```text
-Metropolis authorization
-→ existing Work resolution
-→ authorized read
+METROPOLIS access/authority check
+→ existing Work System resolution
+→ authorized read from the existing owner path
 → source evidence + readback
 → Greenhouse projection
+→ existing CITY HALL / MIMIR return path (when configured)
 ```
 
-Do not add another Work ledger, capability registry, runner runtime, OAuth boundary, or approval barrier if an existing owner path already provides it.
+PIXIE records technical lineage only; it is not the Work Lifecycle owner. Do not add another Work ledger, capability registry, runner runtime, OAuth boundary, or approval barrier if an existing owner path already provides it.
