@@ -22,10 +22,12 @@ function send(response, code, data, contentType = 'application/json; charset=utf
   response.end(typeof data === 'string' ? data : JSON.stringify(data));
 }
 function validOrigin(request) {
+  const host = request.headers.host;
+  // Reject DNS-rebinding hosts, including requests with no Origin header.
+  if (!/^127\\.0\\.0\\.1:\\d+$/.test(host || '')) return false;
   const origin = request.headers.origin;
   if (!origin) return true; // Same-origin GET navigations normally omit Origin.
-  const host = request.headers.host;
-  return /^127\.0\.0\.1:\d+$/.test(host || '') && origin === 'http://' + host;
+  return origin === 'http://' + host;
 }
 
 /** Local-only preview. Do not expose it to the internet without owner login. */
