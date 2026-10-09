@@ -134,7 +134,7 @@ export function createGreenhouseServer({
       if (!ownerSessionResolver || !inboxReader) return send(response, 503, { code: 'HUB_READER_UNAVAILABLE' });
       try {
         const session = await ownerSessionResolver(request);
-        if (!session?.actorId) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+        if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
         if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1 || (url.searchParams.get('cursor') || '').length > 512) {
           return send(response, 400, { code: 'CURSOR_INVALID' });
         }
@@ -189,7 +189,7 @@ export function createGreenhouseServer({
       let session;
       try { session = await ownerSessionResolver(request); }
       catch { return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' }); }
-      if (!session?.actorId) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
       const csrf = request.headers['x-csrf-token'];
       if (typeof session.csrfToken !== 'string' || typeof csrf !== 'string' || csrf !== session.csrfToken) {
         return send(response, 403, { code: 'CSRF_TOKEN_INVALID' });
