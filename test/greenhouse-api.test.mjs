@@ -127,3 +127,19 @@ test('status reports owner session only when actor was verified', async t => {
   const response = await fetch(base + '/api/greenhouse/status');
   assert.equal((await response.json()).ownerSession, true);
 });
+
+test('status never advertises remote commands when owner session is absent', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => null,
+    commandAuthorizer: async () => ({ authorized: true }),
+    hubCommandSubmitter: async () => ({ receiptId: 'unused' }),
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const status = await (await fetch(base + '/api/greenhouse/status')).json();
+  assert.equal(status.ownerSession, false);
+  assert.equal(status.remoteCommands, false);
+  const denied = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST', headers: { origin: base, 'x-csrf-token': 'unused' }, body: '{}',
+  });
+  assert.equal(denied.status, 401);
+});
