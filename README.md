@@ -21,7 +21,23 @@ Every report sample includes `observedAt`, `ownerSource`, `evidence`, `nextActio
 
 ## Run locally
 
-Open `index.html` in a browser, or serve the folder with any static file server:
+The UI can still run without any external access; opening `index.html` is mock-only.
+
+To use the new **Genome Office → Metropolis read-only adapter**, run a local-only backend:
+
+```bash
+# On a trusted local machine, supply a BIG-delegated GO OAuth access token
+# via your shell's protected environment (never paste it into chat or the frontend).
+npm start
+```
+
+This server binds to `127.0.0.1:4173`, never exposes the OAuth token to the browser,
+accepts only existing Work IDs, and calls only `metropolis_work(action=read)`. The
+Office panel is mock until the server has an actual `METROPOLIS_ACCESS_TOKEN`.
+The adapter refuses actor-only legacy tokens and does not fabricate a
+BIG → GO delegation. If the owner source is stale, the report says STALE.
+
+Without a token, you can still preview the mock interface with a static server:
 
 ```bash
 python3 -m http.server 4173
