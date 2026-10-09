@@ -57,3 +57,39 @@ document.querySelector('#refresh').addEventListener('click', loadInbox);
 document.querySelector('#reload').addEventListener('click', loadInbox);
 loadInbox();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/greenhouse/sw.js', {scope:'/greenhouse/'}).catch(() => {});
+
+// Installation is an explicit user gesture; no automatic install prompt.
+const installButton = document.querySelector('#install');
+const installHelp = document.querySelector('#install-help');
+let pendingInstall = null;
+function showInstallHelp(message) {
+  installHelp.textContent = message;
+  installHelp.hidden = false;
+}
+window.addEventListener('beforeinstallprompt', event => {
+  event.preventDefault();
+  pendingInstall = event;
+  installButton.hidden = false;
+});
+installButton.addEventListener('click', async () => {
+  if (!pendingInstall) {
+    showInstallHelp('เปิดเมนูเบราว์เซอร์ แล้วเลือก ติดตั้งแอป หรือ เพิ่มไปยังหน้าจอหลัก');
+    return;
+  }
+  const prompt = pendingInstall;
+  pendingInstall = null;
+  installButton.hidden = true;
+  await prompt.prompt();
+  const choice = await prompt.userChoice;
+  if (choice?.outcome !== 'accepted') showInstallHelp('ยังไม่ได้ติดตั้ง คุณสามารถติดตั้งจากเมนูเบราว์เซอร์ได้');
+});
+window.addEventListener('appinstalled', () => {
+  pendingInstall = null;
+  installButton.hidden = true;
+  showInstallHelp('ติดตั้ง Greenhouse บนเครื่องแล้ว');
+});
+if (window.matchMedia('(display-mode: standalone)').matches) {
+  installButton.hidden = true;
+} else {
+  showInstallHelp('บน Android เปิดผ่าน Chrome แล้วเลือกเมนู ⋮ → ติดตั้งแอป เมื่อเว็บพร้อมติดตั้ง');
+}
