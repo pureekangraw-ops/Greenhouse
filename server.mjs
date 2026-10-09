@@ -208,8 +208,12 @@ if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send
           return send(response, 403, { code: 'COMMAND_NOT_AUTHORIZED' });
         }
         const receipt = await hubCommandSubmitter({ command, session, authorization });
-        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId) return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
-        return send(response, 202, { receiptId: receipt.receiptId, state: receipt.state || 'ACCEPTED', execution: 'NOT_ASSERTED' });
+        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() ||
+            (receipt.state != null && !['ACCEPTED', 'REJECTED', 'UNKNOWN'].includes(receipt.state))) {
+          return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
+        }
+        // A Hub receipt is transport evidence only, not an execution result.
+        return send(response, 202, { receiptId: receipt.receiptId, state: receipt.state || 'UNKNOWN', execution: 'NOT_ASSERTED' });
       } catch {
         return send(response, 502, { code: 'HUB_COMMAND_DELIVERY_FAILED' });
       }
