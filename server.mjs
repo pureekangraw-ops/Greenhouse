@@ -77,6 +77,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
       !opaque(command.idempotencyKey) || !allowedTargets.has(command.target) ||
       typeof command.workId !== 'string' || !/^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(command.workId) ||
       typeof command.checkpointId !== 'string' || command.checkpointId.length > 160 ||
+      !command.checkpointId.startsWith(command.workId + ':CP-') ||
       typeof command.intent !== 'string' || command.intent.trim().length < 8 || command.intent.length > 500 ||
       !Number.isFinite(Date.parse(command.requestedAt)) ||
       (command.expectedVersion != null && !opaque(command.expectedVersion)) ||
