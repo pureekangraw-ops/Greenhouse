@@ -20,7 +20,7 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 | Gate | Evidence required | Current result |
 |---|---|---|
 | G1: PWA shell/manifest/service worker | HTTPS installability and offline-shell-only cache on real Android | PARTIAL — code exists; device/HTTPS unverified |
-| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PASS — PR #6 run 37911750592 (2026-10-09); recheck after changes |
+| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PASS — PR #6 head `ee70b1e5f36ec0aa52f6d54f66cc1b8228751a70`; `agents` checks succeeded in [run 37921402304](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37921402304/job/113789930093) and [run 37921389825](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37921389825/job/113789888667), observed 2026-10-09T11:03:40Z / 11:03:32Z. Recheck after changes. |
 | G3: Existing owner login | Authorized login/callback, revocation, server session, CSRF | BLOCKED — adapters absent |
 | G4: Hub inbox readback | Owner-authorized WorkContext; correct provenance/freshness; no fabricated rows | BLOCKED — inbox reader absent |
 | G5: Event source → Hub receipt → replay | Registered source, signed envelope, dedupe and real Hub receipt | BLOCKED — event sink/registration absent |
