@@ -25,7 +25,7 @@ test('serves PWA shell, manifest, icon and offline-only status with private API 
   const base = await withServer(t);
   const page = await fetch(base + '/greenhouse/');
   assert.equal(page.status, 200);
-  assert.match(await page.text(), /กล่องรับงานเจ้าของ/);
+  assert.match(await page.text(), /All-in-One AI Workplace/);
   assert.equal(page.headers.get('cache-control'), 'no-store');
   assert.equal((await fetch(base + '/greenhouse/manifest.webmanifest')).status, 200);
   assert.equal((await fetch(base + '/greenhouse/icon.svg')).status, 200);

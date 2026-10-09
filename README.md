@@ -80,8 +80,10 @@ end-to-end acceptance are not yet complete.
 
 See [owner-readback integration and restrictions](docs/metropolis-office-read.md).
 
-## Greenhouse Owner Inbox PWA candidate
+## Greenhouse Owner Workspace PWA candidate
 
-A separate installable shell is available at `/greenhouse/`. The offline worker caches only the static shell, never `/api/*` or private readbacks. The signed event endpoint forwards through an existing-Hub sink and delegates deduplication/receipt ownership to that Hub; the inbox is a read-only projection. Session, inbox, event-sink and command adapters are deliberately unconfigured in the local preview, so live operations fail closed.
+A separate installable shell is available at `/greenhouse/`. Its All-in-One AI Workplace navigation groups Work, tools, PIXIE EXPRESS, artifacts, Observatory evidence, and review policy in one owner workspace. The offline worker caches only the static shell, never `/api/*` or private readbacks.
 
-See [Greenhouse Owner Inbox v1 implementation boundary](docs/greenhouse-full-v1.md) for the integration gates and exact status. This candidate is not merged or deployed.
+The current UI is a read-only workspace projection. Tool cards and PIXIE EXPRESS tracking explicitly show UNKNOWN/not connected until existing-Hub and owner-source adapters return evidence; the UI does not invent Work, Parcel, Artifact, or execution records. Routine in-scope work may run automatically through its authorized tool path. Final actions remain stopped for GO + LIGHT review and owner execution; this UI does not dispatch commands.
+
+Session, inbox, event-sink, and command adapters remain owner-controlled integration boundaries. See [Greenhouse Owner Inbox v1 implementation boundary](docs/greenhouse-full-v1.md) and [Owner Workspace UI slice](docs/greenhouse-owner-workspace-ui.md) for the live-proof limits. This candidate is not merged or deployed.

@@ -4,35 +4,129 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#10251f">
-  <meta name="description" content="กล่องรับงานเจ้าของ Greenhouse และผลอ่านกลับที่ตรวจสอบแล้ว">
+  <meta name="description" content="Greenhouse Owner Workspace — All-in-One AI Workplace สำหรับทำงานต่อเนื่องและใช้เครื่องมือจากที่เดียว">
   <link rel="manifest" href="/greenhouse/manifest.webmanifest">
   <link rel="stylesheet" href="/greenhouse/app.css">
-  <title>Greenhouse · กล่องรับงานเจ้าของ</title>
+  <title>Greenhouse · All-in-One AI Workplace</title>
 </head>
 <body>
   <header class="topbar">
-    <a class="brand" href="/greenhouse/" aria-label="หน้าแรก Greenhouse"><span class="brand-mark">G</span><span>GREENHOUSE<small>กล่องรับงานเจ้าของ</small></span></a>
+    <a class="brand" href="/greenhouse/" aria-label="หน้าแรก Greenhouse">
+      <span class="brand-mark">G</span>
+      <span>GREENHOUSE<small>Owner Workspace · AI Workplace</small></span>
+    </a>
     <span class="connection" id="connection"><i></i> กำลังตรวจการเชื่อมต่อ</span>
   </header>
+
   <main>
     <section class="intro">
-      <p class="eyebrow">METROPOLIS · มุมมองที่ตรวจสอบได้</p>
-      <h1>จุดเดียวสำหรับตรวจสอบ<br><em>ไม่สร้างแหล่งความจริงซ้ำ</em></h1>
-      <p class="lede">เหตุการณ์ ผลอ่านกลับ และคำขอจะแสดงเมื่อระบบเจ้าของยืนยันข้อมูลแล้วเท่านั้น</p>
+      <p class="eyebrow">METROPOLIS · OWNER WORKSPACE</p>
+      <h1>ทำงานต่อได้<br><em>จากที่เดียว</em></h1>
+      <p class="lede">รวมมุมมองของ Work, เครื่องมือ, PIXIE EXPRESS, artifacts และ readback โดยให้แต่ละระบบคงเจ้าของข้อมูลจริงของตัวเอง</p>
     </section>
+
+    <nav class="workspace-nav" aria-label="ส่วนของ Owner Workspace">
+      <button class="nav-item is-active" type="button" data-view="home" aria-pressed="true">ภาพรวม</button>
+      <button class="nav-item" type="button" data-view="work" aria-pressed="false">Work</button>
+      <button class="nav-item" type="button" data-view="tools" aria-pressed="false">เครื่องมือ</button>
+      <button class="nav-item" type="button" data-view="express" aria-pressed="false">PIXIE EXPRESS</button>
+      <button class="nav-item" type="button" data-view="artifacts" aria-pressed="false">Artifacts</button>
+      <button class="nav-item" type="button" data-view="observatory" aria-pressed="false">Observatory</button>
+      <button class="nav-item" type="button" data-view="review" aria-pressed="false">Review</button>
+    </nav>
+
     <section class="status-panel" aria-labelledby="status-heading">
-      <div class="panel-heading"><div><p class="eyebrow">การเชื่อมต่อ</p><h2 id="status-heading">กำลังตรวจสอบ</h2></div><span class="pill pill--unknown" id="status-pill">UNKNOWN</span></div>
+      <div class="panel-heading">
+        <div><p class="eyebrow">การเชื่อมต่อ</p><h2 id="status-heading">กำลังตรวจสอบ</h2></div>
+        <span class="pill pill--unknown" id="status-pill">UNKNOWN</span>
+      </div>
       <p id="status-detail">หน้าพร้อมใช้งานแบบออฟไลน์ โดยไม่เก็บหรือแสดงข้อมูล Work ส่วนตัว</p>
       <button class="button" id="refresh" type="button">ตรวจการเชื่อมต่อ</button>
-      <button class="button" id="install" type="button" hidden>ติดตั้ง Greenhouse บนเครื่อง</button>
+      <button class="button button--soft" id="install" type="button" hidden>ติดตั้ง Greenhouse บนเครื่อง</button>
       <p id="install-help" hidden role="status"></p>
     </section>
-    <section class="section-head"><div><p class="eyebrow">กล่องรับรายการ</p><h2>ผลอ่านกลับจากระบบเจ้าของ</h2></div><button class="text-button" id="reload" type="button">รีเฟรช ↻</button></section>
-    <section class="inbox" id="inbox" aria-live="polite"><div class="empty"><span class="empty-icon">↻</span><h3>กำลังตรวจรายการ</h3><p>กำลังขอผลอ่านกลับจาก Hub</p></div></section>
-    <section class="section-head"><div><p class="eyebrow">ขอบเขตความปลอดภัย</p><h2>สิทธิ์การดำเนินการยังอยู่กับเจ้าของ</h2></div></section>
-    <section class="safety"><span aria-hidden="true">⌑</span><p>ยังไม่เปิดคำขอระยะไกล จนกว่าจะยืนยันการเข้าสู่ระบบของเจ้าของ WorkContext และสิทธิ์ของคำสั่งผ่าน Hub เดิม ใบรับการส่งคำขอไม่ใช่หลักฐานว่าดำเนินการสำเร็จ</p></section>
+
+    <section class="view-panel" data-view-panel="home" aria-labelledby="home-title">
+      <div class="section-head">
+        <div><p class="eyebrow">WORKSPACE</p><h2 id="home-title">ผลอ่านกลับจากระบบเจ้าของ</h2></div>
+        <button class="text-button" id="reload" type="button">รีเฟรช ↻</button>
+      </div>
+      <section class="inbox" id="inbox" aria-live="polite">
+        <div class="empty"><span class="empty-icon">↻</span><h3>กำลังตรวจรายการ</h3><p>กำลังขอผลอ่านกลับจาก Hub</p></div>
+      </section>
+    </section>
+
+    <section class="view-panel" data-view-panel="work" aria-labelledby="work-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">CURRENT WORK</p><h2 id="work-title">งานที่อ่านกลับได้</h2></div>
+        <span class="pill pill--unknown">READ-ONLY</span>
+      </div>
+      <p class="section-note">แสดงเฉพาะรายการที่ Hub ส่งกลับมา ไม่มีการสร้าง Work หรือเดาสถานะใน Greenhouse</p>
+      <section class="inbox" id="work-list" aria-live="polite">
+        <div class="empty"><span class="empty-icon">↻</span><h3>กำลังตรวจ Work</h3><p>รอผลอ่านกลับจากระบบเจ้าของ</p></div>
+      </section>
+    </section>
+
+    <section class="view-panel" data-view-panel="tools" aria-labelledby="tools-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">CAPABILITY VIEW</p><h2 id="tools-title">เครื่องมือและสถานี</h2></div>
+        <span class="pill pill--unknown">ยังไม่ยืนยันครบ</span>
+      </div>
+      <p class="section-note">รายการนี้เป็นแผนที่การเชื่อมต่อ ไม่ใช่การยืนยันว่าเครื่องมือพร้อมสั่งงานจริง</p>
+      <div class="card-grid">
+        <article class="tool-card"><div class="card-top"><h3>METROPOLIS</h3><span class="pill pill--unknown">PARTIAL</span></div><p>มี read adapter สำหรับ Work; Greenhouse owner session และ inbox integration ยังไม่ยืนยันครบ</p></article>
+        <article class="tool-card"><div class="card-top"><h3>Notion</h3><span class="pill pill--unknown">UNKNOWN</span></div><p>ต่อผ่าน capability ที่ได้รับอนุญาตและคืน Page ID/URL กับ readback</p></article>
+        <article class="tool-card"><div class="card-top"><h3>Google Drive</h3><span class="pill pill--unknown">UNKNOWN</span></div><p>คืน file reference/version; ไม่คัดลอกไฟล์มาเป็น truth ซ้ำ</p></article>
+        <article class="tool-card"><div class="card-top"><h3>Observatory</h3><span class="pill pill--unknown">UNKNOWN</span></div><p>ใช้สำหรับ observation และ evidence ไม่ใช่หลักฐานว่าได้ execute action</p></article>
+        <article class="tool-card"><div class="card-top"><h3>Factory</h3><span class="pill pill--unknown">UNKNOWN</span></div><p>ต้องยืนยัน runner ที่ลงทะเบียนและ source/runtime readback ก่อนเรียก production-ready</p></article>
+        <article class="tool-card"><div class="card-top"><h3>GitHub / Cloudflare</h3><span class="pill pill--unknown">UNKNOWN</span></div><p>แสดง commit, CI หรือ deployment ได้เมื่ออ่านจาก Owner Source จริง</p></article>
+      </div>
+    </section>
+
+    <section class="view-panel" data-view-panel="express" aria-labelledby="express-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">PIXIE EXPRESS</p><h2 id="express-title">เส้นทางรับและส่งงาน</h2></div>
+        <span class="pill pill--unknown">RUNTIME UNKNOWN</span>
+      </div>
+      <div class="flow-card">
+        <p class="flow-line"><strong>METROPOLIS</strong><span>→</span><strong>PIXIE Branch</strong><span>→</span><strong>Greenhouse</strong><span>→</span><strong>PIXIE HQ</strong><span>→</span><strong>Existing Runner / Tool</strong></p>
+        <p>Branch ตรวจ Parcel เบื้องต้น; HQ route/queue/track; Runner หรือ Station ที่มีอยู่เป็นผู้ลงมือทำ ไม่มีสถานะ Parcel จำลองในหน้านี้</p>
+        <div class="empty empty--compact"><span class="empty-icon">↻</span><h3>ยังไม่มี live tracking</h3><p>จะแสดงรายการเมื่อมี event/receipt จากระบบเจ้าของและ Hub เดิม</p></div>
+      </div>
+    </section>
+
+    <section class="view-panel" data-view-panel="artifacts" aria-labelledby="artifacts-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">ARTIFACT REFERENCES</p><h2 id="artifacts-title">ไฟล์และผลลัพธ์</h2></div>
+        <span class="pill pill--unknown">ยังไม่เชื่อม</span>
+      </div>
+      <div class="empty empty--panel"><span class="empty-icon">⌑</span><h3>ยังไม่มี Artifact จากระบบต้นทาง</h3><p>Greenhouse จะแสดง reference, version และ checksum เมื่อ adapter ที่ได้รับอนุญาตส่งข้อมูลกลับมา โดยไม่สร้างสำเนาไฟล์หรือ artifact ปลอม</p></div>
+    </section>
+
+    <section class="view-panel" data-view-panel="observatory" aria-labelledby="observatory-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">OBSERVATION ≠ EXECUTION</p><h2 id="observatory-title">Observatory / Evidence</h2></div>
+        <span class="pill pill--unknown">ยังไม่เชื่อม</span>
+      </div>
+      <div class="empty empty--panel"><span class="empty-icon">⌖</span><h3>ยังไม่มี observation ที่อ่านกลับได้</h3><p>เมื่อเชื่อมแล้ว จะแสดง source, observedAt, evidence และข้อจำกัด โดยไม่ยกระดับการสังเกตเป็น authority หรือผลปฏิบัติงาน</p></div>
+    </section>
+
+    <section class="view-panel" data-view-panel="review" aria-labelledby="review-title" hidden>
+      <div class="section-head">
+        <div><p class="eyebrow">AUTOMATION BOUNDARY</p><h2 id="review-title">การทำงานอัตโนมัติและ Review</h2></div>
+        <span class="pill pill--unknown">POLICY PREVIEW</span>
+      </div>
+      <div class="review-grid">
+        <article class="review-card"><span class="review-mark">01</span><h3>งานปกติใน scope</h3><p>ทำอัตโนมัติได้จนจบ พร้อม receipt/evidence/readback จากแหล่งจริง ไม่ต้องให้ GO/LIGHT อนุมัติทุกขั้น</p></article>
+        <article class="review-card review-card--hold"><span class="review-mark">02</span><h3>Final action / งานเสี่ยงสูง</h3><p>หยุดก่อน action สุดท้าย ให้ GO และ LIGHT ตรวจทั้งคู่ แล้วส่งให้ผู้มีอำนาจดำเนินการเอง</p></article>
+      </div>
+      <p class="section-note">Review นี้เป็นแนวทาง UI เท่านั้น ยังไม่มี review queue หรือ command adapter เปิดใช้งาน</p>
+    </section>
+
+    <section class="safety"><span aria-hidden="true">⌑</span><p><strong>ขอบเขต:</strong> Greenhouse เป็น Owner Workspace และ readback surface ไม่ใช่ Work Ledger, Owner Source, Runner หรือ release authority. ใบรับงานแปลว่ารับ/ส่งข้อมูลแล้ว ไม่ได้พิสูจน์ว่าเครื่องมือทำงานสำเร็จ</p></section>
   </main>
-  <footer><span>Greenhouse · หน้ารับข้อมูล</span><span>เก็บเฉพาะหน้าแอปออฟไลน์ · ไม่เก็บข้อมูลส่วนตัว</span></footer>
+
+  <footer><span>Greenhouse · All-in-One AI Workplace</span><span>เก็บเฉพาะหน้าแอปออฟไลน์ · ไม่เก็บข้อมูลส่วนตัว</span></footer>
   <script type="module" src="/greenhouse/app.js"></script>
 </body>
 </html>

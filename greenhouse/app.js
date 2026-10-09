@@ -5,6 +5,7 @@ const statusHeading = document.querySelector('#status-heading');
 const statusPill = document.querySelector('#status-pill');
 const statusDetail = document.querySelector('#status-detail');
 const inbox = document.querySelector('#inbox');
+const workList = document.querySelector('#work-list');
 const refreshButton = document.querySelector('#refresh');
 
 function text(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
@@ -19,14 +20,28 @@ function setConnection(key, detail = null) {
 function showMessage(key, observedAt = null) {
   const state = getConnectionState(key);
   const detail = observedAt && key === 'connectedEmpty'
-    ? state.inboxDetail + ' ' + observedAt + '.'
+    ? state.inboxDetail + ' ' + text(observedAt) + '.'
     : state.inboxDetail;
-  inbox.innerHTML = '<div class="empty"><span class="empty-icon">' + text(state.icon) + '</span><h3>' + text(state.inboxTitle) + '</h3><p>' + text(detail) + '</p></div>';
+  const markup = '<div class="empty"><span class="empty-icon">' + text(state.icon) + '</span><h3>' + text(state.inboxTitle) + '</h3><p>' + text(detail) + '</p></div>';
+  inbox.innerHTML = markup;
+  workList.innerHTML = markup;
 }
 function showFailure(code) {
   const key = getErrorState(code);
   setConnection(key);
   showMessage(key);
+}
+function renderWorkItem(item) {
+  const ownerSource = text(item.ownerSource || 'UNKNOWN');
+  const observedAt = text(item.observedAt || 'UNKNOWN');
+  const freshness = text(item.freshness || 'UNKNOWN');
+  const confidence = text(item.confidence || 'UNKNOWN');
+  const workId = text(item.workId || 'ไม่มี Work ID ในผลอ่านกลับ');
+  const title = text(item.title || 'ผลอ่านกลับจากระบบเจ้าของ');
+  const nextAction = item.nextAction
+    ? text(item.nextAction)
+    : 'UNKNOWN — ยังไม่มี Next Action ใน readback contract';
+  return `<article class="readback"><h3>${title}</h3><p>แหล่งข้อมูล: ${ownerSource} · ความเชื่อมั่น: ${confidence}</p><p>เวลาที่ตรวจ: ${observedAt} · ความใหม่: ${freshness}</p><code>${workId}</code><p class="readback-next"><strong>Next Action:</strong> ${nextAction}</p></article>`;
 }
 async function loadInbox() {
   refreshButton.disabled = true;
@@ -42,18 +57,34 @@ async function loadInbox() {
     const payload = await response.json();
     if (!response.ok || !Array.isArray(payload.items)) { showFailure(payload.code || 'HUB_READBACK_FAILED'); return; }
     if (!payload.items.length) {
-      setConnection('connectedEmpty', 'อ่านจาก Hub แบบ read-only แล้ว · เวลาที่ตรวจ ' + text(payload.observedAt || 'UNKNOWN'));
-      showMessage('connectedEmpty', text(payload.observedAt || 'UNKNOWN'));
+      setConnection('connectedEmpty', 'อ่านจาก Hub แบบ read-only แล้ว · เวลาที่ตรวจ ' + (payload.observedAt || 'UNKNOWN'));
+      showMessage('connectedEmpty', payload.observedAt || 'UNKNOWN');
       return;
     }
     setConnection('connected');
-    inbox.innerHTML = payload.items.map(item => `<article class="readback"><h3>${text(item.title || 'ผลอ่านกลับจากระบบเจ้าของ')}</h3><p>แหล่งข้อมูล: ${text(item.ownerSource || 'UNKNOWN')} · ความเชื่อมั่น: ${text(item.confidence || 'UNKNOWN')}</p><p>เวลาที่ตรวจ: ${text(item.observedAt || 'UNKNOWN')} · ความใหม่: ${text(item.freshness || 'UNKNOWN')}</p><code>${text(item.workId || 'ไม่มี Work ID ในผลอ่านกลับ')}</code></article>`).join('');
+    const readbacks = payload.items.map(renderWorkItem).join('');
+    inbox.innerHTML = readbacks;
+    workList.innerHTML = readbacks;
   } catch {
     showFailure('HUB_READBACK_FAILED');
   } finally {
     refreshButton.disabled = false;
   }
 }
+function selectView(view) {
+  for (const panel of document.querySelectorAll('[data-view-panel]')) {
+    panel.hidden = panel.dataset.viewPanel !== view;
+  }
+  for (const button of document.querySelectorAll('[data-view]')) {
+    const active = button.dataset.view === view;
+    button.classList.toggle('is-active', active);
+    button.setAttribute('aria-pressed', String(active));
+  }
+}
+document.querySelector('.workspace-nav').addEventListener('click', event => {
+  const button = event.target.closest('[data-view]');
+  if (button) selectView(button.dataset.view);
+});
 document.querySelector('#refresh').addEventListener('click', loadInbox);
 document.querySelector('#reload').addEventListener('click', loadInbox);
 loadInbox();
