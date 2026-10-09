@@ -110,11 +110,22 @@ export function createGreenhouseServer({
     const url = new URL(request.url || '/', 'http://127.0.0.1');
 
     if (url.pathname === '/api/greenhouse/status' && request.method === 'GET') {
+      // Adapter presence is not authentication: never advertise an owner session
+      // until the existing session resolver has verified this request.
+      let ownerSession = false;
+      if (ownerSessionResolver) {
+        try {
+          const session = await ownerSessionResolver(request);
+          ownerSession = typeof session?.actorId === 'string' && session.actorId.trim().length > 0;
+        } catch {
+          ownerSession = false;
+        }
+      }
       return send(response, 200, {
-        ownerSession: Boolean(ownerSessionResolver),
+        ownerSession,
         inboxReader: Boolean(inboxReader),
         eventIngress: Boolean(Object.keys(sourceRegistry).length && hubEventSink),
-        remoteCommands: Boolean(ownerSessionResolver && commandAuthorizer && hubCommandSubmitter && commandTargets.size),
+        remoteCommands: Boolean(ownerSession && commandAuthorizer && hubCommandSubmitter && commandTargets.size),
         privateDataCached: false,
       });
     }
