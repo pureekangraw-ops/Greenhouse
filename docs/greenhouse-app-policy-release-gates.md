@@ -28,6 +28,10 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 | G7: Public runtime security | Production-safe host/origin, HTTPS, auth boundaries, secrets, rate limits, logs | BLOCKED — server currently localhost-only |
 | G8: Owner production approval | Explicit release authorization after live E2E | NOT GIVEN |
 
+## OAuth contract
+
+The exact candidate client/redirect requirements and remaining session-store implementation are documented in [Greenhouse ↔ Metropolis OAuth contract](greenhouse-metropolis-oauth-contract.md). This is design-only; no client, secret, callback route, Worker, DNS record, or production session was created.
+
 ## Sequence
 1. Confirm app-specific policy with the authoritative city registry/owner; reconcile conflicts before changing authority boundaries.
 2. Map existing Metropolis OAuth/session and documented Hub read/event/command interfaces; **do not invent endpoints**.
