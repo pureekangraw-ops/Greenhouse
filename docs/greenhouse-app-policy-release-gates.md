@@ -20,7 +20,7 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 | Gate | Evidence required | Current result |
 |---|---|---|
 | G1: PWA shell/manifest/service worker | HTTPS installability and offline-shell-only cache on real Android | PARTIAL — code exists; device/HTTPS unverified |
-| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PENDING — read-only adapter changed after the previous green run; require CI at the new head. |
+| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PASS — PR #6 commit `0399042dafe7ddcbf5da325c827acea5d0a27f8a`; `agents` checks succeeded in [run 37925551244](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37925551244/job/113803501825) and [run 37925544860](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37925544860/job/113803481396), completed 2026-10-09T11:44:12Z / 11:44:08Z. |
 | G3: Existing owner login | Authorized login/callback, revocation, server session, CSRF | BLOCKED — adapters absent |
 | G4: Hub inbox readback | Owner-authorized WorkContext; correct provenance/freshness; no fabricated rows | PARTIAL — one direct read-only Metropolis source proof passed; Greenhouse server OAuth and inbox/list connection remain blocked |
 | G5: Event source → Hub receipt → replay | Registered source, signed envelope, dedupe and real Hub receipt | BLOCKED — event sink/registration absent |
@@ -72,14 +72,6 @@ A green CI alone never closes an integration gate. Track each phase as PASS / BL
 - The subsequent `metropolis_work(action=read)` returned the matching Work/checkpoint, `ownerSystem: GO`, state `RECEIVED`, and a `READ_WORK` receipt observed at `2026-10-09T11:40:32.539Z`; `persisted: false`, `workTruthChanged: false`, and `ownerExecutionVerified: false`.
 - The Work lifecycle `updatedAt` is `2026-10-07T22:27:43.984Z`; this is old lifecycle metadata, not a fresh owner-system execution observation.
 - This confirms the direct authorized Metropolis source path only. It does not prove Greenhouse's server OAuth, endpoint connectivity, or a global inbox/list API.
-
-## Read-only source proof — 2026-10-09
-
-- GO called the existing `metropolis_hermes_read` station tool on an existing Work for which the arrival station advertised `read` permission.
-- The source returned a `WORK_RECORD`, matching `workId` and `checkpointId`, `ownerSystem: GO`, Work state `HANDED_OFF`, and source-side evidence/receipt references.
-- This **passes the station-side read proof only**. It does not prove Greenhouse server OAuth, an authorized Inbox list, a Greenhouse readback API, or owner-source execution completion.
-- The Work is a pre-existing factory training Work, **not** a Greenhouse Work; do not mutate it or claim it is Greenhouse's production acceptance test.
-- Release gates G3–G8 remain blocked pending their independent evidence.
 
 ### No-drop execution rules
 - Each phase must have an evidence artifact and a named blocking dependency. CI success only satisfies G2.
