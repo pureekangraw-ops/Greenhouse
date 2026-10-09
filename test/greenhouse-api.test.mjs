@@ -180,3 +180,16 @@ test('command receipt with unknown state cannot be presented as accepted', async
   assert.equal(result.state, 'UNKNOWN');
   assert.equal(result.execution, 'NOT_ASSERTED');
 });
+
+test('Hub event receipt with blank identifier is rejected rather than reported as delivered', async t => {
+  const base = await withServer(t, {
+    sourceRegistry,
+    hubEventSink: async () => ({ receiptId: '   ', duplicate: false }),
+  });
+  const body = JSON.stringify(envelope);
+  const response = await fetch(base + '/api/greenhouse/events', {
+    method: 'POST', headers: signedHeaders(body), body,
+  });
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { code: 'HUB_RECEIPT_INVALID' });
+});
