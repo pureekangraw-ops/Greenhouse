@@ -37,3 +37,26 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 
 ## Change boundary
 This PR only introduces an optional install button and Thai browser installation guidance. It does not authorize deployment, create a Worker, enable remote commands, or claim real inbox integration. Observatory and other apps are out of scope.
+
+## 2026-10-09 live Metropolis discovery (GO)
+
+- Verified station arrival: Metropolis release `1.0.0`, source SHA `092274f87033db7476477e756febe9206689a055`; schema refresh on arrival.
+- Existing station declares `metropolis_hermes_read` (read-only existing Work by workId), `metropolis_work` (read/handoff/return/cancel/complete) and `metropolis_reception`. These are **ChatGPT connection capabilities**, not automatically callable Greenhouse backend endpoints.
+- GO arrival returned existing authorized Work pointers and Work Pass permissions. This proves the connected GO identity can discover/read selected Work, **not** that Greenhouse has an OAuth session or an authorized inbox/list operation.
+- **Gap:** no Greenhouse-specific inbox-list, event-ingress or command-submission API contract was established from station discovery. Do not repurpose privileged `metropolis_work` actions as Greenhouse commands without documented operation permissions and owner approval.
+- **Next verification:** request owner-approved server OAuth integration, document the exact Hub read contract, and prove a single read-only Work readback with actor/WorkContext/provenance before adding event/command routes.
+- **Fallback if no list endpoint exists:** support an owner-authorized exact Work ID lookup first; do not fabricate a global inbox by scraping station Work pointers.
+
+## Execution ownership and anti-drop checklist
+
+| Phase | Dependency | Owner | Exit evidence | If blocked |
+|---|---|---|---|---|
+| Identity | Existing owner OAuth flow and server-side session | Identity owner + GO | Authorized login, revoke and CSRF tests | Keep PWA disconnected; do not copy ChatGPT token |
+| Read-only proof | Authorized Hub Work read contract | Hub owner + GO | One existing Work with provenance, actor and fresh readback | Exact Work ID lookup only if contract permits |
+| Inbox | Authorized list/cursor contract | Hub owner + GO | Real rows, pagination, permission denial, no stale data | Explicitly show unavailable; no fake rows |
+| Events | Source registry, signed ingress and Hub receipt | Source owner + Hub + GO | Signature, dedupe, real receipt and replay | Disable event ingress |
+| Commands | Operation authorization and idempotent Hub submission | Hub owner + GO | Deny wrong Work/Checkpoint, receipt plus owner-source readback | Disable remote commands |
+| Runtime | Approved host, HTTPS, secrets and security controls | Deployment owner + GO | Live E2E, Android install/offline test | Keep local preview only |
+| Release | Owner approval and rollback plan | Owner + release operator | Signed-off gates G1–G8 | No merge/deploy |
+
+A green CI alone never closes an integration gate. Track each phase as PASS / BLOCKED / UNKNOWN with links to actual proof; do not advance by assumption.
