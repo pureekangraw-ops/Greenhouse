@@ -1,3 +1,5 @@
+import { getConnectionState, getErrorState } from './ui-state.mjs';
+
 const connection = document.querySelector('#connection');
 const statusHeading = document.querySelector('#status-heading');
 const statusPill = document.querySelector('#status-pill');
@@ -6,35 +8,50 @@ const inbox = document.querySelector('#inbox');
 const refreshButton = document.querySelector('#refresh');
 
 function text(value) { return String(value ?? '').replace(/[&<>"']/g, ch => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[ch])); }
-function offline(code = 'HUB_READER_UNAVAILABLE') {
-  connection.innerHTML = '<i></i> Not connected';
-  statusHeading.textContent = 'Not connected';
-  statusPill.textContent = 'UNKNOWN';
-  statusPill.className = 'pill pill--unknown';
-  statusDetail.textContent = code === 'OWNER_SESSION_REQUIRED'
-    ? 'Sign in through the existing owner-authenticated Hub route to view private Work.'
-    : 'The offline app shell is ready. No private work data is cached or shown.';
-  inbox.innerHTML = '<div class="empty"><span class="empty-icon">↻</span><h3>No verified readbacks yet</h3><p>Connect the authorized Hub reader to load existing Work. Greenhouse will not create Work or infer status.</p></div>';
+function setConnection(key, detail = null) {
+  const state = getConnectionState(key);
+  connection.innerHTML = '<i></i> ' + text(state.connection);
+  statusHeading.textContent = state.heading;
+  statusPill.textContent = state.pill;
+  statusPill.className = 'pill ' + state.className;
+  statusDetail.textContent = detail || state.detail;
+}
+function showMessage(key, observedAt = null) {
+  const state = getConnectionState(key);
+  const detail = observedAt && key === 'connectedEmpty'
+    ? state.inboxDetail + ' ' + observedAt + '.'
+    : state.inboxDetail;
+  inbox.innerHTML = '<div class="empty"><span class="empty-icon">' + text(state.icon) + '</span><h3>' + text(state.inboxTitle) + '</h3><p>' + text(detail) + '</p></div>';
+}
+function showFailure(code) {
+  const key = getErrorState(code);
+  setConnection(key);
+  showMessage(key);
 }
 async function loadInbox() {
   refreshButton.disabled = true;
+  setConnection('loading');
+  showMessage('loading');
   try {
     const statusRes = await fetch('/api/greenhouse/status', {cache:'no-store', credentials:'same-origin'});
     const status = await statusRes.json();
-    if (!statusRes.ok) throw new Error(status.code || 'HUB_READER_UNAVAILABLE');
-    if (!status.ownerSession || !status.inboxReader) { offline('HUB_READER_UNAVAILABLE'); return; }
+    if (!statusRes.ok) { showFailure(status.code); return; }
+    if (!status.ownerSession || !status.inboxReader) { showFailure('HUB_READER_UNAVAILABLE'); return; }
     const response = await fetch('/api/greenhouse/inbox', {cache:'no-store', credentials:'same-origin'});
     const payload = await response.json();
-    if (!response.ok || !Array.isArray(payload.items)) throw new Error(payload.code || 'HUB_READER_UNAVAILABLE');
-    connection.innerHTML = '<i></i> Authorized reader connected';
-    statusHeading.textContent = 'Reader connected';
-    statusPill.textContent = 'CONNECTED';
-    statusPill.className = 'pill pill--online';
-    statusDetail.textContent = 'Read-only data is returned by the authorized Hub. Observed at ' + text(payload.observedAt || 'UNKNOWN') + '.';
-    if (!payload.items.length) { inbox.innerHTML = '<div class="empty"><span class="empty-icon">✓</span><h3>No current readbacks</h3><p>The authorized Hub reader returned an empty inbox at ' + text(payload.observedAt) + '.</p></div>'; return; }
-    inbox.innerHTML = payload.items.map(item => `<article class="readback"><h3>${text(item.title || 'Owner readback')}</h3><p>Source: ${text(item.ownerSource || 'UNKNOWN')} · Confidence: ${text(item.confidence || 'UNKNOWN')}</p><p>Observed: ${text(item.observedAt || 'UNKNOWN')} · Freshness: ${text(item.freshness || 'UNKNOWN')}</p><code>${text(item.workId || 'No Work ID supplied')}</code></article>`).join('');
-  } catch (error) { offline(String(error.message || 'HUB_READER_UNAVAILABLE')); }
-  finally { refreshButton.disabled = false; }
+    if (!response.ok || !Array.isArray(payload.items)) { showFailure(payload.code || 'HUB_READBACK_FAILED'); return; }
+    if (!payload.items.length) {
+      setConnection('connectedEmpty', 'อ่านจาก Hub แบบ read-only แล้ว · เวลาที่ตรวจ ' + text(payload.observedAt || 'UNKNOWN'));
+      showMessage('connectedEmpty', text(payload.observedAt || 'UNKNOWN'));
+      return;
+    }
+    setConnection('connected');
+    inbox.innerHTML = payload.items.map(item => `<article class="readback"><h3>${text(item.title || 'ผลอ่านกลับจากระบบเจ้าของ')}</h3><p>แหล่งข้อมูล: ${text(item.ownerSource || 'UNKNOWN')} · ความเชื่อมั่น: ${text(item.confidence || 'UNKNOWN')}</p><p>เวลาที่ตรวจ: ${text(item.observedAt || 'UNKNOWN')} · ความใหม่: ${text(item.freshness || 'UNKNOWN')}</p><code>${text(item.workId || 'ไม่มี Work ID ในผลอ่านกลับ')}</code></article>`).join('');
+  } catch {
+    showFailure('HUB_READBACK_FAILED');
+  } finally {
+    refreshButton.disabled = false;
+  }
 }
 document.querySelector('#refresh').addEventListener('click', loadInbox);
 document.querySelector('#reload').addEventListener('click', loadInbox);

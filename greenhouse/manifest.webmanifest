@@ -1,7 +1,7 @@
 {
-  "name": "Greenhouse Owner Inbox",
+  "name": "Greenhouse · กล่องรับงานเจ้าของ",
   "short_name": "Greenhouse",
-  "description": "Owner inbox for verified readbacks from existing authorized systems.",
+  "description": "กล่องรับผลอ่านกลับจากระบบเดิมที่ได้รับอนุญาต",
   "start_url": "/greenhouse/",
   "scope": "/greenhouse/",
   "display": "standalone",

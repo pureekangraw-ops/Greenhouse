@@ -14,6 +14,7 @@ const staticFiles = new Map([
   ['/greenhouse/', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/index.html', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/app.js', ['greenhouse/app.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/ui-state.mjs', ['greenhouse/ui-state.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/app.css', ['greenhouse/app.css', 'text/css; charset=utf-8']],
   ['/greenhouse/manifest.webmanifest', ['greenhouse/manifest.webmanifest', 'application/manifest+json; charset=utf-8']],
   ['/greenhouse/icon.svg', ['greenhouse/icon.svg', 'image/svg+xml; charset=utf-8']],
