@@ -14,36 +14,102 @@
     "limitations"
   ],
   "properties": {
-    "reportId": { "type": "string", "minLength": 1 },
+    "reportId": {
+      "type": "string",
+      "minLength": 1
+    },
     "requestedBy": {
       "type": "string",
-      "enum": ["SHOP", "OFFICE", "GREENHOUSE"]
+      "enum": [
+        "SHOP",
+        "OFFICE",
+        "GREENHOUSE"
+      ]
     },
-    "observedAt": { "type": "string", "format": "date-time" },
-    "workId": { "type": ["string", "null"] },
-    "ownerSource": { "type": "string", "minLength": 1 },
+    "observedAt": {
+      "type": "string",
+      "format": "date-time"
+    },
+    "workId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ownerSource": {
+      "type": "string",
+      "minLength": 1
+    },
     "freshness": {
       "type": "string",
-      "enum": ["CURRENT", "STALE", "UNKNOWN"]
+      "enum": [
+        "CURRENT",
+        "STALE",
+        "UNKNOWN"
+      ]
     },
     "workStatus": {
-      "type": ["string", "null"],
-      "enum": ["BLOCKED", "WAITING", null]
+      "type": [
+        "string",
+        "null"
+      ],
+      "enum": [
+        "BLOCKED",
+        "WAITING",
+        null
+      ]
     },
     "confidence": {
       "type": "string",
-      "enum": ["CONFIRMED", "PROBABLE", "UNKNOWN"]
+      "enum": [
+        "CONFIRMED",
+        "PROBABLE",
+        "UNKNOWN"
+      ]
     },
     "evidence": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "nextAction": { "type": ["string", "null"] },
+    "nextAction": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
     "limitations": {
       "type": "array",
-      "items": { "type": "string" }
+      "items": {
+        "type": "string"
+      }
     },
-    "receiptId": { "type": ["string", "null"] }
+    "receiptId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "checkpointId": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "ownerState": {
+      "type": [
+        "string",
+        "null"
+      ]
+    },
+    "sourceUpdatedAt": {
+      "type": [
+        "string",
+        "null"
+      ],
+      "format": "date-time"
+    }
   },
   "additionalProperties": false
 }
