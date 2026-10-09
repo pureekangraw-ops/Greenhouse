@@ -35,7 +35,8 @@ test('PWA install is user-initiated and does not turn a missing Hub into a conne
   assert.match(app, /beforeinstallprompt/);
   assert.match(app, /installButton\.addEventListener\('click'/);
   assert.match(app, /await prompt\.prompt\(\)/);
-  assert.match(app, /if \(!status\.ownerSession \|\| !status\.inboxReader\)/);
+  assert.match(app, /if \(!status\.ownerSession\)/);
+  assert.match(app, /if \(!status\.inboxReader\)/);
   assert.equal(manifest.display, 'standalone');
   assert.equal(manifest.scope, '/greenhouse/');
   assert.match(sw, /url\.pathname\.startsWith\('\/api\/'\)/);
