@@ -60,3 +60,16 @@ This PR only introduces an optional install button and Thai browser installation
 | Release | Owner approval and rollback plan | Owner + release operator | Signed-off gates G1–G8 | No merge/deploy |
 
 A green CI alone never closes an integration gate. Track each phase as PASS / BLOCKED / UNKNOWN with links to actual proof; do not advance by assumption.
+
+## Read-only source proof — 2026-10-09
+
+- GO called the existing `metropolis_hermes_read` station tool on an existing Work for which the arrival station advertised `read` permission.
+- The source returned a `WORK_RECORD`, matching `workId` and `checkpointId`, `ownerSystem: GO`, Work state `HANDED_OFF`, and source-side evidence/receipt references.
+- This **passes the station-side read proof only**. It does not prove Greenhouse server OAuth, an authorized Inbox list, a Greenhouse readback API, or owner-source execution completion.
+- The Work is a pre-existing factory training Work, **not** a Greenhouse Work; do not mutate it or claim it is Greenhouse's production acceptance test.
+- Release gates G3–G8 remain blocked pending their independent evidence.
+
+### No-drop execution rules
+- Each phase must have an evidence artifact and a named blocking dependency. CI success only satisfies G2.
+- Continue independent code/test work while waiting for auth/Hub interface approval; never silently substitute fake tokens or fixtures for live proof.
+- Never merge/deploy solely from a generic authorization to develop: verify rollout origin, secrets, real Android install, rollback, and release approval at the actual boundary.
