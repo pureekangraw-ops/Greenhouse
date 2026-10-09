@@ -95,3 +95,35 @@ test('commands refuse by default; configured relay receives server actor and req
   assert.equal(denied.status, 400);
   assert.equal((await denied.json()).code, 'COMMAND_SCHEMA_INVALID');
 });
+
+test('status reflects authenticated owner session, not installed adapter alone', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => null,
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal(response.status, 200);
+  const status = await response.json();
+  assert.equal(status.ownerSession, false);
+  assert.equal(status.inboxReader, true);
+  assert.equal(status.remoteCommands, false);
+});
+
+test('status treats a throwing owner session resolver as logged out', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => { throw new Error('session unavailable'); },
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).ownerSession, false);
+});
+
+test('status reports owner session only when actor was verified', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal((await response.json()).ownerSession, true);
+});
