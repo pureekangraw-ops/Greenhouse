@@ -156,3 +156,27 @@ test('blank owner actor cannot read private inbox', async t => {
   const status = await (await fetch(base + '/api/greenhouse/status')).json();
   assert.equal(status.ownerSession, false);
 });
+
+test('command receipt with unknown state cannot be presented as accepted', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner', csrfToken: 'csrf' }),
+    commandAuthorizer: async ({ command }) => ({
+      authorized: true, actorId: 'owner', target: command.target,
+      workId: command.workId, checkpointId: command.checkpointId,
+    }),
+    hubCommandSubmitter: async () => ({ receiptId: 'receipt-1' }),
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const cmd = {
+    schemaVersion: 'greenhouse.command.v1', commandId: 'cmd-safe', idempotencyKey: 'idem-safe',
+    target: 'existing.test.handoff', workId: 'WORK-123', checkpointId: 'WORK-123:CP-1',
+    intent: 'request verified handoff', requestedAt: new Date(now).toISOString(),
+  };
+  const response = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST', headers: { origin: base, 'x-csrf-token': 'csrf' }, body: JSON.stringify(cmd),
+  });
+  assert.equal(response.status, 202);
+  const result = await response.json();
+  assert.equal(result.state, 'UNKNOWN');
+  assert.equal(result.execution, 'NOT_ASSERTED');
+});
