@@ -52,7 +52,10 @@ function sanitizeInboxResult(result) {
   if (!result || !Array.isArray(result.items) || result.items.length > 100 ||
       typeof result.observedAt !== 'string' || !Number.isFinite(Date.parse(result.observedAt)) ||
       (result.nextCursor != null && (typeof result.nextCursor !== 'string' || result.nextCursor.length > 512))) return null;
-  const fields = ['title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId'];
+  const fields = [
+    'title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId',
+    'checkpointId', 'ownerState', 'workStatus', 'sourceUpdatedAt', 'nextAction',
+  ];
   const items = [];
   for (const item of result.items) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -60,6 +63,13 @@ function sanitizeInboxResult(result) {
     for (const field of fields) {
       if (item[field] != null) {
         if (typeof item[field] !== 'string' || item[field].length > 512) return null;
+        safe[field] = item[field];
+      }
+    }
+    for (const field of ['evidence', 'limitations']) {
+      if (item[field] != null) {
+        if (!Array.isArray(item[field]) || item[field].length > 16 ||
+            item[field].some(value => typeof value !== 'string' || value.length > 512)) return null;
         safe[field] = item[field];
       }
     }

@@ -1,7 +1,7 @@
 {
-  "name": "Greenhouse · กล่องรับงานเจ้าของ",
+  "name": "Greenhouse · All-in-One AI Workplace",
   "short_name": "Greenhouse",
-  "description": "กล่องรับผลอ่านกลับจากระบบเดิมที่ได้รับอนุญาต",
+  "description": "Owner Workspace สำหรับทำงานต่อเนื่องและใช้เครื่องมือจากที่เดียว",
   "start_url": "/greenhouse/",
   "scope": "/greenhouse/",
   "display": "standalone",
