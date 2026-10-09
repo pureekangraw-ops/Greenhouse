@@ -143,3 +143,16 @@ test('status never advertises remote commands when owner session is absent', asy
   });
   assert.equal(denied.status, 401);
 });
+
+test('blank owner actor cannot read private inbox', async t => {
+  let reads = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: '   ' }),
+    inboxReader: async () => { reads++; return { items: [], observedAt: new Date(now).toISOString() }; },
+  });
+  const response = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(response.status, 401);
+  assert.equal(reads, 0);
+  const status = await (await fetch(base + '/api/greenhouse/status')).json();
+  assert.equal(status.ownerSession, false);
+});
