@@ -20,9 +20,9 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 | Gate | Evidence required | Current result |
 |---|---|---|
 | G1: PWA shell/manifest/service worker | HTTPS installability and offline-shell-only cache on real Android | PARTIAL — code exists; device/HTTPS unverified |
-| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PASS — PR #6 head `ee70b1e5f36ec0aa52f6d54f66cc1b8228751a70`; `agents` checks succeeded in [run 37921402304](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37921402304/job/113789930093) and [run 37921389825](https://github.com/pureekangraw-ops/Greenhouse/actions/runs/37921389825/job/113789888667), observed 2026-10-09T11:03:40Z / 11:03:32Z. Recheck after changes. |
+| G2: CI/unit/policy checks | Green GitHub Actions at PR head | PENDING — read-only adapter changed after the previous green run; require CI at the new head. |
 | G3: Existing owner login | Authorized login/callback, revocation, server session, CSRF | BLOCKED — adapters absent |
-| G4: Hub inbox readback | Owner-authorized WorkContext; correct provenance/freshness; no fabricated rows | BLOCKED — inbox reader absent |
+| G4: Hub inbox readback | Owner-authorized WorkContext; correct provenance/freshness; no fabricated rows | PARTIAL — one direct read-only Metropolis source proof passed; Greenhouse server OAuth and inbox/list connection remain blocked |
 | G5: Event source → Hub receipt → replay | Registered source, signed envelope, dedupe and real Hub receipt | BLOCKED — event sink/registration absent |
 | G6: Command authorization → receipt → source readback | Explicit owner-approved operations, CSRF, replay and wrong-work denial | BLOCKED — command adapters absent |
 | G7: Public runtime security | Production-safe host/origin, HTTPS, auth boundaries, secrets, rate limits, logs | BLOCKED — server currently localhost-only |
@@ -36,7 +36,7 @@ Status: **DRAFT / not approved for production**. This is a verification checklis
 5. Obtain explicit owner approval **before** merge/deploy/production exposure.
 
 ## Change boundary
-This PR only introduces an optional install button and Thai browser installation guidance. It does not authorize deployment, create a Worker, enable remote commands, or claim real inbox integration. Observatory and other apps are out of scope.
+This PR adds the optional Thai PWA install flow and hardens the existing read-only Office adapter to refresh Metropolis arrival, verify the exact read grant, and validate the returned Work Pass/checkpoint/READ_WORK receipt. It does not add OAuth, authorize deployment, create a Worker, enable remote commands, or claim Greenhouse inbox integration. Observatory and other apps are out of scope.
 
 ## 2026-10-09 live Metropolis discovery (GO)
 
@@ -60,6 +60,18 @@ This PR only introduces an optional install button and Thai browser installation
 | Release | Owner approval and rollback plan | Owner + release operator | Signed-off gates G1–G8 | No merge/deploy |
 
 A green CI alone never closes an integration gate. Track each phase as PASS / BLOCKED / UNKNOWN with links to actual proof; do not advance by assumption.
+
+## Candidate host preflight — 2026-10-09
+
+- `greenhouse.yggmetro.com` remains a candidate only. The `yggmetro.com` Cloudflare Zone is active; an exact DNS-record lookup returned no records for the candidate, and no Worker Domain is attached to it.
+- No DNS record, Worker Domain, Worker, route, or production resource was created or changed. Host activation and deployment remain subject to BIG's approval.
+
+## Current direct read-only proof — 2026-10-09
+
+- Fresh Metropolis arrival as LIGHT at `2026-10-09T11:40:02.120Z` advertised an explicit `read` grant for one existing Work.
+- The subsequent `metropolis_work(action=read)` returned the matching Work/checkpoint, `ownerSystem: GO`, state `RECEIVED`, and a `READ_WORK` receipt observed at `2026-10-09T11:40:32.539Z`; `persisted: false`, `workTruthChanged: false`, and `ownerExecutionVerified: false`.
+- The Work lifecycle `updatedAt` is `2026-10-07T22:27:43.984Z`; this is old lifecycle metadata, not a fresh owner-system execution observation.
+- This confirms the direct authorized Metropolis source path only. It does not prove Greenhouse's server OAuth, endpoint connectivity, or a global inbox/list API.
 
 ## Read-only source proof — 2026-10-09
 
