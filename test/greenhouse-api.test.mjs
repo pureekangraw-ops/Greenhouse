@@ -220,3 +220,33 @@ test('inbox never substitutes cached or invented data after upstream failure', a
   assert.deepEqual(await failed.json(), { code: 'HUB_READBACK_FAILED' });
   assert.equal(failed.headers.get('cache-control'), 'no-store');
 });
+
+test('commands reject checkpoint from another Work before authorization or Hub submission', async t => {
+  let authorized = 0;
+  let submitted = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified', csrfToken: 'csrf' }),
+    commandAuthorizer: async () => { authorized++; return { authorized: true }; },
+    hubCommandSubmitter: async () => { submitted++; return { receiptId: 'unused' }; },
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const command = {
+    schemaVersion: 'greenhouse.command.v1',
+    commandId: 'cross-work-test',
+    idempotencyKey: 'cross-work-test',
+    target: 'existing.test.handoff',
+    workId: 'WORK-123',
+    checkpointId: 'WORK-456:CP-1',
+    intent: 'request authorized handoff',
+    requestedAt: new Date(now).toISOString(),
+  };
+  const response = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST',
+    headers: { origin: base, 'content-type': 'application/json', 'x-csrf-token': 'csrf' },
+    body: JSON.stringify(command),
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { code: 'COMMAND_SCHEMA_INVALID' });
+  assert.equal(authorized, 0);
+  assert.equal(submitted, 0);
+});
