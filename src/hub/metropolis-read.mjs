@@ -38,6 +38,16 @@ function reportFromReadback({ workId, data, now }) {
     throw new MetropolisReadError('OWNER_DELEGATION_REQUIRED', 403);
   }
   const record = read.record;
+  // Metropolis PR #46: an authorized GO caller asks HERMES to retrieve Work.
+  // The receipt is read-only and not persisted; it is NOT owner execution proof.
+  const receipt = read.receipt;
+  if (read.handledBy !== 'HERMES' || read.workTruthChanged !== false ||
+      receipt?.operation !== 'READ_WORK' || receipt?.handledBy !== 'HERMES' ||
+      receipt?.requestedBy !== 'GO' || receipt?.readbackVerified !== true ||
+      receipt?.persisted !== false || receipt?.workId !== workId ||
+      receipt?.checkpointId !== record?.checkpointId) {
+    throw new MetropolisReadError('HERMES_READBACK_REQUIRED', 409);
+  }
   if (read.readbackVerified !== true || !record ||
       record.workId !== workId || !text(record.checkpointId) ||
       !text(record.ownerSystem) || !text(record.state)) {
