@@ -18,8 +18,8 @@ test('unauthorized requests fail closed',async()=>{
  const response=await runtime.fetch(new Request('https://greenhouse.invalid/station/health'),base);
  assert.equal(response.status,401);
 });
-test('health does not equate queue bindings to verified delivery',async()=>{
+test('health does not equate downstream URL with verified delivery',async()=>{
  const response=await runtime.fetch(request('/station/health'),{...base,FACTORY_RUNTIME_URL:'https://factory.invalid',METROPOLIS_FACTORY_RAIL_SECRET:'secret'});
- assert.equal(response.status,200);
- assert.equal((await response.json()).status,'READY');
+ assert.equal(response.status,503);
+ assert.equal((await response.json()).status,'NOT_READY');
 });
