@@ -48,6 +48,12 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
             duplicate:result.duplicate,execution:'NOT_ASSERTED'},202);
         }catch(error){return json({reason:error.message==='PIXIE_ATTEMPT_COLLISION'?'PIXIE_ATTEMPT_COLLISION':'INTAKE_INVALID'},400);}
       }
+      if(url.pathname==='/station/overview'&&request.method==='GET'){
+        const storage=store||createD1PixieStore(env.PIXIE_DB,{clock});
+        if(typeof storage.overview!=='function')return json({reason:'OVERVIEW_UNAVAILABLE'},503);
+        try{return json(await storage.overview(30));}
+        catch{return json({reason:'OVERVIEW_QUERY_FAILED'},503);}
+      }
       if(url.pathname.startsWith('/station/attempt/')&&request.method==='GET'){
         const attemptId=url.pathname.slice('/station/attempt/'.length);
         if(!/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/.test(attemptId))return json({reason:'ATTEMPT_ID_INVALID'},400);

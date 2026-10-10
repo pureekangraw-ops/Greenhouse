@@ -41,6 +41,22 @@ export function createD1PixieStore(db,{clock=()=>new Date().toISOString()}={}){
       const result=await db.prepare(sql).bind(...states,limit).all();
       return (result.results||[]).map(mapRow);
     },
+    async overview(limit=30){
+      if(!Number.isSafeInteger(limit)||limit<1||limit>100)throw new TypeError('PIXIE_QUERY_INVALID');
+      const [grouped,recent]=await Promise.all([
+        db.prepare('SELECT state, COUNT(*) AS total FROM pixie_attempts GROUP BY state').all(),
+        db.prepare('SELECT * FROM pixie_attempts ORDER BY COALESCE(changed_at,received_at) DESC LIMIT ?').bind(limit).all(),
+      ]);
+      const states=Object.fromEntries((grouped.results||[]).map(r=>[r.state,Number(r.total)]));
+      const count=s=>states[s]||0;
+      return {observedAt:clock(),scope:'PIXIE_DELIVERY_ONLY',states,
+        counts:{total:Object.values(states).reduce((a,b)=>a+b,0),
+          pending:count('PENDING_QUEUE')+count('QUEUED')+count('DISPATCHING'),
+          waiting:count('WAITING_QUEUE')+count('WAITING_ROUTE'),
+          accepted:count('ACCEPTED'),uncertain:count('OUTCOME_UNKNOWN'),
+          readbackVerified:count('READBACK_VERIFIED')},
+        items:(recent.results||[]).map(mapRow)};
+    },
     async journal(attemptId,limit=100){
       if(typeof attemptId!=='string'||!Number.isSafeInteger(limit)||limit<1||limit>200)
         throw new TypeError('PIXIE_QUERY_INVALID');

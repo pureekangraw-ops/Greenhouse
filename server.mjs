@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readMetropolisWork, MetropolisReadError } from './src/hub/metropolis-read.mjs';
 import { GreenhouseEventError, parseSourceRegistry, validateSignedGreenhouseEvent } from './src/greenhouse/events.mjs';
+import { projectOperations } from './src/greenhouse/state-intelligence.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const staticFiles = new Map([
@@ -95,7 +96,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
  */
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
-  hubEventSink = null, ownerSessionResolver = null, inboxReader = null,
+  hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
   commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
@@ -129,6 +130,30 @@ export function createGreenhouseServer({
         remoteCommands: Boolean(ownerSession && commandAuthorizer && hubCommandSubmitter && commandTargets.size),
         privateDataCached: false,
       });
+    }
+    if (url.pathname === '/api/greenhouse/operations') {
+      if (request.method !== 'GET') return send(response, 405, { code: 'READ_ONLY' });
+      if (!ownerSessionResolver || !operationsReader) return send(response, 503, { code: 'OPERATIONS_READER_UNAVAILABLE' });
+      if ([...url.searchParams.keys()].some(k => k !== 'workId') ||
+        url.searchParams.getAll('workId').length > 1) return send(response, 400, { code: 'WORK_ID_INVALID' });
+      const workId = url.searchParams.get('workId') || null;
+      if (workId && !/^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(workId))
+        return send(response, 400, { code: 'WORK_ID_INVALID' });
+      let session;
+      try { session = await ownerSessionResolver(request); }
+      catch { return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' }); }
+      if (typeof session?.actorId !== 'string' || !session.actorId.trim())
+        return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+      try {
+        const events = await operationsReader({ session, workId });
+        if (!Array.isArray(events) || events.length > 2000)
+          return send(response, 502, { code: 'OPERATION_JOURNAL_INVALID' });
+        const result = projectOperations(events, { now: new Date(now()).toISOString() });
+        return send(response, 200, { observedAt: result.observedAt,
+          counts: result.counts, items: result.items.slice(0, 50) });
+      } catch {
+        return send(response, 502, { code: 'OPERATION_JOURNAL_UNVERIFIED' });
+      }
     }
     if (url.pathname === '/api/greenhouse/inbox') {
       if (request.method !== 'GET') return send(response, 405, { code: 'READ_ONLY' });
