@@ -13,7 +13,7 @@ Work continuity: WORK-190aa284-e3aa-4de9-90fd-d33c290ef236 (existing Hall Work; 
 
 - src/greenhouse/state-intelligence.mjs: validates journal events and interprets Hall, PIXIE and Tool lanes without conflating completion.
 - src/pixie/delivery-runtime.mjs: idempotent intake, atomic consumer claim, ambiguous-outcome handling, verified readback and outbox recovery.
-- src/pixie/d1-store.mjs + migrations/001_pixie_operations.sql: durable attempts and SQL-triggered state journal.
+- src/pixie/d1-store.mjs + migrations/001_pixie_operations.sql: adapter and additive migration for existing pixie_deliveries and pixie_delivery_events (no duplicate tables).
 - src/pixie/transport-worker.mjs: signed existing City-to-Greenhouse transport boundary, intake/health/readback endpoints and Queue consumer.
 - test/state-intelligence.test.mjs, test/pixie-runtime.test.mjs, test/pixie-worker.test.mjs: negative and acceptance tests.
 
@@ -31,10 +31,14 @@ Persist attempt first, then enqueue. A queue-send failure remains in D1 as WAITI
 
 1. Run the Node test suite and SQL migration tests.
 2. Review existing Metropolis-to-Greenhouse rail contract; bind only an approved service dispatcher and server-side rail secret.
-3. Apply the D1 migration to the existing PIXIE_DB database and attach the existing pixie-delivery-v1 Queue consumer in the controlled rollout.
+3. Verify and apply the additive D1 migration to the existing PIXIE_DB tables and attach the existing pixie-delivery-v1 Queue consumer in the controlled rollout.
 4. Verify one authorized end-to-end Work intake, duplicate receipt, destination readback and failure recovery.
 5. Only then report live READY. No automatic production merge/deploy from this draft slice.
 
 ### Why this is not a new gate
 
 The boundary verifies the existing City's signed delivery. It neither creates a new identity issuer nor grants any fresh Work permission. Route selection uses existing capability/capacity snapshots and refuses unknown alternate routes.
+
+## 2026-10-10 source discovery
+
+Live PIXIE_DB already contains pixie_deliveries and pixie_delivery_events with zero rows at inspection time. Therefore the adapter was changed to extend/reuse those tables; do not create pixie_attempts or a parallel journal. This avoids two conflicting operational truths.
