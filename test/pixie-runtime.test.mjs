@@ -119,3 +119,12 @@ test('ambiguous transport reconciles stored receipt without executing again',asy
  await recovery.recover();
  assert.equal((await s.store.get(job.attemptId)).state,'READBACK_VERIFIED');assert.equal(s.messages.length,1);
 });
+test('City proof of no send recovers the same uncertain job without inventing an attempt',async()=>{
+ const s=setup({dispatch:async()=>{throw new Error('reply unavailable');}});
+ await s.runtime.intake(job);await s.runtime.consume({attemptId:job.attemptId});
+ const recovery=createPixieDeliveryRuntime({store:s.store,queue:s.queue,clock:s.clock,
+  readback:async()=>({notSent:true,reason:'FACTORY_STATION_NOT_READY'})});
+ await recovery.recover();
+ assert.equal((await s.store.get(job.attemptId)).state,'QUEUED');
+ assert.deepEqual(s.messages,[{attemptId:job.attemptId},{attemptId:job.attemptId}]);
+});

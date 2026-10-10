@@ -95,7 +95,14 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=
     for(const item of stale)if(Date.parse(clock())-Date.parse(item.dispatchedAt)>120000)
       await store.transition(item.attemptId,['DISPATCHING'],'OUTCOME_UNKNOWN',{reason:'DISPATCH_INTERRUPTED_READBACK_REQUIRED'});
     if(typeof readback==='function')for(const item of await store.listByState(['ACCEPTED','OUTCOME_UNKNOWN'],limit)){
-      try{const reply=await readback(item);if(reply?.verified===true)await recordReadback({...reply,attemptId:item.attemptId});}catch{}
+      try{
+        const reply=await readback(item);
+        if(reply?.verified===true)await recordReadback({...reply,attemptId:item.attemptId});
+        else if(reply?.notSent===true){
+          await store.transition(item.attemptId,[item.state],'WAITING_ROUTE',{reason:reply.reason||'DESTINATION_NOT_READY'});
+          if((item.retryCount||0)<5)results.push(await queueAttempt(item.attemptId));
+        }
+      }catch{}
     }
     return results;
   }
