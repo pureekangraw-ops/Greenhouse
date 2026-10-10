@@ -250,7 +250,18 @@ export function createGreenhouseServer({
         return send(response, 400, { code: 'WORK_ID_INVALID' });
       }
       try {
-        const report = await readMetropolisWork({ workId: url.searchParams.get('workId'), token, fetchImpl, now });
+        // Prefer the existing verified owner session; never accept a token from the browser.
+        let workToken = token;
+        if (ownerSessionResolver) {
+          const session = await ownerSessionResolver(request);
+          if (typeof session?.actorId !== 'string' || !session.actorId.trim() ||
+              typeof session?.accessToken !== 'string' || !session.accessToken) {
+            return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+          }
+          workToken = session.accessToken;
+        }
+        if (!workToken) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+        const report = await readMetropolisWork({ workId: url.searchParams.get('workId'), token: workToken, fetchImpl, now });
         return send(response, 200, { source: 'METROPOLIS_OWNER_READBACK', report });
       } catch (error) {
         const known = error instanceof MetropolisReadError;
