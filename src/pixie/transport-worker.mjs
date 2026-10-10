@@ -105,27 +105,24 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
 // The station must supply its own authorized dispatch URL and credential.
 function existingCityDispatch(env) {
   return async record => {
-    if (!env.METROPOLIS_STATION_DISPATCH_URL || !env.METROPOLIS_STATION_DISPATCH_TOKEN)
-      return { notSent: true, reason: 'DESTINATION_NOT_CONFIGURED' };
-    const destination = new URL(env.METROPOLIS_STATION_DISPATCH_URL);
-    if (destination.protocol !== 'https:') return { notSent: true, reason: 'DESTINATION_NOT_HTTPS' };
-    const reply = await fetch(destination, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        authorization: 'Bearer ' + env.METROPOLIS_STATION_DISPATCH_TOKEN,
-      },
-      body: JSON.stringify({
-        workId: record.workId, checkpointId: record.checkpointId,
-        attemptId: record.attemptId, stationId: record.stationId,
-        operation: record.operation, workPassRef: record.workPassRef,
-        actor: record.actor,
+    // A Cloudflare Service Binding is the preferred private transport.
+    // The receiving Metropolis station still validates the existing Work Pass.
+    if (!env.METROPOLIS_SERVICE?.fetch)
+      return { notSent: true, reason: 'METROPOLIS_SERVICE_NOT_BOUND' };
+    const reply = await env.METROPOLIS_SERVICE.fetch(
+      new Request('https://metropolis.internal/station/dispatch', {
+        method: 'POST',
+        headers: { 'content-type': 'application/json' },
+        body: JSON.stringify({
+          workId: record.workId, checkpointId: record.checkpointId,
+          attemptId: record.attemptId, stationId: record.stationId,
+          operation: record.operation, workPassRef: record.workPassRef,
+          actor: record.actor,
+        }),
       }),
-      redirect: 'error',
-    });
+    );
     if (!reply.ok) return { accepted: false };
-    const result = await reply.json();
-    return result;
+    return reply.json();
   };
 }
 const worker = {
