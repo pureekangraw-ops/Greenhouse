@@ -101,4 +101,42 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
 }
 // No implicit Metropolis adapter: production remains NOT_READY until the
 // existing authorized City dispatch contract is explicitly wired and verified.
-export default createPixieWorker();
+// Use the existing Metropolis station contract as the transport destination.
+// The station must supply its own authorized dispatch URL and credential.
+function existingCityDispatch(env) {
+  return async record => {
+    if (!env.METROPOLIS_STATION_DISPATCH_URL || !env.METROPOLIS_STATION_DISPATCH_TOKEN)
+      return { notSent: true, reason: 'DESTINATION_NOT_CONFIGURED' };
+    const destination = new URL(env.METROPOLIS_STATION_DISPATCH_URL);
+    if (destination.protocol !== 'https:') return { notSent: true, reason: 'DESTINATION_NOT_HTTPS' };
+    const reply = await fetch(destination, {
+      method: 'POST',
+      headers: {
+        'content-type': 'application/json',
+        authorization: 'Bearer ' + env.METROPOLIS_STATION_DISPATCH_TOKEN,
+      },
+      body: JSON.stringify({
+        workId: record.workId, checkpointId: record.checkpointId,
+        attemptId: record.attemptId, stationId: record.stationId,
+        operation: record.operation, workPassRef: record.workPassRef,
+        actor: record.actor,
+      }),
+      redirect: 'error',
+    });
+    if (!reply.ok) return { accepted: false };
+    const result = await reply.json();
+    return result;
+  };
+}
+const worker = {
+  async fetch(request, env, context) {
+    return createPixieWorker({ dispatch: existingCityDispatch(env) }).fetch(request, env, context);
+  },
+  async queue(batch, env, context) {
+    return createPixieWorker({ dispatch: existingCityDispatch(env) }).queue(batch, env, context);
+  },
+  async scheduled(event, env, context) {
+    return createPixieWorker({ dispatch: existingCityDispatch(env) }).scheduled(event, env, context);
+  },
+};
+export default worker;
