@@ -3,7 +3,8 @@ const reply = (value, status=200) => Response.json(value,{status});
 const valid = x => typeof x === 'string' && x.trim().length>0;
 const receiptId = id => 'GH:'+id;
 const configured = env => !!(env.PIXIE_DB && env.PIXIE_DELIVERY_QUEUE && valid(env.METROPOLIS_GREENHOUSE_TRANSPORT_SECRET));
-const operational = env => configured(env) && valid(env.FACTORY_RUNTIME_URL) && valid(env.METROPOLIS_FACTORY_RAIL_SECRET);
+// A configured URL is not proof of a working downstream adapter. Keep the station closed until verified dispatch/readback exists.
+const operational = () => false;
 const messageBody = x => ({receiptId:x.receiptId,workId:x.workId,checkpointId:x.checkpointId,targetStation:x.targetStation,operation:x.operation,workPassRef:x.workPassRef,actingActor:x.actingActor,payload:x.payload||{}});
 export default {
  async fetch(request,env) {
