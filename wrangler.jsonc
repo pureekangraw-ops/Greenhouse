@@ -1,0 +1,11 @@
+{
+  "$schema":"node_modules/wrangler/config-schema.json",
+  "name":"greenhouse-transport",
+  "main":"src/pixie/transport-worker.mjs",
+  "compatibility_date":"2026-10-10",
+  "services":[{"binding":"METROPOLIS_SERVICE","service":"metropolis"}],
+  "d1_databases":[{"binding":"PIXIE_DB","database_name":"pixie","database_id":"0c9fda05-2b91-4b31-9f5f-25e8b7235251"}],
+  "queues":{"producers":[{"binding":"PIXIE_DELIVERY_QUEUE","queue":"pixie-delivery-v1"}],"consumers":[{"queue":"pixie-delivery-v1","max_batch_size":1,"max_batch_timeout":1,"max_retries":3,"retry_delay":30,"dead_letter_queue":"pixie-delivery-dead-v1"}]},
+  "triggers":{"crons":["*/2 * * * *"]},
+  "observability":{"enabled":true}
+}

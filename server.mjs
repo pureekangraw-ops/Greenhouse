@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { dirname, join } from 'node:path';
 import { readMetropolisWork, MetropolisReadError } from './src/hub/metropolis-read.mjs';
 import { GreenhouseEventError, parseSourceRegistry, validateSignedGreenhouseEvent } from './src/greenhouse/events.mjs';
+import { projectOperations } from './src/greenhouse/state-intelligence.mjs';
 
 const root = dirname(fileURLToPath(import.meta.url));
 const staticFiles = new Map([
@@ -77,6 +78,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
       !opaque(command.idempotencyKey) || !allowedTargets.has(command.target) ||
       typeof command.workId !== 'string' || !/^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(command.workId) ||
       typeof command.checkpointId !== 'string' || command.checkpointId.length > 160 ||
+      !command.checkpointId.startsWith(command.workId + ':CP-') ||
       typeof command.intent !== 'string' || command.intent.trim().length < 8 || command.intent.length > 500 ||
       !Number.isFinite(Date.parse(command.requestedAt)) ||
       (command.expectedVersion != null && !opaque(command.expectedVersion)) ||
@@ -94,7 +96,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
  */
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
-  hubEventSink = null, ownerSessionResolver = null, inboxReader = null,
+  hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
   commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
@@ -110,20 +112,55 @@ export function createGreenhouseServer({
     const url = new URL(request.url || '/', 'http://127.0.0.1');
 
     if (url.pathname === '/api/greenhouse/status' && request.method === 'GET') {
+      // Adapter presence is not authentication: never advertise an owner session
+      // until the existing session resolver has verified this request.
+      let ownerSession = false;
+      if (ownerSessionResolver) {
+        try {
+          const session = await ownerSessionResolver(request);
+          ownerSession = typeof session?.actorId === 'string' && session.actorId.trim().length > 0;
+        } catch {
+          ownerSession = false;
+        }
+      }
       return send(response, 200, {
-        ownerSession: Boolean(ownerSessionResolver),
+        ownerSession,
         inboxReader: Boolean(inboxReader),
         eventIngress: Boolean(Object.keys(sourceRegistry).length && hubEventSink),
-        remoteCommands: Boolean(ownerSessionResolver && commandAuthorizer && hubCommandSubmitter && commandTargets.size),
+        remoteCommands: Boolean(ownerSession && commandAuthorizer && hubCommandSubmitter && commandTargets.size),
         privateDataCached: false,
       });
+    }
+    if (url.pathname === '/api/greenhouse/operations') {
+      if (request.method !== 'GET') return send(response, 405, { code: 'READ_ONLY' });
+      if (!ownerSessionResolver || !operationsReader) return send(response, 503, { code: 'OPERATIONS_READER_UNAVAILABLE' });
+      if ([...url.searchParams.keys()].some(k => k !== 'workId') ||
+        url.searchParams.getAll('workId').length > 1) return send(response, 400, { code: 'WORK_ID_INVALID' });
+      const workId = url.searchParams.get('workId') || null;
+      if (workId && !/^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/.test(workId))
+        return send(response, 400, { code: 'WORK_ID_INVALID' });
+      let session;
+      try { session = await ownerSessionResolver(request); }
+      catch { return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' }); }
+      if (typeof session?.actorId !== 'string' || !session.actorId.trim())
+        return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+      try {
+        const events = await operationsReader({ session, workId });
+        if (!Array.isArray(events) || events.length > 2000)
+          return send(response, 502, { code: 'OPERATION_JOURNAL_INVALID' });
+        const result = projectOperations(events, { now: new Date(now()).toISOString() });
+        return send(response, 200, { observedAt: result.observedAt,
+          counts: result.counts, items: result.items.slice(0, 50) });
+      } catch {
+        return send(response, 502, { code: 'OPERATION_JOURNAL_UNVERIFIED' });
+      }
     }
     if (url.pathname === '/api/greenhouse/inbox') {
       if (request.method !== 'GET') return send(response, 405, { code: 'READ_ONLY' });
       if (!ownerSessionResolver || !inboxReader) return send(response, 503, { code: 'HUB_READER_UNAVAILABLE' });
       try {
         const session = await ownerSessionResolver(request);
-        if (!session?.actorId) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+        if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
         if ([...url.searchParams.keys()].some(key => key !== 'cursor') || url.searchParams.getAll('cursor').length > 1 || (url.searchParams.get('cursor') || '').length > 512) {
           return send(response, 400, { code: 'CURSOR_INVALID' });
         }
@@ -157,7 +194,7 @@ export function createGreenhouseServer({
           event,
           idempotencyKey: event.source + ':' + event.eventId,
         });
-        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId || typeof receipt.duplicate !== 'boolean') {
+        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() || typeof receipt.duplicate !== 'boolean') {
           return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
         }
         return send(response, receipt.duplicate ? 200 : 202, {
@@ -178,7 +215,7 @@ export function createGreenhouseServer({
       let session;
       try { session = await ownerSessionResolver(request); }
       catch { return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' }); }
-      if (!session?.actorId) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+      if (typeof session?.actorId !== 'string' || !session.actorId.trim()) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
       const csrf = request.headers['x-csrf-token'];
       if (typeof session.csrfToken !== 'string' || typeof csrf !== 'string' || csrf !== session.csrfToken) {
         return send(response, 403, { code: 'CSRF_TOKEN_INVALID' });
@@ -197,8 +234,12 @@ export function createGreenhouseServer({
           return send(response, 403, { code: 'COMMAND_NOT_AUTHORIZED' });
         }
         const receipt = await hubCommandSubmitter({ command, session, authorization });
-        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId) return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
-        return send(response, 202, { receiptId: receipt.receiptId, state: receipt.state || 'ACCEPTED', execution: 'NOT_ASSERTED' });
+        if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() ||
+            (receipt.state != null && !['ACCEPTED', 'REJECTED', 'UNKNOWN'].includes(receipt.state))) {
+          return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
+        }
+        // A Hub receipt is transport evidence only, not an execution result.
+        return send(response, 202, { receiptId: receipt.receiptId, state: receipt.state || 'UNKNOWN', execution: 'NOT_ASSERTED' });
       } catch {
         return send(response, 502, { code: 'HUB_COMMAND_DELIVERY_FAILED' });
       }
@@ -209,7 +250,18 @@ export function createGreenhouseServer({
         return send(response, 400, { code: 'WORK_ID_INVALID' });
       }
       try {
-        const report = await readMetropolisWork({ workId: url.searchParams.get('workId'), token, fetchImpl, now });
+        // Prefer the existing verified owner session; never accept a token from the browser.
+        let workToken = token;
+        if (ownerSessionResolver) {
+          const session = await ownerSessionResolver(request);
+          if (typeof session?.actorId !== 'string' || !session.actorId.trim() ||
+              typeof session?.accessToken !== 'string' || !session.accessToken) {
+            return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+          }
+          workToken = session.accessToken;
+        }
+        if (!workToken) return send(response, 401, { code: 'OWNER_SESSION_REQUIRED' });
+        const report = await readMetropolisWork({ workId: url.searchParams.get('workId'), token: workToken, fetchImpl, now });
         return send(response, 200, { source: 'METROPOLIS_OWNER_READBACK', report });
       } catch (error) {
         const known = error instanceof MetropolisReadError;

@@ -95,3 +95,158 @@ test('commands refuse by default; configured relay receives server actor and req
   assert.equal(denied.status, 400);
   assert.equal((await denied.json()).code, 'COMMAND_SCHEMA_INVALID');
 });
+
+test('status reflects authenticated owner session, not installed adapter alone', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => null,
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal(response.status, 200);
+  const status = await response.json();
+  assert.equal(status.ownerSession, false);
+  assert.equal(status.inboxReader, true);
+  assert.equal(status.remoteCommands, false);
+});
+
+test('status treats a throwing owner session resolver as logged out', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => { throw new Error('session unavailable'); },
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal(response.status, 200);
+  assert.equal((await response.json()).ownerSession, false);
+});
+
+test('status reports owner session only when actor was verified', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => ({ items: [], observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/status');
+  assert.equal((await response.json()).ownerSession, true);
+});
+
+test('status never advertises remote commands when owner session is absent', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => null,
+    commandAuthorizer: async () => ({ authorized: true }),
+    hubCommandSubmitter: async () => ({ receiptId: 'unused' }),
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const status = await (await fetch(base + '/api/greenhouse/status')).json();
+  assert.equal(status.ownerSession, false);
+  assert.equal(status.remoteCommands, false);
+  const denied = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST', headers: { origin: base, 'x-csrf-token': 'unused' }, body: '{}',
+  });
+  assert.equal(denied.status, 401);
+});
+
+test('blank owner actor cannot read private inbox', async t => {
+  let reads = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: '   ' }),
+    inboxReader: async () => { reads++; return { items: [], observedAt: new Date(now).toISOString() }; },
+  });
+  const response = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(response.status, 401);
+  assert.equal(reads, 0);
+  const status = await (await fetch(base + '/api/greenhouse/status')).json();
+  assert.equal(status.ownerSession, false);
+});
+
+test('command receipt with unknown state cannot be presented as accepted', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner', csrfToken: 'csrf' }),
+    commandAuthorizer: async ({ command }) => ({
+      authorized: true, actorId: 'owner', target: command.target,
+      workId: command.workId, checkpointId: command.checkpointId,
+    }),
+    hubCommandSubmitter: async () => ({ receiptId: 'receipt-1' }),
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const cmd = {
+    schemaVersion: 'greenhouse.command.v1', commandId: 'cmd-safe', idempotencyKey: 'idem-safe',
+    target: 'existing.test.handoff', workId: 'WORK-123', checkpointId: 'WORK-123:CP-1',
+    intent: 'request verified handoff', requestedAt: new Date(now).toISOString(),
+  };
+  const response = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST', headers: { origin: base, 'x-csrf-token': 'csrf' }, body: JSON.stringify(cmd),
+  });
+  assert.equal(response.status, 202);
+  const result = await response.json();
+  assert.equal(result.state, 'UNKNOWN');
+  assert.equal(result.execution, 'NOT_ASSERTED');
+});
+
+test('Hub event receipt with blank identifier is rejected rather than reported as delivered', async t => {
+  const base = await withServer(t, {
+    sourceRegistry,
+    hubEventSink: async () => ({ receiptId: '   ', duplicate: false }),
+  });
+  const body = JSON.stringify(envelope);
+  const response = await fetch(base + '/api/greenhouse/events', {
+    method: 'POST', headers: signedHeaders(body), body,
+  });
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { code: 'HUB_RECEIPT_INVALID' });
+});
+
+test('inbox never exposes an invalid upstream readback', async t => {
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => ({ items: 'not-an-array', observedAt: new Date(now).toISOString() }),
+  });
+  const response = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(response.status, 502);
+  assert.deepEqual(await response.json(), { code: 'HUB_READBACK_INVALID' });
+});
+
+test('inbox never substitutes cached or invented data after upstream failure', async t => {
+  let calls = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified' }),
+    inboxReader: async () => {
+      calls++;
+      if (calls === 1) return { items: [{ title: 'Earlier work', workId: 'WORK-123', ownerSource: 'Hub', observedAt: new Date(now).toISOString(), confidence: 'CONFIRMED', freshness: 'CURRENT' }], observedAt: new Date(now).toISOString() };
+      throw new Error('Hub unavailable');
+    },
+  });
+  assert.equal((await fetch(base + '/api/greenhouse/inbox')).status, 200);
+  const failed = await fetch(base + '/api/greenhouse/inbox');
+  assert.equal(failed.status, 502);
+  assert.deepEqual(await failed.json(), { code: 'HUB_READBACK_FAILED' });
+  assert.equal(failed.headers.get('cache-control'), 'no-store');
+});
+
+test('commands reject checkpoint from another Work before authorization or Hub submission', async t => {
+  let authorized = 0;
+  let submitted = 0;
+  const base = await withServer(t, {
+    ownerSessionResolver: async () => ({ actorId: 'owner-verified', csrfToken: 'csrf' }),
+    commandAuthorizer: async () => { authorized++; return { authorized: true }; },
+    hubCommandSubmitter: async () => { submitted++; return { receiptId: 'unused' }; },
+    allowedCommandTargets: ['existing.test.handoff'],
+  });
+  const command = {
+    schemaVersion: 'greenhouse.command.v1',
+    commandId: 'cross-work-test',
+    idempotencyKey: 'cross-work-test',
+    target: 'existing.test.handoff',
+    workId: 'WORK-123',
+    checkpointId: 'WORK-456:CP-1',
+    intent: 'request authorized handoff',
+    requestedAt: new Date(now).toISOString(),
+  };
+  const response = await fetch(base + '/api/greenhouse/commands', {
+    method: 'POST',
+    headers: { origin: base, 'content-type': 'application/json', 'x-csrf-token': 'csrf' },
+    body: JSON.stringify(command),
+  });
+  assert.equal(response.status, 400);
+  assert.deepEqual(await response.json(), { code: 'COMMAND_SCHEMA_INVALID' });
+  assert.equal(authorized, 0);
+  assert.equal(submitted, 0);
+});
