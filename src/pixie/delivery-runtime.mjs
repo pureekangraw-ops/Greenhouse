@@ -68,13 +68,15 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new D
       return {status:'OUTCOME_UNKNOWN'};
     }
   }
-  async function recordReadback({attemptId,workId,checkpointId,receiptRef,evidenceRef,verified,domainCompleted}={}){
+  async function recordReadback({attemptId,workId,checkpointId,receiptRef,evidenceRef,verified,domainCompleted,cityBoundaryVerified=false}={}){
     const record=await store.get(attemptId);
     if(!record || record.workId!==workId || record.checkpointId!==checkpointId ||
       (record.receiptRef && record.receiptRef!==receiptRef) || typeof receiptRef!=='string' || !receiptRef.trim() || verified!==true || typeof evidenceRef!=='string' ||
       !evidenceRef.trim())throw new Error('PIXIE_READBACK_UNVERIFIED');
     if(record.state==='READBACK_VERIFIED')return {duplicate:true,record};
-    if(record.state!=='ACCEPTED'&&record.state!=='OUTCOME_UNKNOWN')throw new Error('PIXIE_READBACK_WRONG_STATE');
+    if(!['ACCEPTED','OUTCOME_UNKNOWN'].includes(record.state) &&
+      !(cityBoundaryVerified===true && ['QUEUED','WAITING_ROUTE'].includes(record.state)))
+      throw new Error('PIXIE_READBACK_WRONG_STATE');
     const updated=await store.transition(attemptId,[record.state],'READBACK_VERIFIED',
       {receiptRef,evidenceRef,domainCompleted:domainCompleted===true,readbackAt:clock(),reason:null});
     if(!updated)throw new Error('PIXIE_READBACK_RACE');

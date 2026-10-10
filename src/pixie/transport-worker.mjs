@@ -48,6 +48,23 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
             duplicate:result.duplicate,execution:'NOT_ASSERTED'},202);
         }catch(error){return json({reason:error.message==='PIXIE_ATTEMPT_COLLISION'?'PIXIE_ATTEMPT_COLLISION':'INTAKE_INVALID'},400);}
       }
+      if(url.pathname==='/station/factory-readback'&&request.method==='POST'){
+        let payload;
+        try{payload=JSON.parse(body);}catch{return json({reason:'READBACK_JSON_INVALID'},400);}
+        // The signed City sender must have verified the source-side Factory receipt.
+        if(payload?.verified!==true || !payload?.receiptRef || !payload?.evidenceRef ||
+          !payload?.workId || !payload?.checkpointId || !payload?.attemptId)
+          return json({reason:'FACTORY_READBACK_REQUIRED'},400);
+        try{
+          const result=await process.recordReadback({...payload,cityBoundaryVerified:true});
+          return json({status:result.record.state,workId:result.record.workId,
+            checkpointId:result.record.checkpointId,attemptId:result.record.attemptId,
+            receiptRef:result.record.receiptRef,evidenceRef:result.record.evidenceRef,
+            duplicate:result.duplicate,workCompletion:'NOT_ASSERTED'},200);
+        }catch(error){
+          return json({reason:error.message==='PIXIE_READBACK_RACE'?'READBACK_RACE':'READBACK_SCOPE_UNVERIFIED'},409);
+        }
+      }
       if(url.pathname==='/station/overview'&&request.method==='GET'){
         const storage=store||createD1PixieStore(env.PIXIE_DB,{clock});
         if(typeof storage.overview!=='function')return json({reason:'OVERVIEW_UNAVAILABLE'},503);

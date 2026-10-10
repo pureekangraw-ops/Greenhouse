@@ -78,3 +78,18 @@ test('rejects mismatched readback and context',async()=>{
  await assert.rejects(()=>s.runtime.recordReadback({attemptId:job.attemptId,workId:'WORK-other',
   checkpointId:job.checkpointId,receiptRef:'receipt://a',evidenceRef:'evidence://a',verified:true}),/PIXIE_READBACK_UNVERIFIED/);
 });
+
+test('signed City factory boundary readback may confirm already queued attempt',async()=>{
+ const s=setup();await s.runtime.intake(job);
+ const result=await s.runtime.recordReadback({attemptId:job.attemptId,workId:job.workId,
+  checkpointId:job.checkpointId,receiptRef:'receipt://factory-boundary',
+  evidenceRef:'evidence://factory-boundary',verified:true,cityBoundaryVerified:true,domainCompleted:false});
+ assert.equal(result.record.state,'READBACK_VERIFIED');
+ assert.equal(result.record.domainCompleted,false);
+ assert.equal((await s.runtime.consume({attemptId:job.attemptId})).duplicate,true);
+});
+test('untrusted claim cannot skip accepted boundary',async()=>{
+ const s=setup();await s.runtime.intake(job);
+ await assert.rejects(()=>s.runtime.recordReadback({attemptId:job.attemptId,workId:job.workId,
+  checkpointId:job.checkpointId,receiptRef:'receipt://invalid',evidenceRef:'evidence://invalid',verified:true}),/PIXIE_READBACK_WRONG_STATE/);
+});

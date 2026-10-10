@@ -66,3 +66,18 @@ test('unknown queue attempt is retried to preserve poison-message evidence',asyn
  await w.queue({messages:[{body:{attemptId:'ATT-missing'},retry(){retries++;}}]},x.env);
  assert.equal(retries,1);
 });
+
+test('only signed City request can record a Factory boundary receipt',async()=>{
+ const x=fixture();const w=createPixieWorker({store:x.store});
+ await w.fetch(await signed('https://greenhouse.test/station/intake',JSON.stringify(job),'POST'),x.env);
+ const payload={attemptId:job.attemptId,workId:job.workId,checkpointId:job.checkpointId,
+  receiptRef:'receipt://bound',evidenceRef:'evidence://bound',verified:true,domainCompleted:false};
+ const unauth=await w.fetch(new Request('https://greenhouse.test/station/factory-readback',
+  {method:'POST',body:JSON.stringify(payload)}),x.env);
+ assert.equal(unauth.status,401);
+ const ok=await w.fetch(await signed('https://greenhouse.test/station/factory-readback',
+  JSON.stringify(payload),'POST'),x.env);
+ assert.equal(ok.status,200);
+ assert.equal((await ok.json()).workCompletion,'NOT_ASSERTED');
+ assert.equal((await x.store.get(job.attemptId)).state,'READBACK_VERIFIED');
+});
