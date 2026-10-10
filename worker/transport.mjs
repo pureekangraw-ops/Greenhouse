@@ -14,7 +14,7 @@ export default {
     }
     const url = new URL(request.url);
     if (request.method === 'GET' && url.pathname === '/station/health') {
-      return reply({ status: 'READY', stationId: 'GREENHOUSE_STATION', railId: 'RAIL_GREENHOUSE', ownerSystem: 'GREENHOUSE', observedAt: new Date().toISOString() });
+      return reply({ status: 'NOT_READY', reason: 'DOWNSTREAM_EXECUTOR_NOT_CONFIGURED', stationId: 'GREENHOUSE_STATION', railId: 'RAIL_GREENHOUSE', ownerSystem: 'GREENHOUSE', observedAt: new Date().toISOString() }, 503);
     }
     if (request.method === 'POST' && url.pathname === '/station/receive') {
       let input;
@@ -24,9 +24,10 @@ export default {
       const id = receiptId(input.transportId);
       const key = input.transportId;
       try {
-        const existing = await env.PIXIE_DB.prepare('SELECT delivery_id, work_id, checkpoint_id FROM pixie_deliveries WHERE idempotency_key = ?').bind(key).first();
+        const existing = await env.PIXIE_DB.prepare('SELECT delivery_id, work_id, checkpoint_id, status FROM pixie_deliveries WHERE idempotency_key = ?').bind(key).first();
         if (existing) {
           if (existing.work_id !== input.workId || existing.checkpoint_id !== input.checkpointId) return reply({ error: 'IDEMPOTENCY_CONFLICT' }, 409);
+          if (existing.status === 'PENDING' || existing.status === 'FAILED' || existing.status === 'UNKNOWN') return reply({ error: 'DELIVERY_NOT_CONFIRMED', receiptId: existing.delivery_id, status: existing.status }, 503);
           return reply({ accepted: true, receiptId: existing.delivery_id, workId: existing.work_id, checkpointId: existing.checkpoint_id, duplicate: true });
         }
         await env.PIXIE_DB.prepare('INSERT INTO pixie_deliveries (delivery_id,work_id,checkpoint_id,source_station,destination_station,operation,status,idempotency_key) VALUES (?,?,?,?,?,?,?,?)')
@@ -51,6 +52,8 @@ export default {
   async queue(batch, env) {
     // Until tool adapters are registered, preserve messages for retry/dead-letter;
     // never acknowledge delivery as executed without a downstream receipt.
+    // Fail closed: do not enable this consumer until a downstream adapter is implemented.
+    // A bounded retry policy must be configured before activation.
     for (const message of batch.messages) message.retry();
   },
 };
