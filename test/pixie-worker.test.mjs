@@ -59,3 +59,10 @@ test('signed intake cannot be used to retarget same attempt to a different Work'
  assert.equal(rejected.status,400);
  assert.equal((await rejected.json()).reason,'PIXIE_ATTEMPT_COLLISION');
 });
+
+test('unknown queue attempt is retried to preserve poison-message evidence',async()=>{
+ const x=fixture(),w=createPixieWorker({store:x.store});
+ let retries=0;
+ await w.queue({messages:[{body:{attemptId:'ATT-missing'},retry(){retries++;}}]},x.env);
+ assert.equal(retries,1);
+});

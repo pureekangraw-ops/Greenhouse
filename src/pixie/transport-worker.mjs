@@ -69,7 +69,9 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
       const process=runtime(env);
       for(const message of batch.messages){
         if(!process){message.retry();continue;}
-        try{await process.consume(message.body);}catch{message.retry();}
+        try{const result=await process.consume(message.body);
+          if(result?.status==='UNKNOWN'&&result.reason==='ATTEMPT_NOT_FOUND')message.retry();
+        }catch{message.retry();}
       }
     },
     async scheduled(_event,env={}){
