@@ -6,6 +6,18 @@ const statusPill = document.querySelector('#status-pill');
 const statusDetail = document.querySelector('#status-detail');
 const inbox = document.querySelector('#inbox');
 const operations = document.querySelector('#operations');
+function progressLabel(item) {
+  const execution = String(item.execution ?? '').toUpperCase();
+  const delivery = String(item.delivery ?? '').toUpperCase();
+  const hall = String(item.hall ?? '').toUpperCase();
+  if (hall === 'COMPLETED' || hall === 'CLOSED') return 'ปิดงานแล้ว (ตามสถานะ Hall)';
+  if (hall === 'RETURN_REVIEW' || hall === 'RETURNED') return 'ส่งผลกลับแล้ว · รอตรวจรับ';
+  if (['COMPLETED','SUCCEEDED','SUCCESS'].includes(execution)) return 'เครื่องมือรายงานว่าสำเร็จ · รอตรวจรับ';
+  if (['RUNNING','EXECUTING','IN_PROGRESS'].includes(execution)) return 'เครื่องมือกำลังทำงาน';
+  if (['FAILED','ERROR','BLOCKED'].includes(execution)) return 'เครื่องมือมีปัญหา';
+  if (['READBACK_VERIFIED','DELIVERED','ACCEPTED','QUEUED'].includes(delivery)) return 'ยืนยันการส่งงานแล้ว · ยังไม่ยืนยันการลงมือ';
+  return 'ยังไม่ทราบสถานะการลงมือ';
+}
 async function loadOperations() {
   try {
     const response = await fetch('/api/greenhouse/operations', {cache:'no-store',credentials:'same-origin'});
@@ -21,7 +33,7 @@ async function loadOperations() {
       ' · Hall closed: ' + text(c.hallClosed);
     const rows = report.items.slice(0, 30).map(item =>
       '<article class="readback"><h3>' + text(item.workId) + '</h3><p>ปลายทาง: ' +
-      text(item.stationId) + ' · ' + text(item.operation) + '</p><p>PIXIE: ' +
+      text(item.stationId) + ' · ' + text(item.operation) + '</p><p><strong>ความคืบหน้า: ' + text(progressLabel(item)) + '</strong></p><p>PIXIE: ' +
       text(item.delivery) + ' · TOOL: ' + text(item.execution) + ' · HALL: ' +
       text(item.hall) + '</p><p>รอ: ' + text(item.waitingOn || '-') +
       ' · สาเหตุ: ' + text(item.blocker || '-') + '</p><p>เหตุการณ์ล่าสุด: ' +
@@ -86,6 +98,8 @@ async function loadInbox() {
 }
 document.querySelector('#refresh').addEventListener('click', loadInbox);
 document.querySelector('#reload').addEventListener('click', loadInbox);
+// Refresh only while the page is visible. Read-only: never dispatches or changes Work.
+setInterval(() => { if (!document.hidden && !refreshButton.disabled) loadInbox(); }, 60000);
 loadInbox();
 if ('serviceWorker' in navigator) navigator.serviceWorker.register('/greenhouse/sw.js', {scope:'/greenhouse/'}).catch(() => {});
 
