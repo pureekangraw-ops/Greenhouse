@@ -109,10 +109,10 @@ test('Greenhouse local server serves static UI and denies unconfigured owner rea
   assert.equal(html.status,200);
   assert.match(await html.text(),/Genome Hub/);
   const read=await fetch(base+'/api/office/work?workId='+encodeURIComponent(workId));
-  assert.equal(read.status,503);
-  assert.deepEqual(await read.json(),{code:'OWNER_CONNECTION_REQUIRED'});
+  assert.equal(read.status,401);
+  assert.deepEqual(await read.json(),{code:'OWNER_SESSION_REQUIRED'});
   assert.equal((await fetch(base+'/api/office/work',{method:'POST'})).status,405);
-  assert.equal((await fetch(base+'/api/office/work?workId=INVALID')).status,400);
+  assert.equal((await fetch(base+'/api/office/work?workId=INVALID')).status,401);
   assert.equal((await fetch(base+'/api/office/work?workId='+workId,{headers:{origin:'https://evil.example'}})).status,403);
 });
 test('Greenhouse local server returns report only after actual-shaped authorized readback',async t=>{

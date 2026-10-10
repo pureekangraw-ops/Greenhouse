@@ -93,3 +93,29 @@ test('untrusted claim cannot skip accepted boundary',async()=>{
  await assert.rejects(()=>s.runtime.recordReadback({attemptId:job.attemptId,workId:job.workId,
   checkpointId:job.checkpointId,receiptRef:'receipt://invalid',evidenceRef:'evidence://invalid',verified:true}),/PIXIE_READBACK_WRONG_STATE/);
 });
+test('conveyor keeps original cargo and records verified owner receipt in queue consumer',async()=>{
+ const cargo={requestedResult:'Original requested result',inputRefs:['owner://input']};
+ const s=setup({dispatch:async x=>{assert.deepEqual(x.payload,cargo);return {accepted:true,verified:true,
+   receiptRef:'receipt://conveyor',evidenceRef:'evidence://conveyor',workId:x.workId,checkpointId:x.checkpointId,domainCompleted:false};}});
+ await s.runtime.intake({...job,payload:cargo});
+ assert.equal((await s.runtime.consume({attemptId:job.attemptId})).status,'READBACK_VERIFIED');
+ assert.equal((await s.store.get(job.attemptId)).domainCompleted,false);
+ await assert.rejects(()=>s.runtime.intake({...job,payload:{requestedResult:'Changed'}}),/PIXIE_ATTEMPT_COLLISION/);
+});
+test('route retries stop after five proven not-sent attempts',async()=>{
+ const s=setup({dispatch:async()=>({notSent:true,reason:'DEVICE_NOT_PAIRED'})});
+ await s.runtime.intake(job);
+ for(let i=0;i<5;i++){await s.runtime.consume({attemptId:job.attemptId});await s.runtime.recover();}
+ const row=await s.store.get(job.attemptId);
+ assert.equal(row.state,'WAITING_ROUTE');assert.equal(row.retryCount,5);
+ assert.equal(s.messages.length,5);
+});
+test('ambiguous transport reconciles stored receipt without executing again',async()=>{
+ const s=setup({dispatch:async()=>{throw new Error('reply lost');}});
+ await s.runtime.intake(job);await s.runtime.consume({attemptId:job.attemptId});
+ const recovery=createPixieDeliveryRuntime({store:s.store,queue:s.queue,clock:s.clock,
+  readback:async x=>({accepted:true,verified:true,workId:x.workId,checkpointId:x.checkpointId,
+   receiptRef:'receipt://persisted',evidenceRef:'evidence://persisted'})});
+ await recovery.recover();
+ assert.equal((await s.store.get(job.attemptId)).state,'READBACK_VERIFIED');assert.equal(s.messages.length,1);
+});

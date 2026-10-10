@@ -1,13 +1,13 @@
 // D1 is the durable PIXIE transport log, NOT Hall Work truth.
-const PATCH_FIELDS=new Set(['state','reason','queuedAt','dispatchedAt','receiptRef','evidenceRef','domainCompleted','readbackAt']);
+const PATCH_FIELDS=new Set(['state','reason','queuedAt','dispatchedAt','receiptRef','evidenceRef','domainCompleted','readbackAt','retryCount']);
 const STATES=new Set(['PENDING_QUEUE','WAITING_QUEUE','QUEUED','DISPATCHING','WAITING_ROUTE','OUTCOME_UNKNOWN','ACCEPTED','READBACK_VERIFIED']);
 const COLUMN={state:'status',reason:'reason',queuedAt:'queued_at',dispatchedAt:'dispatched_at',
-  receiptRef:'receipt_ref',evidenceRef:'evidence_ref',domainCompleted:'domain_completed',readbackAt:'readback_at'};
+  receiptRef:'receipt_ref',evidenceRef:'evidence_ref',domainCompleted:'domain_completed',readbackAt:'readback_at',retryCount:'retry_count'};
 function mapRow(x){
   if(!x)return null;
   return {attemptId:x.delivery_id,workId:x.work_id,checkpointId:x.checkpoint_id,
     stationId:x.destination_station,operation:x.operation,workPassRef:x.work_pass_ref,actor:x.actor,
-    state:x.status,receivedAt:x.created_at,queuedAt:x.queued_at,dispatchedAt:x.dispatched_at,
+    payload:JSON.parse(x.payload_json||'{}'),retryCount:Number(x.retry_count||0),state:x.status,receivedAt:x.created_at,queuedAt:x.queued_at,dispatchedAt:x.dispatched_at,
     receiptRef:x.receipt_ref,evidenceRef:x.evidence_ref,reason:x.reason,
     domainCompleted:x.domain_completed===1,readbackAt:x.readback_at};
 }
@@ -15,8 +15,8 @@ export function createD1PixieStore(db,{clock=()=>new Date().toISOString()}={}){
   if(!db||typeof db.prepare!=='function')throw new TypeError('PIXIE_D1_REQUIRED');
   return Object.freeze({
     async create(r){
-      const stmt=db.prepare('INSERT OR IGNORE INTO pixie_deliveries (delivery_id,work_id,checkpoint_id,source_station,destination_station,operation,work_pass_ref,actor,status,idempotency_key,created_at,updated_at) VALUES (?,?,?,?,?,?,?,?,?,?,?,?)')
-        .bind(r.attemptId,r.workId,r.checkpointId,'CITY_HALL',r.stationId,r.operation,r.workPassRef,r.actor,r.state,r.attemptId,r.receivedAt,r.receivedAt);
+      const stmt=db.prepare('INSERT OR IGNORE INTO pixie_deliveries (delivery_id,work_id,checkpoint_id,source_station,destination_station,operation,work_pass_ref,actor,status,idempotency_key,created_at,updated_at,payload_json) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)')
+        .bind(r.attemptId,r.workId,r.checkpointId,'CITY_HALL',r.stationId,r.operation,r.workPassRef,r.actor,r.state,r.attemptId,r.receivedAt,r.receivedAt,JSON.stringify(r.payload||{}));
       const result=await stmt.run();
       return Number(result?.meta?.changes||0)>0;
     },

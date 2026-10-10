@@ -151,8 +151,8 @@ test('local Office GET uses server token and performs fresh arrival before exact
 test('local server fails closed without owner connection and rejects foreign Origin', async () => {
   await withServer({}, async origin => {
     const noAuth = await fetch(origin + '/api/office/work?workId=' + workId);
-    assert.equal(noAuth.status,503);
-    assert.equal((await noAuth.json()).code,'OWNER_CONNECTION_REQUIRED');
+    assert.equal(noAuth.status,401);
+    assert.equal((await noAuth.json()).code,'OWNER_SESSION_REQUIRED');
     const crossOrigin = await fetch(origin + '/api/office/work?workId=' + workId, {headers:{origin:'https://evil.example'}});
     assert.equal(crossOrigin.status,403);
     const asset = await fetch(origin + '/');

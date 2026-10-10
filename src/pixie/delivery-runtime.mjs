@@ -8,10 +8,10 @@ function required(input) {
     !ID.test(input.operation||'') || !(typeof input.workPassRef==='string' && input.workPassRef.length>0 && input.workPassRef.length<=512) ||
     !ID.test(input.actor||''))throw new TypeError('PIXIE_ENVELOPE_INVALID');
   return {workId:input.workId,checkpointId:input.checkpointId,attemptId:input.attemptId,
-    stationId:input.stationId,operation:input.operation,workPassRef:input.workPassRef,actor:input.actor};
+    stationId:input.stationId,operation:input.operation,workPassRef:input.workPassRef,actor:input.actor,payload:input.payload||{}};
 }
-const same=(a,b)=>['workId','checkpointId','attemptId','stationId','operation','workPassRef','actor'].every(k=>a[k]===b[k]);
-export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new Date().toISOString()}={}){
+const same=(a,b)=>JSON.stringify(a.payload||{})===JSON.stringify(b.payload||{}) && ['workId','checkpointId','attemptId','stationId','operation','workPassRef','actor'].every(k=>a[k]===b[k]);
+export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=()=>new Date().toISOString()}={}){
   if(!store||typeof store.create!=='function'||typeof store.get!=='function'||
     typeof store.transition!=='function'||!queue||typeof queue.send!=='function')throw new TypeError('PIXIE_PORTS_REQUIRED');
   async function queueAttempt(attemptId){
@@ -29,7 +29,7 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new D
     // Only call after an existing City Hall authorizer has approved this exact Work/operation.
     const scope=required(input);
     const initial={...scope,state:'PENDING_QUEUE',receivedAt:clock(),queuedAt:null,
-      dispatchedAt:null,receiptRef:null,evidenceRef:null,reason:null};
+      retryCount:0,dispatchedAt:null,receiptRef:null,evidenceRef:null,reason:null};
     const inserted=await store.create(initial); // must be atomic and unique by attemptId.
     const existing=await store.get(scope.attemptId);
     if(!existing||!same(existing,scope))throw new Error('PIXIE_ATTEMPT_COLLISION');
@@ -43,7 +43,7 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new D
     if(!['QUEUED','PENDING_QUEUE','WAITING_QUEUE'].includes(current.state))
       return {status:current.state,duplicate:true}; // at-least-once queue deliveries are safe.
     // CAS claim is required: a simultaneous queue consumer must not dispatch twice.
-    const claimed=await store.transition(attemptId,[current.state],'DISPATCHING',{reason:null});
+    const claimed=await store.transition(attemptId,[current.state],'DISPATCHING',{reason:null,dispatchedAt:clock(),retryCount:(current.retryCount||0)+1});
     if(!claimed)return {status:'UNKNOWN',reason:'CLAIM_LOST'};
     if(typeof dispatch!=='function'){
       await store.transition(attemptId,['DISPATCHING'],'WAITING_ROUTE',{reason:'AUTHORIZED_ROUTE_NOT_CONNECTED'});
@@ -58,6 +58,10 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new D
       if(result?.accepted===true && typeof result.receiptRef==='string' && result.receiptRef.trim() &&
         result.workId===current.workId && result.checkpointId===current.checkpointId){
         await store.transition(attemptId,['DISPATCHING'],'ACCEPTED',{receiptRef:result.receiptRef,dispatchedAt:clock()});
+        if(result.verified===true && result.evidenceRef){
+          await recordReadback({...result,attemptId,verified:true});
+          return {status:'READBACK_VERIFIED',receiptRef:result.receiptRef};
+        }
         return {status:'ACCEPTED',receiptRef:result.receiptRef};
       }
       // Even HTTP failure or an invalid response could mean a side effect happened.
@@ -86,7 +90,13 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,clock=()=>new D
     if(typeof store.listByState!=='function')throw new TypeError('PIXIE_RECOVERY_PORT_REQUIRED');
     const pending=await store.listByState(dispatch?['PENDING_QUEUE','WAITING_QUEUE','WAITING_ROUTE']:['PENDING_QUEUE','WAITING_QUEUE'],limit);
     const results=[];
-    for(const item of pending)results.push(await queueAttempt(item.attemptId));
+    for(const item of pending)if((item.retryCount||0)<5)results.push(await queueAttempt(item.attemptId));
+    const stale=await store.listByState(['DISPATCHING'],limit);
+    for(const item of stale)if(Date.parse(clock())-Date.parse(item.dispatchedAt)>120000)
+      await store.transition(item.attemptId,['DISPATCHING'],'OUTCOME_UNKNOWN',{reason:'DISPATCH_INTERRUPTED_READBACK_REQUIRED'});
+    if(typeof readback==='function')for(const item of await store.listByState(['ACCEPTED','OUTCOME_UNKNOWN'],limit)){
+      try{const reply=await readback(item);if(reply?.verified===true)await recordReadback({...reply,attemptId:item.attemptId});}catch{}
+    }
     return results;
   }
   return Object.freeze({intake,consume,recordReadback,recover});

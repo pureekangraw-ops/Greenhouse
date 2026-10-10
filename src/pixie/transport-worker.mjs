@@ -14,11 +14,11 @@ async function trustedRail(request,secret,body='',now=Date.now()){
   const good=await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(stamp+'.'+body));
   return good?{ok:true}:{ok:false,status:401,reason:'RAIL_SIGNATURE_INVALID'};
 }
-export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOString()}={}){
+export function createPixieWorker({store,dispatch,readback,routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
   function runtime(env){
     const storage=store|| (env.PIXIE_DB?.prepare?createD1PixieStore(env.PIXIE_DB,{clock}):null);
     return storage&&env.PIXIE_DELIVERY_QUEUE?.send?
-      createPixieDeliveryRuntime({store:storage,queue:env.PIXIE_DELIVERY_QUEUE,dispatch,clock}):null;
+      createPixieDeliveryRuntime({store:storage,queue:env.PIXIE_DELIVERY_QUEUE,dispatch,readback,clock}):null;
   }
   return {
     async fetch(request,env={}){
@@ -26,7 +26,7 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
       if(url.pathname==='/station/health'&&request.method==='GET'){
         const dependencies={db:Boolean(store||env.PIXIE_DB?.prepare),
           queue:Boolean(env.PIXIE_DELIVERY_QUEUE?.send),
-          rail:Boolean(text(env.METROPOLIS_GREENHOUSE_RAIL_SECRET)),route:Boolean(dispatch)};
+          rail:Boolean(text(env.METROPOLIS_GREENHOUSE_RAIL_SECRET)),route:routeReady};
         return json({stationId:'GREENHOUSE_STATION',ownerSystem:'GREENHOUSE',
           status:Object.values(dependencies).every(Boolean)?'READY':'NOT_READY',
           dependencies,observedAt:clock()},Object.values(dependencies).every(Boolean)?200:503);
@@ -103,22 +103,25 @@ export function createPixieWorker({store,dispatch,clock=()=>new Date().toISOStri
 // existing authorized City dispatch contract is explicitly wired and verified.
 // Use the existing Metropolis station contract as the transport destination.
 // The station must supply its own authorized dispatch URL and credential.
-function existingCityDispatch(env) {
+export function existingCityDispatch(env, path='/station/dispatch') {
   return async record => {
     // A Cloudflare Service Binding is the preferred private transport.
     // The receiving Metropolis station still validates the existing Work Pass.
     if (!env.METROPOLIS_SERVICE?.fetch)
       return { notSent: true, reason: 'METROPOLIS_SERVICE_NOT_BOUND' };
+    if(!env.METROPOLIS_GREENHOUSE_RAIL_SECRET)return {notSent:true,reason:'RAIL_NOT_CONFIGURED'};
+    const body=JSON.stringify({workId:record.workId,checkpointId:record.checkpointId,
+      attemptId:record.attemptId,stationId:record.stationId,operation:record.operation,
+      workPassRef:record.workPassRef,actor:record.actor,payload:record.payload||{}});
+    const timestamp=String(Date.now());
+    const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.METROPOLIS_GREENHOUSE_RAIL_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+    const bytes=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(timestamp+'.'+body)));
+    const signature=[...bytes].map(x=>x.toString(16).padStart(2,'0')).join('');
     const reply = await env.METROPOLIS_SERVICE.fetch(
-      new Request('https://metropolis.internal/station/dispatch', {
+      new Request('https://metropolis.internal'+path, {
         method: 'POST',
-        headers: { 'content-type': 'application/json' },
-        body: JSON.stringify({
-          workId: record.workId, checkpointId: record.checkpointId,
-          attemptId: record.attemptId, stationId: record.stationId,
-          operation: record.operation, workPassRef: record.workPassRef,
-          actor: record.actor,
-        }),
+        headers:{'content-type':'application/json','x-metropolis-greenhouse-timestamp':timestamp,'x-metropolis-greenhouse-signature':signature},
+        body,
       }),
     );
     if (!reply.ok) return { accepted: false };
@@ -127,13 +130,13 @@ function existingCityDispatch(env) {
 }
 const worker = {
   async fetch(request, env, context) {
-    return createPixieWorker({ dispatch: existingCityDispatch(env) }).fetch(request, env, context);
+    return createPixieWorker({ dispatch: existingCityDispatch(env),readback:existingCityDispatch(env,'/station/readback'),routeReady:Boolean(env.METROPOLIS_SERVICE?.fetch) }).fetch(request, env, context);
   },
   async queue(batch, env, context) {
-    return createPixieWorker({ dispatch: existingCityDispatch(env) }).queue(batch, env, context);
+    return createPixieWorker({ dispatch: existingCityDispatch(env),readback:existingCityDispatch(env,'/station/readback'),routeReady:Boolean(env.METROPOLIS_SERVICE?.fetch) }).queue(batch, env, context);
   },
   async scheduled(event, env, context) {
-    return createPixieWorker({ dispatch: existingCityDispatch(env) }).scheduled(event, env, context);
+    return createPixieWorker({ dispatch: existingCityDispatch(env),readback:existingCityDispatch(env,'/station/readback'),routeReady:Boolean(env.METROPOLIS_SERVICE?.fetch) }).scheduled(event, env, context);
   },
 };
 export default worker;
