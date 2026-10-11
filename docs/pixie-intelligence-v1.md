@@ -94,3 +94,9 @@ attempt → adapter → response path; it is simulated protocol evidence, not pr
 of a real model, Xiaomi performance, device availability, or production
 acceptance. No new D1 table, Queue, Work ledger, Gate, migration, or Cloudflare
 binding is introduced.
+
+An owner-reported Xiaomi 15T/OlliteRT device baseline and a bounded on-device
+test protocol are recorded in
+[local-ai-experiment-v1.md](./local-ai-experiment-v1.md). These observations
+do not change the Worker boundary: an Android loopback endpoint is reachable
+only from the handset and is not reachable as `127.0.0.1` from Cloudflare.
