@@ -2,6 +2,7 @@ import { createD1PixieStore } from './d1-store.mjs';
 import { createPixieDeliveryRuntime } from './delivery-runtime.mjs';
 import { createPixieIntelligence } from './intelligence.mjs';
 import { createLocalModelAdapter } from './local-model-adapter.mjs';
+import { createSharedModelRouter } from './model-router.mjs';
 
 const text = value => typeof value==='string'?value.trim():'';
 const INTELLIGENCE_STAGES=new Set(['ANALYZE','PLAN_ROUTE','RESOLVE','EVALUATE']);
@@ -17,23 +18,28 @@ async function trustedRail(request,secret,body='',now=Date.now()){
   const good=await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(stamp+'.'+body));
   return good?{ok:true}:{ok:false,status:401,reason:'RAIL_SIGNATURE_INVALID'};
 }
-function configuredIntelligence(env,clock){
-  let provider=null;
+function configuredIntelligence(env,clock,{localProvider=null,lightProvider=null,shouldUseLocal=null,modelRouter=null}={}){
+  let local=localProvider;
   try {
-    provider=createLocalModelAdapter({endpoint:env.PIXIE_LOCAL_MODEL_ENDPOINT,
-      model:env.PIXIE_LOCAL_MODEL_NAME,apiKey:env.PIXIE_LOCAL_MODEL_API_KEY});
+    if(!local)local=createLocalModelAdapter({endpoint:env.SHARED_LOCAL_MODEL_ENDPOINT,
+      model:env.SHARED_LOCAL_MODEL_NAME,apiKey:env.SHARED_LOCAL_MODEL_API_KEY});
   } catch {
     // Optional model configuration must never prevent the existing delivery runtime from starting.
-    provider=async()=>{throw new Error('PIXIE_LOCAL_MODEL_CONFIG_INVALID');};
+    local=async()=>{throw new Error('SHARED_LOCAL_MODEL_CONFIG_INVALID');};
   }
-  return createPixieIntelligence({provider,clock});
+  const provider=modelRouter||createSharedModelRouter({localProvider:local,lightProvider,
+    shouldUseLocal:typeof shouldUseLocal==='function'?shouldUseLocal:undefined});
+  return createPixieIntelligence({provider,clock,timeoutMs:30000});
 }
-export function createPixieWorker({store,dispatch,readback,intelligence=null,routeRegistry=null,routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
+export function createPixieWorker({store,dispatch,readback,intelligence=null,modelRouter=null,
+  localProvider=null,lightProvider=null,shouldUseLocal=null,routeRegistry=null,
+  routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
   function runtime(env){
     const storage=store|| (env.PIXIE_DB?.prepare?createD1PixieStore(env.PIXIE_DB,{clock}):null);
     return storage&&env.PIXIE_DELIVERY_QUEUE?.send?
       createPixieDeliveryRuntime({store:storage,queue:env.PIXIE_DELIVERY_QUEUE,dispatch,readback,
-        intelligence:intelligence||configuredIntelligence(env,clock),routeRegistry,clock}):null;
+        intelligence:intelligence||configuredIntelligence(env,clock,{localProvider,lightProvider,
+          shouldUseLocal,modelRouter}),routeRegistry,clock}):null;
   }
   return {
     async fetch(request,env={}){

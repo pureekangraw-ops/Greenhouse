@@ -48,7 +48,7 @@ test('local adapter speaks OpenAI-compatible JSON to a configurable loopback mod
  });
  try{
   const provider=createLocalModelAdapter({endpoint,model:'test-3b-q4',apiKey:'local-test-key'});
-  const output=await provider({stage:'EVALUATE',system:'system policy',task:'evaluate',
+  const output=await provider({client:'PIXIE',stage:'EVALUATE',system:'system policy',task:'evaluate',
    work:{workId,checkpointId,attemptId,state:'ACCEPTED'},context:{receiptPresent:true},
    evidence:[{ref:`pixie://delivery/${attemptId}`,excerpt:'receipt only'}],signal:new AbortController().signal});
   assert.equal(path,'/v1/chat/completions');assert.equal(authorization,'Bearer local-test-key');
@@ -69,12 +69,13 @@ test('signed Worker → runtime → local model stub roundtrip is read-only and 
   const worker=createPixieWorker({store:fixture.store});
   const before=structuredClone(fixture.rows.get(attemptId));
   const env={PIXIE_DELIVERY_QUEUE:{async send(msg){fixture.messages.push(msg);}},
-   METROPOLIS_GREENHOUSE_RAIL_SECRET:secret,PIXIE_LOCAL_MODEL_ENDPOINT:endpoint,
-   PIXIE_LOCAL_MODEL_NAME:'test-3b-q4',PIXIE_LOCAL_MODEL_API_KEY:'local-test-key'};
+   METROPOLIS_GREENHOUSE_RAIL_SECRET:secret,SHARED_LOCAL_MODEL_ENDPOINT:endpoint,
+   SHARED_LOCAL_MODEL_NAME:'test-3b-q4',SHARED_LOCAL_MODEL_API_KEY:'local-test-key'};
   const body=JSON.stringify({stage:'EVALUATE'});
   const response=await worker.fetch(await sign(`https://greenhouse.test/station/attempt/${attemptId}/intelligence`,body),env);
   const result=await response.json();
   assert.equal(response.status,200);assert.equal(result.status,'SHADOW_PROPOSED');
+  assert.equal(result.providerSource,'LOCAL');assert.equal(result.fallbackReason,null);
   assert.equal(result.completionAssessment,'RECEIPT_ONLY');assert.equal(result.workLifecycle,'NOT_ASSERTED');
   assert.equal(result.executed,false);assert.equal(result.runtimeDecision,'RECEIPT_ONLY');
   assert.equal(requestPath,'/v1/chat/completions');assert.equal(fixture.messages.length,0);
@@ -98,5 +99,52 @@ test('unsigned assessment request is rejected before model inference',async()=>{
 
 test('model endpoint rejects non-loopback plain HTTP and no configuration stays disabled',async()=>{
  assert.equal(createLocalModelAdapter({}),null);
- assert.throws(()=>createLocalModelAdapter({endpoint:'http://model.example',model:'test'}),/PIXIE_LOCAL_MODEL_CONFIG_INVALID/);
+ assert.throws(()=>createLocalModelAdapter({endpoint:'http://model.example',model:'test'}),/SHARED_LOCAL_MODEL_CONFIG_INVALID/);
+});
+
+test('Worker preserves attempt identity when Local fails over to LIGHT',async()=>{
+ const fixture=storeFixture();let localCall,lightCall;
+ const worker=createPixieWorker({store:fixture.store,
+  localProvider:async call=>{localCall=call;throw new Error('local unavailable');},
+  lightProvider:async call=>{lightCall=call;return modelOutput;}});
+ const before=structuredClone(fixture.rows.get(attemptId));
+ const body=JSON.stringify({stage:'EVALUATE'});
+ const response=await worker.fetch(await sign(
+  `https://greenhouse.test/station/attempt/${attemptId}/intelligence`,body),{
+   PIXIE_DELIVERY_QUEUE:{async send(msg){fixture.messages.push(msg);}},
+   METROPOLIS_GREENHOUSE_RAIL_SECRET:secret,
+  });
+ const result=await response.json();
+ assert.equal(response.status,200);assert.equal(result.status,'SHADOW_PROPOSED');
+ assert.equal(result.providerSource,'LIGHT');assert.equal(result.fallbackReason,'LOCAL_UNAVAILABLE');
+ assert.equal(localCall.client,'PIXIE');assert.equal(lightCall.client,'PIXIE');
+ assert.deepEqual(lightCall.work,localCall.work);
+ assert.deepEqual(lightCall.context,localCall.context);
+ assert.deepEqual(lightCall.evidence,localCall.evidence);
+ assert.deepEqual(lightCall.fallback,{from:'LOCAL',reason:'LOCAL_UNAVAILABLE'});
+ assert.deepEqual(fixture.rows.get(attemptId),before);assert.equal(fixture.messages.length,0);
+});
+
+test('PIXIE and DWARF adapter calls share one serialized endpoint/model lane',async()=>{
+ let active=0,peak=0;const seen=[];
+ const {server,endpoint}=await startServer(async(req,res)=>{
+  let raw='';for await(const chunk of req)raw+=chunk;
+  const body=JSON.parse(raw),message=JSON.parse(body.messages[1].content);
+  active++;peak=Math.max(peak,active);seen.push({client:message.client,workId:message.work.workId});
+  await new Promise(resolve=>setTimeout(resolve,25));active--;
+  res.writeHead(200,{'content-type':'application/json'});
+  res.end(JSON.stringify({choices:[{message:{content:JSON.stringify(modelOutput)}}]}));
+ });
+ try{
+  const pixie=createLocalModelAdapter({endpoint,model:'shared-model'});
+  const dwarf=createLocalModelAdapter({endpoint,model:'shared-model'});
+  const makeCall=(client,workId)=>({client,stage:'ANALYZE',system:'system',task:'task',
+   work:{workId,checkpointId:`${workId}:CP-01`,attemptId:`ATT-${client}`},context:{},
+   evidence:[{ref:`evidence://${client}`,excerpt:`${client} evidence`}],signal:new AbortController().signal});
+  await Promise.all([pixie(makeCall('PIXIE','WORK-PIXIE')),dwarf(makeCall('DWARF','WORK-DWARF'))]);
+  assert.equal(peak,1);
+  assert.deepEqual(seen.map(x=>x.client).sort(),['DWARF','PIXIE']);
+  assert.equal(seen.find(x=>x.client==='PIXIE').workId,'WORK-PIXIE');
+  assert.equal(seen.find(x=>x.client==='DWARF').workId,'WORK-DWARF');
+ }finally{await closeServer(server);}
 });

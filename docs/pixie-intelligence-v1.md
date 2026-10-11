@@ -1,7 +1,10 @@
 # PIXIE Intelligence v1 — advisory runtime extension
 
-PIXIE Intelligence analyzes an existing delivery attempt. It does not create
-Work, attempts, authority, checkpoints, queue messages, or lifecycle state.
+PIXIE Intelligence analyzes an existing delivery attempt. Xiaomi/local AI is
+the primary shared inference resource for PIXIE and DWARF; LIGHT is an optional
+fallback provider when local inference is unavailable, reserved, or times out.
+It does not create Work, attempts, authority, checkpoints, queue messages, or
+lifecycle state.
 The existing PIXIE delivery runtime remains the only dispatcher and recovery
 owner.
 
@@ -20,7 +23,9 @@ owner.
 
 The model can return only an advisory recommendation. Runtime decisions are
 deterministic and preserve the existing route; provider absence, timeout, or
-invalid output does not block queue delivery or recovery.
+invalid output does not block queue delivery or recovery. Provider switching
+passes the same Work ID, Checkpoint, attempt, and scoped evidence; it does not
+start a new Work or infer authority.
 
 ## Read-only runtime entry
 
@@ -43,16 +48,31 @@ fill in the gap.
 
 `createLocalModelAdapter` accepts any owner-configured OpenAI-compatible
 Chat Completions endpoint; it is not tied to Xiaomi or any particular device.
+PIXIE and DWARF should use the same endpoint/model configuration. Adapter
+instances in one Worker isolate serialize calls for the same endpoint/model,
+and each inference gets a fresh, scoped request with no shared conversation
+history.
 The optional server-side configuration is:
 
-- `PIXIE_LOCAL_MODEL_ENDPOINT` — trusted HTTPS endpoint, or loopback HTTP for
+- `SHARED_LOCAL_MODEL_ENDPOINT` — trusted HTTPS endpoint, or loopback HTTP for
   local development.
-- `PIXIE_LOCAL_MODEL_NAME` — provider model identifier.
-- `PIXIE_LOCAL_MODEL_API_KEY` — optional server-side secret; never sent in the
+- `SHARED_LOCAL_MODEL_NAME` — provider model identifier.
+- `SHARED_LOCAL_MODEL_API_KEY` — optional server-side secret; never sent in the
   prompt or returned to callers.
 
-With no endpoint/model configured, the provider remains disabled and returns
-`NOT_CONFIGURED`. The Worker must be able to reach the configured endpoint.
+`createSharedModelRouter` tries Local first, then calls an injected LIGHT
+provider on local error, timeout, or a trusted `shouldUseLocal` decision to
+reserve the device. If no provider is configured it returns
+`NOT_CONFIGURED`; if Local is unavailable but LIGHT is not wired it reports
+`FALLBACK_UNAVAILABLE`. This repo has no DWARF runtime or live LIGHT provider
+connection; both require their existing trusted host to inject the shared
+router/provider, not a new authority path.
+
+The local request lane is isolate-local, not a distributed lock across separate
+Workers. Cross-Worker PIXIE/DWARF serialization depends on a single shared
+inference service that serializes its own requests; that behavior is not proven
+here. With no endpoint/model configured, Local remains disabled. The Worker
+must be able to reach the configured endpoint.
 Its loopback address is the Worker host, not an Android handset; a handset
 requires a separately owner-approved, authenticated reachability path. Do not
 expose a phone inference endpoint publicly or put model credentials in the PWA.

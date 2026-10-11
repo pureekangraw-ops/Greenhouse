@@ -4,7 +4,7 @@
   "private": true,
   "description": "Metropolis Genome Hub surface for Shop, Office, and Greenhouse.",
   "scripts": {
-    "check": "node --check app.js && node --check server.mjs && node --check src/hub/metropolis-read.mjs && node --check src/greenhouse/events.mjs && node --check greenhouse/app.js && node --check greenhouse/ui-state.mjs && node --check src/agents/policy.mjs && node --check src/agents/prompts.mjs && node --check src/agents/runtime.mjs && node --check src/greenhouse/state-intelligence.mjs && node --check src/pixie/intelligence.mjs && node --check src/pixie/local-model-adapter.mjs && node --check src/pixie/delivery-runtime.mjs && node --check src/pixie/d1-store.mjs && node --check src/pixie/transport-worker.mjs",
+    "check": "node --check app.js && node --check server.mjs && node --check src/hub/metropolis-read.mjs && node --check src/greenhouse/events.mjs && node --check greenhouse/app.js && node --check greenhouse/ui-state.mjs && node --check src/agents/policy.mjs && node --check src/agents/prompts.mjs && node --check src/agents/runtime.mjs && node --check src/greenhouse/state-intelligence.mjs && node --check src/pixie/intelligence.mjs && node --check src/pixie/local-model-adapter.mjs && node --check src/pixie/model-router.mjs && node --check src/pixie/delivery-runtime.mjs && node --check src/pixie/d1-store.mjs && node --check src/pixie/transport-worker.mjs",
     "test": "node --test test/*.test.mjs",
     "evaluate:agents": "node scripts/evaluate-agents.mjs",
     "preview": "node server.mjs",

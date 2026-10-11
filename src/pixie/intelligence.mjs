@@ -1,3 +1,5 @@
+import {SHARED_MODEL_ROUTER_SCHEMA} from './model-router.mjs';
+
 const WORK = /^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/;
 const ID = /^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
 const STAGES = new Set(['ANALYZE', 'PLAN_ROUTE', 'RESOLVE', 'EVALUATE']);
@@ -128,27 +130,34 @@ export function createPixieIntelligence({provider=null, timeoutMs=10000, clock=(
   if (!Number.isSafeInteger(timeoutMs) || timeoutMs<1 || timeoutMs>30000 || typeof clock!=='function')
     throw new TypeError('PIXIE_INTELLIGENCE_CONFIG_INVALID');
 
-  function resultFor(input, status, analysis=null) {
+  function resultFor(input,status,analysis=null,providerSource='NONE',fallbackReason=null) {
     const evaluatedAt=clock();
     if (!validTime(evaluatedAt)) throw new TypeError('PIXIE_INTELLIGENCE_CLOCK_INVALID');
     return Object.freeze({schema:'PIXIE_INTELLIGENCE_RESULT_V1',stage:input.stage,mode:'SHADOW',status,
       workId:input.workId,checkpointId:input.checkpointId,attemptId:input.attemptId,
-      observedAt:input.observedAt,evaluatedAt,executed:false,analysis});
+      observedAt:input.observedAt,evaluatedAt,executed:false,analysis,providerSource,fallbackReason});
   }
   async function run(stage, rawInput) {
     const input=normalizeInput(stage,rawInput);
     if (!provider) return resultFor(input,'NOT_CONFIGURED');
     const controller=new AbortController();let timer;let timedOut=false;
-    const call=Object.freeze({stage:input.stage,system:systemFor(stage,input),task:input.task,
+    const call=Object.freeze({client:'PIXIE',stage:input.stage,system:systemFor(stage,input),task:input.task,
       work:Object.freeze({workId:input.workId,checkpointId:input.checkpointId,attemptId:input.attemptId,
         state:input.state,observedAt:input.observedAt}),context:input.context,evidence:input.evidence,signal:controller.signal});
     try {
-      const output=await Promise.race([
+      const response=await Promise.race([
         Promise.resolve().then(()=>provider(call)),
         new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;controller.abort();reject(new Error('PIXIE_INTELLIGENCE_TIMEOUT'));},timeoutMs);}),
       ]);
+      const routed=response?.schema===SHARED_MODEL_ROUTER_SCHEMA;
+      const providerSource=routed?response.source:'INJECTED';
+      const fallbackReason=routed?response.reason:null;
+      if(routed&&response.status!=='OK')
+        return resultFor(input,response.status==='NOT_CONFIGURED'?'NOT_CONFIGURED':'FALLBACK_UNAVAILABLE',
+          null,providerSource,fallbackReason);
+      const output=routed?response.output:response;
       const analysis=normalizeOutput(output,new Set(input.evidence.map(item=>item.ref)),stage,input);
-      return resultFor(input,analysis?'SHADOW_PROPOSED':'INVALID_OUTPUT',analysis);
+      return resultFor(input,analysis?'SHADOW_PROPOSED':'INVALID_OUTPUT',analysis,providerSource,fallbackReason);
     } catch {
       return resultFor(input,timedOut?'TIMEOUT':'UNAVAILABLE');
     } finally { clearTimeout(timer); }
