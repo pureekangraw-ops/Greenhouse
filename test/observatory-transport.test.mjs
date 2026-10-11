@@ -9,10 +9,10 @@ test('ephemeral Observatory payload passes signed Greenhouse rail to Hall withou
  const city={async fetch(request){calls++;assert.equal(new URL(request.url).pathname,'/station/observatory-ingest');const body=await request.text();assert.equal(await verifyRail(request,secret,body),true);assert.equal(JSON.parse(body).path,'/observatory/device/00000000-0000-4000-8000-000000000000/snapshot');return Response.json({accepted:true,captureId:'c1'});}};
  const env={METROPOLIS_GREENHOUSE_RAIL_SECRET:secret,METROPOLIS_SERVICE:city};
  const green={fetch:r=>createPixieWorker().fetch(r,env)};
- const result=await railRequest(green,secret,'/station/observatory-forward',{path:'/observatory/device/00000000-0000-4000-8000-000000000000/snapshot',token:'station-token',body:'{}'});
+ const result=await railRequest(green,secret,'/station/observatory-forward',{path:'/observatory/device/00000000-0000-4000-8000-000000000000/snapshot',token:'station-token',body:'"'.repeat(44000)});
  assert.equal(result.status,200);assert.equal((await result.json()).captureId,'c1');assert.equal(calls,1);
 });
 test('unauthenticated forwarding cannot reach Hall',async()=>{
- let calls=0;const result=await createPixieWorker().fetch(new Request('https://greenhouse.internal/station/observatory-forward',{method:'POST',body:'{}'}),{METROPOLIS_GREENHOUSE_RAIL_SECRET:'test',METROPOLIS_SERVICE:{fetch(){calls++;}}});
+ let calls=0;const result=await createPixieWorker().fetch(new Request('https://greenhouse.internal/station/observatory-forward',{method:'POST',body:'"'.repeat(44000)}),{METROPOLIS_GREENHOUSE_RAIL_SECRET:'test',METROPOLIS_SERVICE:{fetch(){calls++;}}});
  assert.equal(result.status,401);assert.equal(calls,0);
 });
