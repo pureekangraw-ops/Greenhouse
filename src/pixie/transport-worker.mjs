@@ -14,6 +14,21 @@ async function trustedRail(request,secret,body='',now=Date.now()){
   const good=await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(stamp+'.'+body));
   return good?{ok:true}:{ok:false,status:401,reason:'RAIL_SIGNATURE_INVALID'};
 }
+async function forwardObservation(request,env) {
+  const body=await request.text();
+  if(new TextEncoder().encode(body).length>65536)return json({reason:'BODY_TOO_LARGE'},413);
+  const auth=await trustedRail(request,env.METROPOLIS_GREENHOUSE_RAIL_SECRET,body);
+  if(!auth.ok)return json({reason:auth.reason},auth.status);
+  let input;try{input=JSON.parse(body);}catch{return json({reason:'INVALID_ARGUMENT'},400);}
+  if(!/^\/observatory\/device\/[a-f0-9-]{36}\/(snapshot|stop|memory)$/.test(input.path)||typeof input.token!=='string'||typeof input.body!=='string')return json({reason:'INVALID_ARGUMENT'},400);
+  if(!env.METROPOLIS_SERVICE?.fetch)return json({reason:'METROPOLIS_SERVICE_NOT_BOUND'},503);
+  const timestamp=String(Date.now());
+  const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.METROPOLIS_GREENHOUSE_RAIL_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
+  const signed=new Uint8Array(await crypto.subtle.sign('HMAC',key,new TextEncoder().encode(timestamp+'.'+body)));
+  const signature=[...signed].map(x=>x.toString(16).padStart(2,'0')).join('');
+  // Five-second observations are ephemeral: do not copy credentials or captures into the durable Work queue.
+  return env.METROPOLIS_SERVICE.fetch(new Request('https://metropolis.internal/station/observatory-ingest',{method:'POST',body,headers:{'content-type':'application/json','x-metropolis-greenhouse-timestamp':timestamp,'x-metropolis-greenhouse-signature':signature}}));
+}
 export function createPixieWorker({store,dispatch,readback,routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
   function runtime(env){
     const storage=store|| (env.PIXIE_DB?.prepare?createD1PixieStore(env.PIXIE_DB,{clock}):null);
@@ -23,6 +38,7 @@ export function createPixieWorker({store,dispatch,readback,routeReady=Boolean(di
   return {
     async fetch(request,env={}){
       const url=new URL(request.url);
+      if(url.pathname==='/station/observatory-forward'&&request.method==='POST')return forwardObservation(request,env);
       if(url.pathname==='/station/health'&&request.method==='GET'){
         const dependencies={db:Boolean(store||env.PIXIE_DB?.prepare),
           queue:Boolean(env.PIXIE_DELIVERY_QUEUE?.send),
@@ -140,3 +156,4 @@ const worker = {
   },
 };
 export default worker;
+
