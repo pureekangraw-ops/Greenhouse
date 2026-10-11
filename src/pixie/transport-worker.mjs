@@ -16,11 +16,11 @@ async function trustedRail(request,secret,body='',now=Date.now()){
 }
 async function forwardObservation(request,env) {
   const body=await request.text();
-  if(new TextEncoder().encode(body).length>65536)return json({reason:'BODY_TOO_LARGE'},413);
+  if(new TextEncoder().encode(body).length>131072)return json({reason:'BODY_TOO_LARGE'},413);
   const auth=await trustedRail(request,env.METROPOLIS_GREENHOUSE_RAIL_SECRET,body);
   if(!auth.ok)return json({reason:auth.reason},auth.status);
   let input;try{input=JSON.parse(body);}catch{return json({reason:'INVALID_ARGUMENT'},400);}
-  if(!/^\/observatory\/device\/[a-f0-9-]{36}\/(snapshot|stop|memory)$/.test(input.path)||typeof input.token!=='string'||typeof input.body!=='string')return json({reason:'INVALID_ARGUMENT'},400);
+  if(!/^\/observatory\/device\/[a-f0-9-]{36}\/(snapshot|stop|memory)$/.test(input.path)||typeof input.token!=='string'||typeof input.body!=='string'||new TextEncoder().encode(input.body).length>65536)return json({reason:'INVALID_ARGUMENT'},400);
   if(!env.METROPOLIS_SERVICE?.fetch)return json({reason:'METROPOLIS_SERVICE_NOT_BOUND'},503);
   const timestamp=String(Date.now());
   const key=await crypto.subtle.importKey('raw',new TextEncoder().encode(env.METROPOLIS_GREENHOUSE_RAIL_SECRET),{name:'HMAC',hash:'SHA-256'},false,['sign']);
