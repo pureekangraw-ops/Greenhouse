@@ -77,7 +77,11 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=
     if(!record || record.workId!==workId || record.checkpointId!==checkpointId ||
       (record.receiptRef && record.receiptRef!==receiptRef) || typeof receiptRef!=='string' || !receiptRef.trim() || verified!==true || typeof evidenceRef!=='string' ||
       !evidenceRef.trim())throw new Error('PIXIE_READBACK_UNVERIFIED');
-    if(record.state==='READBACK_VERIFIED')return {duplicate:true,record};
+    if(record.state==='READBACK_VERIFIED'){
+      if(record.evidenceRef!==evidenceRef || record.domainCompleted!==(domainCompleted===true))
+        throw new Error('PIXIE_READBACK_CONFLICT');
+      return {duplicate:true,record};
+    }
     if(!['ACCEPTED','OUTCOME_UNKNOWN'].includes(record.state) &&
       !(cityBoundaryVerified===true && ['QUEUED','WAITING_ROUTE'].includes(record.state)))
       throw new Error('PIXIE_READBACK_WRONG_STATE');
