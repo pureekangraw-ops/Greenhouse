@@ -1,7 +1,10 @@
 import { createD1PixieStore } from './d1-store.mjs';
 import { createPixieDeliveryRuntime } from './delivery-runtime.mjs';
+import { createPixieIntelligence } from './intelligence.mjs';
+import { createLocalModelAdapter } from './local-model-adapter.mjs';
 
 const text = value => typeof value==='string'?value.trim():'';
+const INTELLIGENCE_STAGES=new Set(['ANALYZE','PLAN_ROUTE','RESOLVE','EVALUATE']);
 function json(value,status=200){return new Response(JSON.stringify(value),{status,headers:{'content-type':'application/json','cache-control':'no-store'}});}
 async function trustedRail(request,secret,body='',now=Date.now()){
   if(!text(secret))return {ok:false,status:503,reason:'RAIL_NOT_CONFIGURED'};
@@ -14,11 +17,23 @@ async function trustedRail(request,secret,body='',now=Date.now()){
   const good=await crypto.subtle.verify('HMAC',key,signature,new TextEncoder().encode(stamp+'.'+body));
   return good?{ok:true}:{ok:false,status:401,reason:'RAIL_SIGNATURE_INVALID'};
 }
-export function createPixieWorker({store,dispatch,readback,routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
+function configuredIntelligence(env,clock){
+  let provider=null;
+  try {
+    provider=createLocalModelAdapter({endpoint:env.PIXIE_LOCAL_MODEL_ENDPOINT,
+      model:env.PIXIE_LOCAL_MODEL_NAME,apiKey:env.PIXIE_LOCAL_MODEL_API_KEY});
+  } catch {
+    // Optional model configuration must never prevent the existing delivery runtime from starting.
+    provider=async()=>{throw new Error('PIXIE_LOCAL_MODEL_CONFIG_INVALID');};
+  }
+  return createPixieIntelligence({provider,clock});
+}
+export function createPixieWorker({store,dispatch,readback,intelligence=null,routeRegistry=null,routeReady=Boolean(dispatch),clock=()=>new Date().toISOString()}={}){
   function runtime(env){
     const storage=store|| (env.PIXIE_DB?.prepare?createD1PixieStore(env.PIXIE_DB,{clock}):null);
     return storage&&env.PIXIE_DELIVERY_QUEUE?.send?
-      createPixieDeliveryRuntime({store:storage,queue:env.PIXIE_DELIVERY_QUEUE,dispatch,readback,clock}):null;
+      createPixieDeliveryRuntime({store:storage,queue:env.PIXIE_DELIVERY_QUEUE,dispatch,readback,
+        intelligence:intelligence||configuredIntelligence(env,clock),routeRegistry,clock}):null;
   }
   return {
     async fetch(request,env={}){
@@ -38,6 +53,21 @@ export function createPixieWorker({store,dispatch,readback,routeReady=Boolean(di
       if(body.length>16384)return json({reason:'BODY_TOO_LARGE'},413);
       const auth=await trustedRail(request,env.METROPOLIS_GREENHOUSE_RAIL_SECRET,body);
       if(!auth.ok)return json({reason:auth.reason},auth.status);
+      const intelligenceMatch=url.pathname.match(/^\/station\/attempt\/([A-Za-z0-9][A-Za-z0-9._:-]{0,127})\/intelligence$/);
+      if(intelligenceMatch){
+        if(request.method!=='POST')return json({reason:'METHOD_NOT_ALLOWED'},405);
+        let payload;
+        try{payload=JSON.parse(body);}catch{return json({reason:'INTELLIGENCE_JSON_INVALID'},400);}
+        if(!payload||typeof payload!=='object'||Array.isArray(payload)||
+          Object.keys(payload).length!==1||!INTELLIGENCE_STAGES.has(payload.stage))
+          return json({reason:'INTELLIGENCE_REQUEST_INVALID'},400);
+        try{
+          const result=await process.assess({attemptId:intelligenceMatch[1],stage:payload.stage});
+          return json(result,result.status==='ATTEMPT_NOT_FOUND'?404:200);
+        }catch{
+          return json({reason:'INTELLIGENCE_UNAVAILABLE'},503);
+        }
+      }
       if(url.pathname==='/station/intake'&&request.method==='POST'){
         let payload;
         try{payload=JSON.parse(body);}catch{return json({reason:'INPUT_JSON_INVALID'},400);}

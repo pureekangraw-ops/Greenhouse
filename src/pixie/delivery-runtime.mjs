@@ -1,6 +1,15 @@
+import {planAuthorizedRoute} from '../greenhouse/state-intelligence.mjs';
+
 // PIXIE drives delivery; it never owns Work identity or destination execution truth.
 const WORK=/^WORK-[A-Za-z0-9][A-Za-z0-9:_-]{0,127}$/;
 const ID=/^[A-Za-z0-9][A-Za-z0-9._:-]{0,127}$/;
+const INTELLIGENCE_STAGES=new Set(['ANALYZE','PLAN_ROUTE','RESOLVE','EVALUATE']);
+const INTELLIGENCE_TASKS=Object.freeze({
+  ANALYZE:'Analyze this existing PIXIE delivery record. Separate facts, hypotheses, and unknowns.',
+  PLAN_ROUTE:'Assess the existing authorized route only. Do not select another station or operation.',
+  RESOLVE:'Recommend a safe next step. Never create or resend an attempt; readback precedes retry.',
+  EVALUATE:'Evaluate the recorded receipt and readback. Receipt alone is not domain or Work completion.',
+});
 function required(input) {
   if(!input || !WORK.test(input.workId||'') || typeof input.checkpointId!=='string' ||
     !input.checkpointId.startsWith(input.workId+':CP-') ||
@@ -11,9 +20,32 @@ function required(input) {
     stationId:input.stationId,operation:input.operation,workPassRef:input.workPassRef,actor:input.actor,payload:input.payload||{}};
 }
 const same=(a,b)=>JSON.stringify(a.payload||{})===JSON.stringify(b.payload||{}) && ['workId','checkpointId','attemptId','stationId','operation','workPassRef','actor'].every(k=>a[k]===b[k]);
-export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=()=>new Date().toISOString()}={}){
+function runtimeDecision(record,stage,routePlan){
+  if(stage==='ANALYZE')return 'ADVISORY_ONLY';
+  if(stage==='PLAN_ROUTE'){
+    if(routePlan?.action==='DISPATCH')return 'PRESERVE_EXISTING_ROUTE';
+    if(routePlan?.action==='DENY')return 'OWNER_REVIEW';
+    return 'WAIT_FOR_EXISTING_ROUTE';
+  }
+  if(stage==='RESOLVE'){
+    if(['ACCEPTED','OUTCOME_UNKNOWN','DISPATCHING'].includes(record.state))return 'REQUEST_READBACK';
+    if(['PENDING_QUEUE','WAITING_QUEUE','QUEUED','WAITING_ROUTE'].includes(record.state))return 'WAIT';
+    if(record.state==='READBACK_VERIFIED'&&record.domainCompleted!==true)return 'OWNER_REVIEW';
+    return 'NO_AUTOMATIC_ACTION';
+  }
+  if(record.state!=='READBACK_VERIFIED')return record.receiptRef?'RECEIPT_ONLY':'NOT_VERIFIED';
+  return record.domainCompleted===true?'DOMAIN_COMPLETION_REPORTED_BY_READBACK':'READBACK_ONLY_COMPLETION_NOT_PROVEN';
+}
+function completionAssessment(record){
+  if(record.state!=='READBACK_VERIFIED')return record.receiptRef?'RECEIPT_ONLY':'NOT_VERIFIED';
+  return record.domainCompleted===true?'DOMAIN_COMPLETION_REPORTED_BY_READBACK':'READBACK_ONLY_COMPLETION_NOT_PROVEN';
+}
+export function createPixieDeliveryRuntime({store,queue,dispatch,readback,intelligence=null,routeRegistry=null,clock=()=>new Date().toISOString()}={}){
   if(!store||typeof store.create!=='function'||typeof store.get!=='function'||
     typeof store.transition!=='function'||!queue||typeof queue.send!=='function')throw new TypeError('PIXIE_PORTS_REQUIRED');
+  if(intelligence!==null&&typeof intelligence.run!=='function')throw new TypeError('PIXIE_INTELLIGENCE_PORT_INVALID');
+  if(routeRegistry!==null&&(!routeRegistry||typeof routeRegistry!=='object'||Array.isArray(routeRegistry)))
+    throw new TypeError('PIXIE_ROUTE_REGISTRY_INVALID');
   async function queueAttempt(attemptId){
     const record=await store.get(attemptId);
     if(!record || !['PENDING_QUEUE','WAITING_QUEUE','WAITING_ROUTE'].includes(record.state))return record;
@@ -86,6 +118,56 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=
     if(!updated)throw new Error('PIXIE_READBACK_RACE');
     return {duplicate:false,record:await store.get(attemptId)};
   }
+  async function assess({attemptId,stage}={}){
+    if(!ID.test(attemptId||''))throw new TypeError('PIXIE_ATTEMPT_ID_INVALID');
+    if(!INTELLIGENCE_STAGES.has(stage))throw new TypeError('PIXIE_INTELLIGENCE_STAGE_INVALID');
+    const record=await store.get(attemptId);
+    if(!record)return {schema:'PIXIE_INTELLIGENCE_RESULT_V1',stage,mode:'SHADOW',status:'ATTEMPT_NOT_FOUND',
+      attemptId,executed:false,analysis:null,workLifecycle:'NOT_ASSERTED'};
+    const observedAt=record.readbackAt||record.dispatchedAt||record.queuedAt||record.receivedAt;
+    if(typeof observedAt!=='string'||!Number.isFinite(Date.parse(observedAt)))
+      return {schema:'PIXIE_INTELLIGENCE_RESULT_V1',stage,mode:'SHADOW',status:'EVIDENCE_TIME_UNKNOWN',
+        workId:record.workId,checkpointId:record.checkpointId,attemptId:record.attemptId,
+        executed:false,analysis:null,workLifecycle:'NOT_ASSERTED'};
+    let routePlan={action:'WAIT',reason:'ROUTE_REGISTRY_UNKNOWN'};
+    if(stage==='PLAN_ROUTE'&&routeRegistry){
+      try{
+        routePlan=planAuthorizedRoute({stationId:record.stationId,operation:record.operation,
+          workId:record.workId,checkpointId:record.checkpointId,registry:routeRegistry});
+      }catch{routePlan={action:'WAIT',reason:'ROUTE_CONTEXT_INVALID'};}
+    }else if(record.state==='WAITING_ROUTE')routePlan={action:'WAIT',reason:record.reason||'STATION_NOT_READY'};
+    const routeStatus=stage==='PLAN_ROUTE'
+      ?routePlan.action==='DISPATCH'?'READY':routePlan.action==='DENY'||routePlan.action==='WAIT'?'NOT_READY':'UNKNOWN'
+      :'UNKNOWN';
+    const domainCompleted=record.state==='READBACK_VERIFIED'?record.domainCompleted===true:null;
+    const safeSnapshot={
+      source:'PIXIE_DELIVERY_RECORD',workId:record.workId,checkpointId:record.checkpointId,
+      attemptId:record.attemptId,stationId:record.stationId,operation:record.operation,
+      state:record.state,reason:record.reason||null,receivedAt:record.receivedAt||null,
+      queuedAt:record.queuedAt||null,dispatchedAt:record.dispatchedAt||null,
+      receiptRef:record.receiptRef||null,evidenceRef:record.evidenceRef||null,
+      readbackAt:record.readbackAt||null,domainCompleted,
+      routePlan:stage==='PLAN_ROUTE'?routePlan:null,
+    };
+    const evidence=[{ref:`pixie://delivery/${record.attemptId}`,excerpt:JSON.stringify(safeSnapshot)}];
+    const context={routeStatus,stationId:record.stationId,operation:record.operation,
+      receiptPresent:typeof record.receiptRef==='string'&&Boolean(record.receiptRef.trim()),
+      readbackVerified:record.state==='READBACK_VERIFIED',domainCompleted};
+    const base={schema:'PIXIE_INTELLIGENCE_RESULT_V1',stage,mode:'SHADOW',
+      workId:record.workId,checkpointId:record.checkpointId,attemptId:record.attemptId,
+      observedAt,evaluatedAt:clock(),executed:false,analysis:null,
+      runtimeDecision:runtimeDecision(record,stage,routePlan),completionAssessment:completionAssessment(record),
+      authorizedRoute:{stationId:record.stationId,operation:record.operation},
+      routePlan:stage==='PLAN_ROUTE'?routePlan:null,
+      workLifecycle:'NOT_ASSERTED'};
+    if(!intelligence)return {...base,status:'NOT_CONFIGURED'};
+    const result=await intelligence.run(stage,{workId:record.workId,checkpointId:record.checkpointId,
+      attemptId:record.attemptId,state:record.state,observedAt,context,evidence});
+    return {...base,...result,runtimeDecision:base.runtimeDecision,
+      completionAssessment:base.completionAssessment,authorizedRoute:base.authorizedRoute,
+      routePlan:base.routePlan,
+      workLifecycle:'NOT_ASSERTED',executed:false};
+  }
   async function recover(limit=20){
     if(typeof store.listByState!=='function')throw new TypeError('PIXIE_RECOVERY_PORT_REQUIRED');
     const pending=await store.listByState(dispatch?['PENDING_QUEUE','WAITING_QUEUE','WAITING_ROUTE']:['PENDING_QUEUE','WAITING_QUEUE'],limit);
@@ -106,5 +188,5 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=
     }
     return results;
   }
-  return Object.freeze({intake,consume,recordReadback,recover});
+  return Object.freeze({intake,consume,recordReadback,assess,recover});
 }

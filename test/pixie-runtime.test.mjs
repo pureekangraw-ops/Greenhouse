@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {createPixieDeliveryRuntime} from '../src/pixie/delivery-runtime.mjs';
+import {createPixieIntelligence} from '../src/pixie/intelligence.mjs';
 
 function setup({dispatch,failQueue=false}={}){
  const rows=new Map(), messages=[], transitions=[];
@@ -127,4 +128,67 @@ test('City proof of no send recovers the same uncertain job without inventing an
  await recovery.recover();
  assert.equal((await s.store.get(job.attemptId)).state,'QUEUED');
  assert.deepEqual(s.messages,[{attemptId:job.attemptId},{attemptId:job.attemptId}]);
+});
+
+test('Intelligence reads an existing attempt only and never queues or dispatches',async()=>{
+ let dispatches=0,providerCalls=0;
+ const s=setup({dispatch:async()=>{dispatches++;return {notSent:true,reason:'SHOULD_NOT_RUN'};}});
+ await s.runtime.intake(job);
+ const before={...await s.store.get(job.attemptId)},messageCount=s.messages.length;
+ const intelligence=createPixieIntelligence({clock:s.clock,provider:async call=>{
+  providerCalls++;
+  assert.equal(call.work.workId,job.workId);
+  assert.equal(JSON.stringify(call.evidence).includes('workPassRef'),false);
+  return {summary:'Existing attempt remains queued.',findings:[{kind:'FACT',text:'Attempt is queued.',evidenceRefs:[`pixie://delivery/${job.attemptId}`]}],
+   recommendation:'Wait for the existing route.',confidence:'PROBABLE',suggestedAction:'WAIT'};
+ }});
+ const runtime=createPixieDeliveryRuntime({store:s.store,queue:s.queue,dispatch:async()=>{dispatches++;},
+  intelligence,clock:s.clock});
+ const result=await runtime.assess({attemptId:job.attemptId,stage:'RESOLVE'});
+ assert.equal(result.status,'SHADOW_PROPOSED');assert.equal(result.executed,false);
+ assert.equal(result.runtimeDecision,'WAIT');assert.equal(result.workLifecycle,'NOT_ASSERTED');
+ assert.equal(providerCalls,1);assert.equal(dispatches,0);assert.equal(s.messages.length,messageCount);
+ assert.deepEqual(await s.store.get(job.attemptId),before);
+});
+
+test('evaluation keeps receipt separate from verified readback and domain completion',async()=>{
+ let dispatches=0;
+ const s=setup({dispatch:async x=>{dispatches++;return {accepted:true,receiptRef:'receipt://eval',
+  workId:x.workId,checkpointId:x.checkpointId};}});
+ await s.runtime.intake(job);await s.runtime.consume({attemptId:job.attemptId});
+ const intelligence=createPixieIntelligence({clock:s.clock,provider:async call=>{
+  assert.equal(call.stage,'EVALUATE');
+  return {summary:'A boundary receipt does not establish domain completion.',
+   findings:[{kind:'FACT',text:'The receipt is recorded.',evidenceRefs:[`pixie://delivery/${job.attemptId}`]}],
+   recommendation:'Keep the Work open until owner-source readback.',confidence:'PROBABLE',suggestedAction:'HOLD_OPEN'};
+ }});
+ const runtime=createPixieDeliveryRuntime({store:s.store,queue:s.queue,intelligence,clock:s.clock});
+ const receiptOnly=await runtime.assess({attemptId:job.attemptId,stage:'EVALUATE'});
+ assert.equal(receiptOnly.completionAssessment,'RECEIPT_ONLY');
+ assert.equal(receiptOnly.workLifecycle,'NOT_ASSERTED');
+ await runtime.recordReadback({attemptId:job.attemptId,workId:job.workId,checkpointId:job.checkpointId,
+  receiptRef:'receipt://eval',evidenceRef:'evidence://eval',verified:true,domainCompleted:false});
+ const verifiedReadback=await runtime.assess({attemptId:job.attemptId,stage:'EVALUATE'});
+ assert.equal(verifiedReadback.completionAssessment,'READBACK_ONLY_COMPLETION_NOT_PROVEN');
+ assert.equal(verifiedReadback.runtimeDecision,'READBACK_ONLY_COMPLETION_NOT_PROVEN');
+ assert.equal(dispatches,1);
+});
+
+test('Plan & Route reuses the existing capability planner and cannot switch routes',async()=>{
+ const s=setup();await s.runtime.intake(job);
+ const routeRegistry={FACTORY_STATION:{status:'READY',capabilities:['CODE'],capacity:2,active:1}};
+ const intelligence=createPixieIntelligence({clock:s.clock,provider:async call=>{
+  assert.equal(call.context.stationId,job.stationId);assert.equal(call.context.operation,job.operation);
+  return {summary:'The existing route is eligible.',findings:[{kind:'FACT',text:'The current station supports this operation.',evidenceRefs:[`pixie://delivery/${job.attemptId}`]}],
+   recommendation:'Keep the current authorized route.',confidence:'PROBABLE',suggestedAction:'KEEP_EXISTING_ROUTE'};
+ }});
+ const runtime=createPixieDeliveryRuntime({store:s.store,queue:s.queue,intelligence,routeRegistry,clock:s.clock});
+ const before={...await s.store.get(job.attemptId)},messageCount=s.messages.length;
+ const result=await runtime.assess({attemptId:job.attemptId,stage:'PLAN_ROUTE'});
+ assert.equal(result.routePlan.action,'DISPATCH');
+ assert.equal(result.routePlan.stationId,job.stationId);
+ assert.equal(result.routePlan.operation,job.operation);
+ assert.equal(result.runtimeDecision,'PRESERVE_EXISTING_ROUTE');
+ assert.equal(result.executed,false);assert.deepEqual(await s.store.get(job.attemptId),before);
+ assert.equal(s.messages.length,messageCount);
 });

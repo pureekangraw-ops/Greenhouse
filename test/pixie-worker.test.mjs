@@ -81,3 +81,13 @@ test('only signed City request can record a Factory boundary receipt',async()=>{
  assert.equal((await ok.json()).workCompletion,'NOT_ASSERTED');
  assert.equal((await x.store.get(job.attemptId)).state,'READBACK_VERIFIED');
 });
+
+test('intelligence assessment accepts only a stage, never caller-supplied Work or evidence',async()=>{
+ const x=fixture();let calls=0;
+ const w=createPixieWorker({store:x.store,intelligence:{async run(){calls++;return {status:'SHADOW_PROPOSED'};}}});
+ const body=JSON.stringify({stage:'ANALYZE',workId:'WORK-forged',evidence:[]});
+ const response=await w.fetch(await signed('https://greenhouse.test/station/attempt/ATT-test/intelligence',body,'POST'),x.env);
+ assert.equal(response.status,400);
+ assert.equal((await response.json()).reason,'INTELLIGENCE_REQUEST_INVALID');
+ assert.equal(calls,0);
+});
