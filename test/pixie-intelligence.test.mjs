@@ -90,6 +90,16 @@ test('provider failure and timeout fall back without mutating the input',async()
  assert.equal(timed.status,'TIMEOUT');assert.equal(signal.aborted,true);assert.equal(timed.executed,false);
 });
 
+test('shared-router timeouts remain explicit and are not mislabeled as provider failure',async()=>{
+ const result=await createPixieIntelligence({provider:async()=>({
+  schema:'SHARED_MODEL_ROUTER_RESULT_V1',status:'TIMEOUT',source:'NONE',output:null,reason:'LIGHT_TIMEOUT',
+ }),clock:fixedClock}).analyze(base);
+ assert.equal(result.status,'TIMEOUT');
+ assert.equal(result.providerSource,'NONE');
+ assert.equal(result.fallbackReason,'LIGHT_TIMEOUT');
+ assert.equal(result.executed,false);
+});
+
 test('invalid Work/checkpoint or missing evidence is rejected before inference',async()=>{
  let calls=0;const service=createPixieIntelligence({provider:async()=>{calls++;return output();},clock:fixedClock});
  await assert.rejects(service.analyze({...base,checkpointId:'WORK-OTHER:CP-01'}),/PIXIE_INTELLIGENCE_INPUT_INVALID/);

@@ -57,11 +57,40 @@ test('Local timeout aborts its request and fails over to LIGHT',async()=>{
   const route=createSharedModelRouter({
     localProvider:({signal})=>{localSignal=signal;return new Promise(()=>{});},
     lightProvider:async()=>{lightCalls++;return {ok:true};},
-    localTimeoutMs:10,
+    localTimeoutMs:10,totalTimeoutMs:100,
   });
   const result=await route(call());
   assert.equal(localSignal.aborted,true);assert.equal(lightCalls,1);
   assert.equal(result.source,'LIGHT');assert.equal(result.reason,'LOCAL_TIMEOUT');
+});
+
+test('a late Local result is suppressed after timeout while LIGHT owns the result',async()=>{
+  let releaseLocal,localSignal;
+  const route=createSharedModelRouter({
+    localProvider:({signal})=>{localSignal=signal;return new Promise(resolve=>{releaseLocal=resolve;});},
+    lightProvider:async()=>({provider:'LIGHT'}),
+    localTimeoutMs:10,totalTimeoutMs:100,
+  });
+  const result=await route(call());
+  releaseLocal({provider:'LATE_LOCAL'});
+  await new Promise(resolve=>setTimeout(resolve,0));
+  assert.equal(localSignal.aborted,true);
+  assert.equal(result.source,'LIGHT');
+  assert.deepEqual(result.output,{provider:'LIGHT'});
+});
+
+test('Local and LIGHT share one total budget; LIGHT is aborted at the deadline',async()=>{
+  let lightSignal;
+  const started=monotonicForTest();
+  const route=createSharedModelRouter({
+    localProvider:()=>new Promise(()=>{}),
+    lightProvider:({signal})=>{lightSignal=signal;return new Promise(()=>{});},
+    localTimeoutMs:30,totalTimeoutMs:90,availabilityTimeoutMs:10,
+  });
+  const result=await route(call());
+  const elapsed=monotonicForTest()-started;
+  assert.equal(result.status,'TIMEOUT');assert.equal(result.reason,'LIGHT_TIMEOUT');
+  assert.equal(lightSignal.aborted,true);assert.ok(elapsed<250,`spent ${elapsed}ms`);
 });
 
 test('provider absence and unavailable fallback are explicit, not fabricated success',async()=>{
@@ -95,3 +124,5 @@ test('an already cancelled request is rejected before either model provider runs
   await assert.rejects(route(call({signal:controller.signal})),/MODEL_ROUTER_CANCELLED/);
   assert.equal(localCalls,0);assert.equal(lightCalls,0);
 });
+
+function monotonicForTest(){return globalThis.performance?.now?.()??Date.now();}

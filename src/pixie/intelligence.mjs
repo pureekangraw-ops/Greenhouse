@@ -153,7 +153,8 @@ export function createPixieIntelligence({provider=null, timeoutMs=10000, clock=(
       const providerSource=routed?response.source:'INJECTED';
       const fallbackReason=routed?response.reason:null;
       if(routed&&response.status!=='OK')
-        return resultFor(input,response.status==='NOT_CONFIGURED'?'NOT_CONFIGURED':'FALLBACK_UNAVAILABLE',
+        return resultFor(input,response.status==='NOT_CONFIGURED'?'NOT_CONFIGURED':
+          response.status==='TIMEOUT'?'TIMEOUT':'FALLBACK_UNAVAILABLE',
           null,providerSource,fallbackReason);
       const output=routed?response.output:response;
       const analysis=normalizeOutput(output,new Set(input.evidence.map(item=>item.ref)),stage,input);

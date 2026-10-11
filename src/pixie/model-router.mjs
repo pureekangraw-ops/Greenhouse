@@ -46,54 +46,101 @@ function scopedCall(call){
   });
 }
 
+function codedError(code){
+  const error=new Error(code);
+  error.code=code;
+  return error;
+}
+async function runBounded(provider,call,timeoutMs,parentSignal,timeoutCode){
+  if(parentSignal?.aborted)throw codedError('MODEL_ROUTER_CANCELLED');
+  const controller=new AbortController();
+  let timer,onAbort;
+  const aborted=new Promise((_,reject)=>{
+    onAbort=()=>{
+      controller.abort();
+      reject(codedError('MODEL_ROUTER_CANCELLED'));
+    };
+    parentSignal?.addEventListener?.('abort',onAbort,{once:true});
+  });
+  const timedOut=new Promise((_,reject)=>{
+    timer=setTimeout(()=>{
+      controller.abort();
+      reject(codedError(timeoutCode));
+    },timeoutMs);
+  });
+  try{
+    return await Promise.race([
+      Promise.resolve().then(()=>provider(Object.freeze({...call,signal:controller.signal}))),
+      timedOut,
+      aborted,
+    ]);
+  }finally{
+    clearTimeout(timer);
+    parentSignal?.removeEventListener?.('abort',onAbort);
+  }
+}
+const monotonicNow=()=>globalThis.performance?.now?.()??Date.now();
+
 /**
  * Shared Local-first inference router. Pass the same instance to PIXIE and
  * DWARF clients where they share a process; LocalModelAdapter also serializes
  * all requests to the same endpoint/model across adapter instances in an isolate.
  */
 export function createSharedModelRouter({localProvider=null,lightProvider=null,
-  shouldUseLocal=()=>true,localTimeoutMs=20000}={}){
+  shouldUseLocal=()=>true,localTimeoutMs=20000,totalTimeoutMs=28000,
+  availabilityTimeoutMs=1000}={}){
   if(localProvider!==null&&typeof localProvider!=='function')throw new TypeError('MODEL_ROUTER_LOCAL_PROVIDER_INVALID');
   if(lightProvider!==null&&typeof lightProvider!=='function')throw new TypeError('MODEL_ROUTER_LIGHT_PROVIDER_INVALID');
-  if(typeof shouldUseLocal!=='function'||!Number.isSafeInteger(localTimeoutMs)||localTimeoutMs<1||localTimeoutMs>30000)
+  if(typeof shouldUseLocal!=='function'||!Number.isSafeInteger(localTimeoutMs)||localTimeoutMs<1||localTimeoutMs>30000||
+    !Number.isSafeInteger(totalTimeoutMs)||totalTimeoutMs<1||totalTimeoutMs>30000||
+    !Number.isSafeInteger(availabilityTimeoutMs)||availabilityTimeoutMs<1||availabilityTimeoutMs>5000)
     throw new TypeError('MODEL_ROUTER_CONFIG_INVALID');
 
-  async function useLight(call,reason){
+  async function useLight(call,reason,remainingMs){
     if(call.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
     if(!lightProvider)return result(localProvider?'FALLBACK_UNAVAILABLE':'NOT_CONFIGURED','NONE',null,
       localProvider?`${reason}_LIGHT_NOT_CONFIGURED`:'NO_MODEL_PROVIDER');
+    if(remainingMs<=0)return result('TIMEOUT','NONE',null,'MODEL_ROUTER_TOTAL_TIMEOUT');
     const fallbackCall=Object.freeze({...call,fallback:Object.freeze({from:'LOCAL',reason})});
-    try{return result('OK','LIGHT',await lightProvider(fallbackCall),reason);}
-    catch{return result('FALLBACK_UNAVAILABLE','NONE',null,'LIGHT_UNAVAILABLE');}
+    try{
+      const output=await runBounded(lightProvider,fallbackCall,remainingMs,call.signal,'LIGHT_TIMEOUT');
+      return result('OK','LIGHT',output,reason);
+    }catch(error){
+      if(call.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
+      return error?.code==='LIGHT_TIMEOUT'
+        ?result('TIMEOUT','NONE',null,'LIGHT_TIMEOUT')
+        :result('FALLBACK_UNAVAILABLE','NONE',null,'LIGHT_UNAVAILABLE');
+    }
   }
 
   return async function route(call){
     if(!validCall(call))throw new TypeError('MODEL_ROUTER_REQUEST_INVALID');
     if(call.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
     const input=scopedCall(call);
-    if(!localProvider)return useLight(input,'LOCAL_NOT_CONFIGURED');
+    const deadline=monotonicNow()+totalTimeoutMs;
+    const remaining=()=>Math.max(0,deadline-monotonicNow());
+    if(!localProvider)return useLight(input,'LOCAL_NOT_CONFIGURED',remaining());
     let selected=true;
-    try{selected=await shouldUseLocal(input)!==false;}catch{selected=false;}
-    if(!selected)return useLight(input,'LOCAL_RESERVED_OR_BUSY');
-
-    const controller=new AbortController();
-    const parentAbort=()=>controller.abort();
-    if(call.signal?.aborted)controller.abort();
-    else call.signal?.addEventListener?.('abort',parentAbort,{once:true});
-    let timer,timedOut=false;
-    const localCall=Object.freeze({...input,signal:controller.signal});
+    let selectionReason='LOCAL_RESERVED_OR_BUSY';
     try{
-      const output=await Promise.race([
-        Promise.resolve().then(()=>localProvider(localCall)),
-        new Promise((_,reject)=>{timer=setTimeout(()=>{timedOut=true;controller.abort();reject(new Error('LOCAL_MODEL_TIMEOUT'));},localTimeoutMs);}),
-      ]);
+      selected=await runBounded(async statusCall=>shouldUseLocal(statusCall),input,
+        Math.min(availabilityTimeoutMs,remaining()),input.signal,'LOCAL_STATUS_TIMEOUT')!==false;
+    }catch(error){
+      if(input.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
+      selected=false;
+      selectionReason=error?.code==='LOCAL_STATUS_TIMEOUT'?'LOCAL_STATUS_TIMEOUT':'LOCAL_STATUS_UNAVAILABLE';
+    }
+    if(remaining()<=0)return result('TIMEOUT','NONE',null,'MODEL_ROUTER_TOTAL_TIMEOUT');
+    if(!selected)return useLight(input,selectionReason,remaining());
+
+    const localBudget=Math.min(localTimeoutMs,remaining());
+    try{
+      const output=await runBounded(localProvider,input,localBudget,input.signal,'LOCAL_TIMEOUT');
       return result('OK','LOCAL',output,null);
-    }catch{
-      if(call.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
-      return useLight(input,timedOut?'LOCAL_TIMEOUT':'LOCAL_UNAVAILABLE');
-    }finally{
-      clearTimeout(timer);
-      input.signal?.removeEventListener?.('abort',parentAbort);
+    }catch(error){
+      if(input.signal?.aborted)throw new Error('MODEL_ROUTER_CANCELLED');
+      const reason=error?.code==='LOCAL_TIMEOUT'?'LOCAL_TIMEOUT':'LOCAL_UNAVAILABLE';
+      return useLight(input,reason,remaining());
     }
   };
 }

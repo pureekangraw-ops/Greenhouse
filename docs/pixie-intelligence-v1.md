@@ -68,6 +68,15 @@ reserve the device. If no provider is configured it returns
 connection; both require their existing trusted host to inject the shared
 router/provider, not a new authority path.
 
+One request gets a 28-second shared-router budget (PIXIE's outer reasoning
+deadline is 30 seconds): Local can use up to 20 seconds, then LIGHT receives
+only the remaining budget. The Local-availability check is bounded to 1
+second. Timeout aborts the provider's `AbortSignal`; timed-out results are
+discarded and cannot replace a later LIGHT result. This bounds router waiting
+and suppresses late responses. Stopping inference already accepted by a remote
+model service still depends on that service honoring disconnect/cancellation;
+that behavior is not verified here.
+
 The local request lane is isolate-local, not a distributed lock across separate
 Workers. Cross-Worker PIXIE/DWARF serialization depends on a single shared
 inference service that serializes its own requests; that behavior is not proven
