@@ -128,3 +128,15 @@ test('City proof of no send recovers the same uncertain job without inventing an
  assert.equal((await s.store.get(job.attemptId)).state,'QUEUED');
  assert.deepEqual(s.messages,[{attemptId:job.attemptId},{attemptId:job.attemptId}]);
 });
+
+test('verified evidence is immutable on repeated owner readback',async()=>{
+ const s=setup({dispatch:async x=>({accepted:true,receiptRef:'receipt://fixed',workId:x.workId,checkpointId:x.checkpointId})});
+ await s.runtime.intake(job);await s.runtime.consume({attemptId:job.attemptId});
+ const proof={attemptId:job.attemptId,workId:job.workId,checkpointId:job.checkpointId,
+   receiptRef:'receipt://fixed',evidenceRef:'evidence://original',verified:true,domainCompleted:false};
+ await s.runtime.recordReadback(proof);
+ assert.equal((await s.runtime.recordReadback(proof)).duplicate,true);
+ await assert.rejects(()=>s.runtime.recordReadback({...proof,evidenceRef:'evidence://changed'}),/PIXIE_READBACK_CONFLICT/);
+ await assert.rejects(()=>s.runtime.recordReadback({...proof,domainCompleted:true}),/PIXIE_READBACK_CONFLICT/);
+ assert.equal((await s.store.get(job.attemptId)).evidenceRef,'evidence://original');
+});
