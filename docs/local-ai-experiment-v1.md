@@ -87,6 +87,26 @@ client timeout setting, elapsed milliseconds, input/output tokens, tokens/s,
 whether a complete JSON body arrived, and matching OlliteRT Activity Log
 entry. Keep timeout outcomes separate from model-quality failures.
 
+For repeatable scoring, save a sanitized capture JSON with top-level
+`observedAt`, `model`, and `cases`. Each case records `caseId`, `state`
+(`COLD`, `WARM`, or `UNKNOWN`), the expected object above, `actual` (the
+returned JSON object, its JSON string, or the OpenAI response envelope),
+`elapsedMs`, `tokensPerSecond`, `clientTimedOut`, and `serverCompleted`
+(`true`, `false`, or `null` when unknown). Do not include prompts or raw output
+if they contain private data.
+
+Score a capture with:
+
+```bash
+npm run evaluate:local-ai -- /path/to/sanitized-capture.json
+```
+
+The scorer reports exact schema/intent/field/clarification matches, separates
+cold and warm latency, and counts known late completions after client timeout.
+Its output deliberately omits prompts and raw model responses and leaves
+`qualification` as `NOT_SET`; it does not call the model or declare a pass
+threshold.
+
 ## Qualification sequence
 
 1. **Capture baseline:** retain the app log export and per-request records;
