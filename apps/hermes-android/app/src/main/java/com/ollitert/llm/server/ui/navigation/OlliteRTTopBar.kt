@@ -1,0 +1,225 @@
+/*
+ * Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.ui.navigation
+
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.togetherWith
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.statusBarsPadding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
+import androidx.compose.material.icons.outlined.Settings
+import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import com.ollitert.llm.server.BuildConfig
+import com.ollitert.llm.server.R
+import com.ollitert.llm.server.common.ServerStatus
+import com.ollitert.llm.server.common.ModelLoadPhase
+import com.ollitert.llm.server.ui.theme.OlliteRTGreen400
+import com.ollitert.llm.server.ui.theme.OlliteRTPrimary
+import com.ollitert.llm.server.ui.theme.OlliteRTWarningText
+import com.ollitert.llm.server.ui.theme.SpaceGroteskFontFamily
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun OlliteRTTopBar(
+  serverStatus: ServerStatus,
+  onSettingsClick: () -> Unit,
+  modifier: Modifier = Modifier,
+  isInferring: Boolean = false,
+  modelLoadPhase: ModelLoadPhase = ModelLoadPhase.STARTING,
+  onBackClick: (() -> Unit)? = null,
+  trailingContent: @Composable (() -> Unit)? = null,
+) {
+  Box(
+    modifier = modifier
+      .fillMaxWidth()
+      .background(MaterialTheme.colorScheme.surface.copy(alpha = 0.92f))
+      .statusBarsPadding()
+      .padding(horizontal = 16.dp, vertical = 12.dp),
+  ) {
+    // Left: Back arrow OR OlliteRT brand (not both)
+    if (onBackClick != null) {
+      IconButton(
+        onClick = onBackClick,
+        modifier = Modifier.align(Alignment.CenterStart),
+      ) {
+        Icon(
+          imageVector = Icons.AutoMirrored.Outlined.ArrowBack,
+          contentDescription = stringResource(R.string.topbar_back),
+          tint = MaterialTheme.colorScheme.onSurface,
+          modifier = Modifier.size(24.dp),
+        )
+      }
+    } else {
+      Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier.align(Alignment.CenterStart),
+      ) {
+        Image(
+          painter = painterResource(
+            id = if (BuildConfig.CHANNEL == "hermes") R.drawable.ic_hermes_brand else R.drawable.ic_brand,
+          ),
+          contentDescription = stringResource(R.string.topbar_brand),
+          modifier = Modifier
+            .size(28.dp)
+            .clip(RoundedCornerShape(6.dp)),
+        )
+        Spacer(modifier = Modifier.width(8.dp))
+        // Brand name — includes channel suffix for dev/beta builds
+        Text(
+          text = when (BuildConfig.CHANNEL) {
+            "hermes" -> stringResource(R.string.topbar_brand_hermes)
+            "dev" -> stringResource(R.string.topbar_brand_dev)
+            "beta" -> stringResource(R.string.topbar_brand_beta)
+            else -> stringResource(R.string.topbar_brand)
+          },
+          color = OlliteRTPrimary,
+          fontFamily = SpaceGroteskFontFamily,
+          fontWeight = FontWeight.Bold,
+          fontSize = 22.sp,
+        )
+      }
+    }
+
+    // Center: Status pill — always truly centered on screen
+    StatusPill(
+      serverStatus = serverStatus,
+      isInferring = isInferring,
+      modelLoadPhase = modelLoadPhase,
+      modifier = Modifier.align(Alignment.Center),
+    )
+
+    // Right: Settings gear (hidden when already on Settings)
+    if (onBackClick == null) {
+      Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+        TooltipBox(
+          positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+          tooltip = { PlainTooltip { Text(stringResource(R.string.topbar_settings)) } },
+          state = rememberTooltipState(),
+        ) {
+          IconButton(onClick = onSettingsClick) {
+            Icon(
+              imageVector = Icons.Outlined.Settings,
+              contentDescription = stringResource(R.string.topbar_settings),
+              tint = MaterialTheme.colorScheme.onSurfaceVariant,
+              modifier = Modifier.size(24.dp),
+            )
+          }
+        }
+      }
+    } else if (trailingContent != null) {
+      Box(modifier = Modifier.align(Alignment.CenterEnd)) {
+        trailingContent()
+      }
+    }
+  }
+}
+
+@Composable
+fun StatusPill(
+  serverStatus: ServerStatus,
+  modifier: Modifier = Modifier,
+  isInferring: Boolean = false,
+  modelLoadPhase: ModelLoadPhase = ModelLoadPhase.STARTING,
+) {
+  val isProcessing = serverStatus == ServerStatus.RUNNING && isInferring
+  val isRetryingOnCpu = serverStatus == ServerStatus.LOADING &&
+    modelLoadPhase == ModelLoadPhase.RETRYING_CPU
+  val (dotColor, label) = when {
+    isProcessing -> OlliteRTPrimary to stringResource(R.string.status_pill_processing)
+    isRetryingOnCpu -> OlliteRTWarningText to stringResource(R.string.status_pill_retrying_cpu)
+    serverStatus == ServerStatus.STOPPED -> MaterialTheme.colorScheme.error to stringResource(R.string.status_pill_stopped)
+    serverStatus == ServerStatus.LOADING -> MaterialTheme.colorScheme.onSurfaceVariant to stringResource(R.string.status_pill_starting)
+    serverStatus == ServerStatus.RUNNING -> OlliteRTGreen400 to stringResource(R.string.status_pill_running)
+    else -> MaterialTheme.colorScheme.error to stringResource(R.string.status_pill_error)
+  }
+
+  val animatedDotColor by animateColorAsState(
+    targetValue = dotColor,
+    animationSpec = tween(300),
+    label = "dotColor",
+  )
+
+  Row(
+    modifier = modifier
+      .clip(RoundedCornerShape(50))
+      .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+      .padding(horizontal = 12.dp, vertical = 6.dp),
+    verticalAlignment = Alignment.CenterVertically,
+  ) {
+    if (serverStatus == ServerStatus.LOADING) {
+      CircularProgressIndicator(
+        modifier = Modifier.size(12.dp),
+        color = animatedDotColor,
+        strokeWidth = 2.dp,
+      )
+    } else {
+      Box(
+        modifier = Modifier
+          .size(8.dp)
+          .clip(RoundedCornerShape(50))
+          .background(animatedDotColor)
+      )
+    }
+    Spacer(modifier = Modifier.width(6.dp))
+    AnimatedContent(
+      targetState = label,
+      transitionSpec = { fadeIn(tween(200)) togetherWith fadeOut(tween(200)) },
+      label = "statusLabel",
+    ) { targetLabel ->
+      Text(
+        text = targetLabel,
+        style = MaterialTheme.typography.labelSmall,
+        color = MaterialTheme.colorScheme.onSurface,
+        fontWeight = FontWeight.SemiBold,
+      )
+    }
+  }
+}
