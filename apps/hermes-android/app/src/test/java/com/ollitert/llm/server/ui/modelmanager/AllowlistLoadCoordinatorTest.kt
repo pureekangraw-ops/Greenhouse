@@ -1,0 +1,186 @@
+/*
+ * Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.ui.modelmanager
+
+import android.content.Context
+import com.ollitert.llm.server.R
+import com.ollitert.llm.server.data.allowlist.AllowedModel
+import com.ollitert.llm.server.data.repository.ProtoDataStoreRepository
+import com.ollitert.llm.server.data.allowlist.DefaultConfig
+import com.ollitert.llm.server.data.repository.DefaultModelStorageRepository
+import com.ollitert.llm.server.data.repository.ModelStorageRepository
+import com.ollitert.llm.server.data.allowlist.ModelListImportManager
+import com.ollitert.llm.server.data.allowlist.RefreshResult
+import com.ollitert.llm.server.data.model.Repository
+import com.ollitert.llm.server.data.allowlist.LoadResult
+import com.ollitert.llm.server.data.model.Model
+import com.ollitert.llm.server.data.model.ModelDownloadStatus
+import com.ollitert.llm.server.data.model.ModelDownloadStatusType
+import com.ollitert.llm.server.data.allowlist.RepositoryManager
+import com.ollitert.llm.server.common.SemVer
+import io.mockk.coEvery
+import io.mockk.every
+import io.mockk.mockk
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Before
+import org.junit.Test
+
+class AllowlistLoadCoordinatorTest {
+
+  private lateinit var context: Context
+  private lateinit var protoDataStoreRepository: ProtoDataStoreRepository
+  private lateinit var repositoryManager: RepositoryManager
+  private lateinit var modelStorageRepository: ModelStorageRepository
+  private lateinit var importManager: ModelListImportManager
+  private lateinit var coordinator: AllowlistLoadCoordinator
+
+  @Before
+  fun setUp() {
+    context = mockk(relaxed = true)
+    protoDataStoreRepository = mockk(relaxed = true)
+    repositoryManager = mockk(relaxed = true)
+    modelStorageRepository = mockk(relaxed = true)
+    importManager = mockk(relaxed = true)
+
+    every { context.getString(R.string.error_all_repos_offline) } returns "All repositories are offline"
+    every { context.getString(R.string.error_showing_cached_list) } returns "Showing cached list"
+    every { context.getString(R.string.error_some_repos_unavailable, any(), any()) } answers {
+      "${args[1]} of ${args[2]} repositories unavailable"
+    }
+
+    coordinator = AllowlistLoadCoordinator(
+      context = context,
+      protoDataStoreRepository = protoDataStoreRepository,
+      repositoryManager = repositoryManager,
+      modelStorageRepository = modelStorageRepository,
+      importManager = importManager,
+      preferencesRepository = com.ollitert.llm.server.data.repository.FakePreferencesRepository(),
+    )
+  }
+
+  private fun createTestRepo(id: String, modelCount: Int? = null, enabled: Boolean = true): Repository {
+    return Repository(
+      id = id,
+      url = "http://test/$id",
+      enabled = enabled,
+      isBuiltIn = false,
+      contentVersion = 1,
+      lastRefreshMs = 0L,
+      lastError = "",
+      name = "Repo $id",
+      modelCount = modelCount,
+    )
+  }
+
+  @Test
+  fun computeRefreshErrorMessage_returnsEmptyWhenNoFailures() {
+    val result = RefreshResult(failedRepoIds = emptySet())
+    val repos = listOf(createTestRepo("r1"))
+
+    val msg = coordinator.computeRefreshErrorMessage(result, repos)
+    assertEquals("", msg)
+  }
+
+  @Test
+  fun computeRefreshErrorMessage_returnsAllOfflineWhenAllEnabledFailWithoutCache() {
+    val result = RefreshResult(failedRepoIds = setOf("r1", "r2"))
+    val repos = listOf(
+      createTestRepo("r1", modelCount = null),
+      createTestRepo("r2", modelCount = null),
+    )
+
+    val msg = coordinator.computeRefreshErrorMessage(result, repos)
+    assertEquals("All repositories are offline", msg)
+  }
+
+  @Test
+  fun computeRefreshErrorMessage_returnsCachedWarningWhenFailedWithCache() {
+    val result = RefreshResult(failedRepoIds = setOf("r1"))
+    val repos = listOf(
+      createTestRepo("r1", modelCount = 5),
+    )
+
+    val msg = coordinator.computeRefreshErrorMessage(result, repos)
+    assertEquals("Showing cached list", msg)
+  }
+
+  @Test
+  fun isModelSupportedOnDevice_returnsTrueForCpuGpuModels() {
+    val allowedModel = AllowedModel(
+      name = "test-model",
+      modelId = "test/model",
+      modelFile = "model.bin",
+      description = "Test model",
+      sizeInBytes = 1000L,
+      defaultConfig = DefaultConfig(
+        accelerators = "gpu,cpu",
+      ),
+    )
+
+    assertTrue(coordinator.isModelSupportedOnDevice(allowedModel))
+  }
+
+  @Test
+  fun retainDownloadedModelsFromDisabledSourcesKeepsLocalOfficialModel() = runTest {
+    val downloadedOfficial = Model(name = "Downloaded", sourceRepositoryId = "official")
+    val availableOfficial = Model(name = "Available", sourceRepositoryId = "official")
+    val enabledCommunity = Model(name = "Community", sourceRepositoryId = "community")
+    val repositories = listOf(
+      createTestRepo("official", enabled = false),
+      createTestRepo("community", enabled = true),
+    )
+    coEvery {
+      repositoryManager.loadAll(any(), modelStorageRepository, ignoreDisabled = true, modelFilter = any())
+    } returns LoadResult(
+      models = listOf(downloadedOfficial, availableOfficial, enabledCommunity),
+      repositories = repositories,
+    )
+    every { modelStorageRepository.getModelDownloadStatus(downloadedOfficial) } returns
+      ModelDownloadStatus(ModelDownloadStatusType.SUCCEEDED)
+    every { modelStorageRepository.getModelDownloadStatus(availableOfficial) } returns
+      ModelDownloadStatus(ModelDownloadStatusType.NOT_DOWNLOADED)
+
+    val result = coordinator.retainDownloadedModelsFromDisabledSources(
+      loadResult = LoadResult(models = listOf(enabledCommunity), repositories = repositories),
+      appVersion = SemVer.parse("0.9.6"),
+    )
+
+    assertEquals(listOf("Community", "Downloaded"), result.models.map { it.name })
+    assertTrue(!result.allReposDisabled)
+  }
+
+  @Test
+  fun retainDownloadedModelsFromDisabledSourcesSupportsAllSourcesDisabled() = runTest {
+    val downloadedOfficial = Model(name = "Downloaded", sourceRepositoryId = "official")
+    val repositories = listOf(createTestRepo("official", enabled = false))
+    coEvery {
+      repositoryManager.loadAll(any(), modelStorageRepository, ignoreDisabled = true, modelFilter = any())
+    } returns LoadResult(models = listOf(downloadedOfficial), repositories = repositories)
+    every { modelStorageRepository.getModelDownloadStatus(downloadedOfficial) } returns
+      ModelDownloadStatus(ModelDownloadStatusType.SUCCEEDED)
+
+    val result = coordinator.retainDownloadedModelsFromDisabledSources(
+      loadResult = LoadResult(models = emptyList(), repositories = repositories),
+      appVersion = SemVer.parse("0.9.6"),
+    )
+
+    assertEquals(listOf("Downloaded"), result.models.map { it.name })
+    assertTrue(result.allReposDisabled)
+  }
+}
