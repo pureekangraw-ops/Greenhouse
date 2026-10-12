@@ -1,0 +1,64 @@
+/*
+ * Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.data.db
+
+import androidx.room.Dao
+import androidx.room.Insert
+import androidx.room.OnConflictStrategy
+import androidx.room.Query
+
+/** Room DAO for persisted request log entries. */
+@Dao
+interface RequestLogDao {
+
+  /** Insert or update a single log entry (upsert by primary key). */
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun upsert(entity: RequestLogEntity)
+
+  /** Bulk insert/update — used when persistence is first enabled to sync current in-memory entries. */
+  @Insert(onConflict = OnConflictStrategy.REPLACE)
+  suspend fun upsertAll(entities: List<RequestLogEntity>)
+
+  /** Load the most recent [limit] entries, newest first. */
+  @Query("SELECT * FROM request_logs ORDER BY timestamp DESC, id DESC LIMIT :limit")
+  suspend fun getRecent(limit: Int): List<RequestLogEntity>
+
+  /** Delete all persisted log entries. */
+  @Query("DELETE FROM request_logs")
+  suspend fun deleteAll()
+
+  /** Delete entries older than the given timestamp (age-based pruning). */
+  @Query("DELETE FROM request_logs WHERE timestamp < :olderThanMs")
+  suspend fun deleteOlderThan(olderThanMs: Long)
+
+  /**
+   * Keep only the newest [maxCount] entries, delete the rest (count-based pruning).
+   * Uses the primary key as a deterministic tie-breaker when timestamps match.
+   */
+  @Query(
+    """
+    DELETE FROM request_logs WHERE id NOT IN (
+      SELECT id FROM request_logs ORDER BY timestamp DESC, id DESC LIMIT :maxCount
+    )
+    """
+  )
+  suspend fun pruneToCount(maxCount: Int)
+
+  /** Total number of persisted entries. */
+  @Query("SELECT COUNT(*) FROM request_logs")
+  suspend fun count(): Int
+}

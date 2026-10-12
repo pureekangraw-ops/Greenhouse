@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_label">HERMES</string>
+    <string name="topbar_brand_hermes" translatable="false">HERMES</string>
+    <string name="llm_http_channel_name" translatable="false">HERMES Local Server</string>
+    <string name="notif_server_running_title">HERMES Local Server Running</string>
+    <string name="notif_starting_title">HERMES</string>
+    <string name="settings_version_footer" translatable="false">HERMES v%1$s (%2$s)</string>
+    <string name="logs_export_chooser_title" translatable="false">Export HERMES Logs</string>
+    <string name="clipboard_label_endpoint" translatable="false">HERMES Local Endpoint</string>
+    <string name="hermes_loopback_only_notice" translatable="false">HERMES API is locked to this device only (127.0.0.1). This setting cannot be changed.</string>
+</resources>
