@@ -42,7 +42,7 @@ jobs:
         run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
       - name: Unit tests, lint, and debug APK
         working-directory: apps/hermes-android
-        run: ./gradlew --no-daemon --stacktrace :app:testHermesDebugUnitTest :app:lintHermesDebug :app:assembleHermesDebug
+        run: bash ./gradlew --no-daemon --stacktrace :app:testHermesDebugUnitTest :app:lintHermesDebug :app:assembleHermesDebug
       - name: Verify APK identity and checksum
         working-directory: apps/hermes-android
         shell: bash
