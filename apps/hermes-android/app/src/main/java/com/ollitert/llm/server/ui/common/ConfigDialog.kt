@@ -1,0 +1,378 @@
+/*
+ * Copyright 2025 Google LLC
+ * Modifications Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.ui.common
+
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.KeyboardActions
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MultiChoiceSegmentedButtonRow
+import androidx.compose.material3.SegmentedButton
+import androidx.compose.material3.SegmentedButtonDefaults
+import androidx.compose.material3.Slider
+import androidx.compose.material3.Switch
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshots.SnapshotStateMap
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.unit.dp
+import com.ollitert.llm.server.R
+import com.ollitert.llm.server.data.prefs.BooleanSwitchConfig
+import com.ollitert.llm.server.data.prefs.Config
+import com.ollitert.llm.server.data.prefs.ConfigKeys
+import com.ollitert.llm.server.data.prefs.EditableTextConfig
+import com.ollitert.llm.server.data.prefs.LabelConfig
+import com.ollitert.llm.server.data.prefs.NumberSliderConfig
+import com.ollitert.llm.server.data.prefs.SegmentedButtonConfig
+import com.ollitert.llm.server.data.prefs.ValueType
+import java.util.Locale
+
+/** Composable function to display a list of config editor rows. */
+@Composable
+fun ConfigEditorsPanel(configs: List<Config>, values: SnapshotStateMap<String, Any>) {
+  for (config in configs) {
+    when (config) {
+      // Editable text field.
+      is EditableTextConfig -> {
+        EditableTextRow(config = config, values = values)
+      }
+
+      // Label.
+      is LabelConfig -> {
+        LabelRow(config = config, values = values)
+      }
+
+      // Number slider.
+      is NumberSliderConfig -> {
+        NumberSliderRow(config = config, values = values)
+      }
+
+      // Boolean switch.
+      is BooleanSwitchConfig -> {
+        BooleanSwitchRow(config = config, values = values)
+      }
+
+      // Segmented button.
+      is SegmentedButtonConfig -> {
+        SegmentedButtonRow(config = config, values = values)
+      }
+
+      else -> {}
+    }
+  }
+}
+
+@Composable
+fun LabelRow(config: LabelConfig, values: SnapshotStateMap<String, Any>) {
+  Column(modifier = Modifier.fillMaxWidth()) {
+    // Field label.
+    Text(stringResource(config.key.labelResId), style = MaterialTheme.typography.titleSmall)
+    // Content label.
+    val label = values[config.key.id] as? String ?: ""
+    Text(label, style = MaterialTheme.typography.bodyMedium)
+  }
+}
+
+@Composable
+fun EditableTextRow(config: EditableTextConfig, values: SnapshotStateMap<String, Any>) {
+  val focusManager = LocalFocusManager.current
+  var isFocused by remember { mutableStateOf(false) }
+  val focusRequester = remember { FocusRequester() }
+  var textValue by remember {
+    mutableStateOf(values[config.key.id] as? String ?: "")
+  }
+
+  Column(modifier = Modifier.fillMaxWidth()) {
+    Text(stringResource(config.key.labelResId), style = MaterialTheme.typography.titleSmall)
+    Spacer(modifier = Modifier.height(4.dp))
+    Row(
+      modifier = Modifier.fillMaxWidth(),
+      verticalAlignment = Alignment.CenterVertically,
+    ) {
+      BasicTextField(
+        value = textValue,
+        modifier =
+          Modifier.weight(1f).focusRequester(focusRequester).onFocusChanged {
+            isFocused = it.isFocused
+          },
+        keyboardOptions = KeyboardOptions.Default,
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        singleLine = true,
+        onValueChange = {
+          textValue = it
+          values[config.key.id] = it
+        },
+        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+      ) { innerTextField ->
+        Box(
+          modifier =
+            Modifier.border(
+              width = if (isFocused) 2.dp else 1.dp,
+              color =
+                if (isFocused) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline,
+              shape = RoundedCornerShape(4.dp),
+            )
+        ) {
+          Box(modifier = Modifier.padding(8.dp)) { innerTextField() }
+        }
+      }
+      if (config.suffix.isNotEmpty()) {
+        Spacer(modifier = Modifier.width(4.dp))
+        Text(
+          config.suffix,
+          style = MaterialTheme.typography.bodyMedium,
+          color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+      }
+    }
+  }
+}
+
+fun getTextFieldDisplayValue(valueType: ValueType, value: Float): String {
+  return when (valueType) {
+    ValueType.FLOAT -> String.format(Locale.US, "%.2f", value)
+    ValueType.INT -> "${value.toInt()}"
+    else -> ""
+  }
+}
+
+/**
+ * Composable function to display a number slider with an associated text input field.
+ *
+ * This function renders a row containing a slider and a text field, both used to modify a numeric
+ * value. The slider allows users to visually adjust the value within a specified range, while the
+ * text field provides precise numeric input.
+ */
+@Composable
+fun NumberSliderRow(config: NumberSliderConfig, values: SnapshotStateMap<String, Any>) {
+  val focusManager = LocalFocusManager.current
+
+  Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+    // Field label.
+    Text(stringResource(config.key.labelResId), style = MaterialTheme.typography.titleSmall)
+
+    // Controls row.
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+      var isFocused by remember { mutableStateOf(false) }
+      val focusRequester = remember { FocusRequester() }
+
+      // The displaying value for the Text field. It allows hold invalid values that is not a proper
+      // value or out of the slider range, temporary while user is still editing the text.
+      var textFieldDisplayValue by remember {
+        mutableStateOf(
+          getTextFieldDisplayValue(config.valueType, values[config.key.id] as? Float ?: 0f)
+        )
+      }
+
+      val rawValue = values[config.key.id] as? Float ?: 0f
+      val sliderValue = rawValue.coerceIn(config.sliderMin, config.sliderMax)
+
+      Text(
+        text = getTextFieldDisplayValue(config.valueType, config.sliderMin),
+        style = MaterialTheme.typography.bodyMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+
+      Slider(
+        modifier = Modifier.height(24.dp).weight(1f).padding(horizontal = 8.dp),
+        value = sliderValue,
+        valueRange = config.sliderMin..config.sliderMax,
+        onValueChange = {
+          values[config.key.id] = it
+          textFieldDisplayValue = getTextFieldDisplayValue(config.valueType, it)
+        },
+      )
+
+      Spacer(modifier = Modifier.width(8.dp))
+
+      // A smaller text field.
+      BasicTextField(
+        value = textFieldDisplayValue,
+        modifier =
+          Modifier.width(80.dp).focusRequester(focusRequester).onFocusChanged {
+            isFocused = it.isFocused
+
+            // When leaving focus, display the internal value so that any invalid value is cleared.
+            if (!isFocused) {
+              textFieldDisplayValue =
+                getTextFieldDisplayValue(config.valueType, values[config.key.id] as? Float ?: 0f)
+            }
+          },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        keyboardActions = KeyboardActions(onDone = { focusManager.clearFocus() }),
+        singleLine = true,
+        onValueChange = {
+          textFieldDisplayValue = it
+
+          it.toFloatOrNull()?.let { floatValue ->
+            val clamped = if (config.allowAboveMax) {
+              maxOf(floatValue, config.sliderMin)
+            } else {
+              floatValue.coerceIn(config.sliderMin, config.sliderMax)
+            }
+            values[config.key.id] = clamped
+          }
+        },
+        textStyle = TextStyle(color = MaterialTheme.colorScheme.onSurface),
+        cursorBrush = SolidColor(MaterialTheme.colorScheme.onSurface),
+      ) { innerTextField ->
+        Box(
+          modifier =
+            Modifier.border(
+              width = if (isFocused) 2.dp else 1.dp,
+              color =
+                if (isFocused) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.outline,
+              shape = RoundedCornerShape(4.dp),
+            )
+        ) {
+          Box(modifier = Modifier.padding(8.dp)) { innerTextField() }
+        }
+      }
+    }
+
+    if (config.key == ConfigKeys.MAX_TOKENS) {
+      val sliderValue = values[config.key.id] as? Float ?: 0f
+      if (sliderValue >= 10000f) {
+        Text(
+          text = stringResource(R.string.max_tokens_warning_message),
+          style = MaterialTheme.typography.bodySmall,
+          color = MaterialTheme.colorScheme.error,
+          modifier = Modifier.padding(top = 8.dp),
+        )
+      }
+    }
+  }
+}
+
+/**
+ * Composable function to display a row with a boolean switch.
+ *
+ * This function renders a row containing a label and a switch, allowing users to toggle a boolean
+ * value.
+ */
+@Composable
+fun BooleanSwitchRow(config: BooleanSwitchConfig, values: SnapshotStateMap<String, Any>) {
+  val switchValue = values[config.key.id] as? Boolean ?: false
+  Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+    Text(
+      stringResource(config.key.labelResId),
+      style = MaterialTheme.typography.titleSmall,
+      color = if (config.enabled) MaterialTheme.colorScheme.onSurface
+        else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f),
+    )
+    config.subtitle?.let {
+      Text(
+        text = it,
+        style = MaterialTheme.typography.bodySmall,
+        color = if (config.enabled) MaterialTheme.colorScheme.onSurfaceVariant
+          else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f),
+      )
+    }
+    Switch(
+      checked = switchValue && config.enabled,
+      onCheckedChange = { values[config.key.id] = it },
+      enabled = config.enabled,
+    )
+  }
+}
+
+/**
+ * Composable function to display a row with a segmented button.
+ *
+ * This function renders a row containing a label and a segmented button, allowing users to select
+ * one or more options from a list.
+ */
+@Composable
+fun SegmentedButtonRow(config: SegmentedButtonConfig, values: SnapshotStateMap<String, Any>) {
+  val selectedOptions: List<String> = remember { (values[config.key.id] as? String ?: "").split(",") }
+  var selectionStates: List<Boolean> by remember {
+    mutableStateOf(
+      List(config.options.size) { index -> selectedOptions.contains(config.options[index]) }
+    )
+  }
+
+  Column(modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {}) {
+    Text(stringResource(config.key.labelResId), style = MaterialTheme.typography.titleSmall)
+    if (config.description != null) {
+      Text(
+        config.description,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+      )
+    }
+    MultiChoiceSegmentedButtonRow {
+      config.options.forEachIndexed { index, label ->
+        SegmentedButton(
+          shape = SegmentedButtonDefaults.itemShape(index = index, count = config.options.size),
+          onCheckedChange = {
+            var newSelectionStates = selectionStates.toMutableList()
+            val selectedCount = newSelectionStates.count { it }
+
+            // Single select.
+            if (!config.allowMultiple) {
+              if (!newSelectionStates[index]) {
+                newSelectionStates = MutableList(config.options.size) { it == index }
+              }
+            }
+            // Multiple select.
+            else {
+              if (!(selectedCount == 1 && newSelectionStates[index])) {
+                newSelectionStates[index] = !newSelectionStates[index]
+              }
+            }
+            selectionStates = newSelectionStates
+
+            values[config.key.id] =
+              config.options
+                .filterIndexed { index, _ -> selectionStates[index] }
+                .joinToString(",")
+          },
+          checked = selectionStates[index],
+          label = { Text(label) },
+        )
+      }
+    }
+  }
+}
