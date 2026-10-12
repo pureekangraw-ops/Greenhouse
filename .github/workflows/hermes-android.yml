@@ -1,0 +1,62 @@
+name: HERMES Android
+
+on:
+  push:
+    branches:
+      - feat/hermes-android-greenhouse-v0.1
+    paths:
+      - 'apps/hermes-android/**'
+      - '.github/workflows/hermes-android.yml'
+  pull_request:
+    paths:
+      - 'apps/hermes-android/**'
+      - '.github/workflows/hermes-android.yml'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: hermes-android-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-node@v5
+        with:
+          node-version: '24'
+      - name: Greenhouse checks
+        run: npm run check && npm test
+      - uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: '21'
+          cache: gradle
+          cache-dependency-path: apps/hermes-android/**/*.gradle*
+      - uses: android-actions/setup-android@v3
+      - name: Install Android SDK 36
+        run: sdkmanager "platforms;android-36" "build-tools;36.0.0"
+      - name: Unit tests, lint, and debug APK
+        working-directory: apps/hermes-android
+        run: ./gradlew --no-daemon --stacktrace :app:testHermesDebugUnitTest :app:lintHermesDebug :app:assembleHermesDebug
+      - name: Verify APK identity and checksum
+        working-directory: apps/hermes-android
+        shell: bash
+        run: |
+          set -euo pipefail
+          apk="$(find app/build/outputs/apk/hermes/debug -maxdepth 1 -name '*.apk' -print -quit)"
+          test -n "$apk"
+          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -F "package: name='com.ollitert.llm.server.hermes'"
+          sha256sum "$apk" | tee app/build/outputs/apk/hermes/debug/SHA256SUMS
+      - uses: actions/upload-artifact@v4
+        with:
+          name: hermes-debug-apk-${{ github.sha }}
+          path: |
+            apps/hermes-android/app/build/outputs/apk/hermes/debug/*.apk
+            apps/hermes-android/app/build/outputs/apk/hermes/debug/SHA256SUMS
+          if-no-files-found: error
+          retention-days: 14
