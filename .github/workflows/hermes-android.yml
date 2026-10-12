@@ -26,6 +26,8 @@ jobs:
     timeout-minutes: 45
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - uses: actions/setup-node@v5
         with:
           node-version: '24'
@@ -50,7 +52,8 @@ jobs:
           set -euo pipefail
           apk="$(find app/build/outputs/apk/hermes/debug -maxdepth 1 -name '*.apk' -print -quit)"
           test -n "$apk"
-          "$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk" | grep -F "package: name='com.ollitert.llm.server.hermes'"
+          badging="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk")"
+          echo "$badging" | grep -E "package: name='com.ollitert.llm.server.hermes' versionCode='[1-9][0-9]*' versionName='0\\.1\\.0'"
           sha256sum "$apk" | tee app/build/outputs/apk/hermes/debug/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
