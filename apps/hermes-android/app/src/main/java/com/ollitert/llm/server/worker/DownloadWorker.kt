@@ -1,0 +1,519 @@
+/*
+ * Copyright 2025 Google LLC
+ * Modifications Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.worker
+
+import android.app.NotificationChannel
+import android.app.NotificationManager
+import android.app.PendingIntent
+import android.content.Context
+import android.content.Intent
+import android.content.pm.ServiceInfo
+import android.os.Environment
+import android.os.StatFs
+import android.util.Log
+import androidx.core.app.NotificationCompat
+import androidx.work.CoroutineWorker
+import androidx.work.Data
+import androidx.work.ForegroundInfo
+import androidx.work.WorkerParameters
+import androidx.work.workDataOf
+import com.ollitert.llm.server.MainActivity
+import com.ollitert.llm.server.R
+import com.ollitert.llm.server.data.prefs.DOWNLOAD_CONNECT_TIMEOUT_MS
+import com.ollitert.llm.server.data.storage.DOWNLOAD_FOREGROUND_UPDATE_INTERVAL_MS
+import com.ollitert.llm.server.data.storage.DOWNLOAD_PROGRESS_UPDATE_INTERVAL_MS
+import com.ollitert.llm.server.data.prefs.DOWNLOAD_READ_TIMEOUT_MS
+import com.ollitert.llm.server.data.storage.DOWNLOAD_SPEED_ROLLING_BUFFER_SIZE
+import com.ollitert.llm.server.data.allowlist.isHuggingFaceUrl
+import com.ollitert.llm.server.data.storage.DOWNLOAD_UNZIP_BUFFER_SIZE
+import com.ollitert.llm.server.data.storage.KEY_MODEL_COMMIT_HASH
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_ACCESS_TOKEN
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_ERROR_MESSAGE
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_FILE_NAME
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_MODEL_DIR
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_RATE
+import com.ollitert.llm.server.data.storage.KEY_MODEL_DOWNLOAD_RECEIVED_BYTES
+import com.ollitert.llm.server.data.storage.KEY_MODEL_EXTRA_DATA_DOWNLOAD_FILE_NAMES
+import com.ollitert.llm.server.data.storage.KEY_MODEL_EXTRA_DATA_URLS
+import com.ollitert.llm.server.data.storage.KEY_MODEL_IS_ZIP
+import com.ollitert.llm.server.data.storage.KEY_MODEL_NAME
+import com.ollitert.llm.server.data.storage.KEY_MODEL_START_UNZIPPING
+import com.ollitert.llm.server.data.storage.KEY_MODEL_TOTAL_BYTES
+import com.ollitert.llm.server.data.storage.KEY_MODEL_UNZIPPED_DIR
+import com.ollitert.llm.server.data.storage.KEY_MODEL_URL
+import com.ollitert.llm.server.data.prefs.MIN_STORAGE_FOR_MODEL_INIT_BYTES
+import com.ollitert.llm.server.data.storage.TMP_EXTRACT_EXT
+import com.ollitert.llm.server.data.storage.TMP_FILE_EXT
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+import java.io.BufferedInputStream
+import java.io.File
+import java.io.FileInputStream
+import java.io.FileOutputStream
+import java.io.IOException
+import java.net.HttpURLConnection
+import java.net.SocketException
+import java.net.SocketTimeoutException
+import java.net.URL
+import java.net.UnknownHostException
+import java.util.zip.ZipEntry
+import java.util.zip.ZipInputStream
+
+private const val TAG = "OlliteRT.Download"
+
+data class UrlAndFileName(val url: String, val fileName: String)
+
+private class HttpErrorException(
+  val statusCode: Int,
+  val isRepoNotFound: Boolean = false,
+) : IOException("HTTP error code: $statusCode")
+
+private const val FOREGROUND_NOTIFICATION_CHANNEL_ID = "model_download_channel_foreground"
+private var channelCreated = false
+
+class DownloadWorker(context: Context, params: WorkerParameters) :
+  CoroutineWorker(context, params) {
+  private val externalFilesDir = context.getExternalFilesDir(null)
+
+  private val notificationManager =
+    context.getSystemService(Context.NOTIFICATION_SERVICE) as? NotificationManager
+
+  // Unique notification id.
+  private val notificationId: Int = params.id.hashCode()
+
+  init {
+    if (!channelCreated) {
+      // Create a notification channel for showing notifications for model downloading progress.
+      val channel =
+        NotificationChannel(
+            FOREGROUND_NOTIFICATION_CHANNEL_ID,
+            applicationContext.getString(R.string.notif_channel_download_worker_name),
+            // Make it silent.
+            NotificationManager.IMPORTANCE_LOW,
+          )
+          .apply { description = applicationContext.getString(R.string.notif_channel_download_worker_desc) }
+      notificationManager?.createNotificationChannel(channel)
+      channelCreated = true
+    }
+  }
+
+  override suspend fun doWork(): Result {
+    val fileUrl = inputData.getString(KEY_MODEL_URL)
+    val modelName = inputData.getString(KEY_MODEL_NAME) ?: "Model"
+    val version = inputData.getString(KEY_MODEL_COMMIT_HASH)
+      ?: return Result.failure(workDataOf("error" to "Missing commit hash in download input"))
+    val fileName = inputData.getString(KEY_MODEL_DOWNLOAD_FILE_NAME)
+    val modelDir = inputData.getString(KEY_MODEL_DOWNLOAD_MODEL_DIR)
+      ?: return Result.failure(workDataOf("error" to "Missing model directory in download input"))
+    val isZip = inputData.getBoolean(KEY_MODEL_IS_ZIP, false)
+    val unzippedDir = inputData.getString(KEY_MODEL_UNZIPPED_DIR)
+    val extraDataFileUrls = inputData.getString(KEY_MODEL_EXTRA_DATA_URLS)?.split(",") ?: listOf()
+    val extraDataFileNames =
+      inputData.getString(KEY_MODEL_EXTRA_DATA_DOWNLOAD_FILE_NAMES)?.split(",") ?: listOf()
+    val totalBytes = inputData.getLong(KEY_MODEL_TOTAL_BYTES, 0L)
+    val accessToken = inputData.getString(KEY_MODEL_DOWNLOAD_ACCESS_TOKEN)
+
+    return withContext(Dispatchers.IO) {
+      if (fileUrl == null || fileName == null) {
+        Result.failure()
+      } else if (externalFilesDir == null) {
+        Result.failure(workDataOf("error" to "External storage unavailable"))
+      } else {
+        // Track all .tmp files created during this download session so we can
+        // clean them up if the failure is disk-space related (see catch block).
+        val createdTmpFiles: MutableList<File> = mutableListOf()
+        return@withContext try {
+          // Set the worker as a foreground service immediately.
+          setForeground(createForegroundInfo(progress = 0, modelName = modelName))
+
+          // Collect data for all files.
+          val allFiles: MutableList<UrlAndFileName> = mutableListOf()
+          allFiles.add(UrlAndFileName(url = fileUrl, fileName = fileName))
+          for (index in extraDataFileUrls.indices) {
+            allFiles.add(
+              UrlAndFileName(url = extraDataFileUrls[index], fileName = extraDataFileNames[index])
+            )
+          }
+          Log.d(TAG, "About to download: $allFiles")
+
+          // Sequential download -- parallel would speed up multi-file models but complicates progress tracking
+          var downloadedBytes = 0L
+          val bytesReadSizeBuffer: MutableList<Long> = mutableListOf()
+          val bytesReadLatencyBuffer: MutableList<Long> = mutableListOf()
+          for (file in allFiles) {
+            val url = URL(file.url)
+
+            // Prepare output file's dir.
+            val outputDir =
+              File(
+                applicationContext.getExternalFilesDir(null),
+                listOf(modelDir, version).joinToString(separator = File.separator),
+              )
+            if (!outputDir.exists()) {
+              outputDir.mkdirs()
+            }
+
+            // Read the tmp file and see if it is partially downloaded.
+            val outputTmpFile =
+              File(
+                applicationContext.getExternalFilesDir(null),
+                listOf(modelDir, version, "${file.fileName}.$TMP_FILE_EXT")
+                  .joinToString(separator = File.separator),
+              )
+            createdTmpFiles.add(outputTmpFile)
+            val outputFileBytes = outputTmpFile.length()
+
+            val connection = url.openConnection() as HttpURLConnection
+            connection.connectTimeout = DOWNLOAD_CONNECT_TIMEOUT_MS
+            connection.readTimeout = DOWNLOAD_READ_TIMEOUT_MS
+            try {
+              // Scope the credential to huggingface.co — download URLs can point
+              // to third-party hosts declared by user-added repos.
+              if (accessToken != null && isHuggingFaceUrl(file.url)) {
+                Log.d(TAG, "Using access token: configured (redacted)")
+                connection.setRequestProperty("Authorization", "Bearer $accessToken")
+              }
+              if (outputFileBytes > 0) {
+                Log.d(
+                  TAG,
+                  "File '${outputTmpFile.name}' partial size: ${outputFileBytes}. Trying to resume download",
+                )
+                connection.setRequestProperty("Range", "bytes=${outputFileBytes}-")
+                // Force the server to send non-compressed data to make download resuming work.
+                connection.setRequestProperty("Accept-Encoding", "identity")
+              }
+              connection.connect()
+              Log.d(TAG, "response code: ${connection.responseCode}")
+
+              if (
+                connection.responseCode == HttpURLConnection.HTTP_OK ||
+                  connection.responseCode == HttpURLConnection.HTTP_PARTIAL
+              ) {
+                val contentRange = connection.getHeaderField("Content-Range")
+
+                if (contentRange != null) {
+                  // Parse the Content-Range header
+                  val rangeParts = contentRange.substringAfter("bytes ").split("/")
+                  val byteRange = rangeParts[0].split("-")
+                  val startByte = byteRange.getOrNull(0)?.toLongOrNull()
+                    ?: throw IOException("Invalid Content-Range header: expected 'start-end', got '$contentRange'")
+                  val endByte = byteRange.getOrNull(1)?.toLongOrNull()
+                    ?: throw IOException("Invalid Content-Range header: expected 'start-end', got '$contentRange'")
+
+                  Log.d(
+                    TAG,
+                    "Content-Range: $contentRange. Start bytes: ${startByte}, end bytes: $endByte",
+                  )
+
+                  // Validate that the server resumed from where we left off
+                  if (startByte != outputFileBytes) {
+                    Log.w(TAG, "Content-Range start ($startByte) != local file size ($outputFileBytes) — restarting from scratch")
+                    outputTmpFile.delete()
+                    throw IOException("Resume mismatch: server offset $startByte != local $outputFileBytes")
+                  }
+
+                  downloadedBytes += startByte
+                } else {
+                  Log.d(TAG, "Download starts from beginning.")
+                  if (outputTmpFile.exists()) {
+                    outputTmpFile.delete()
+                  }
+                }
+              } else {
+                val errorBody = try {
+                  connection.errorStream?.bufferedReader()?.use { it.readText() }
+                } catch (_: Exception) { null }
+                val repoNotFound = errorBody?.contains("Repository Not Found", ignoreCase = true) == true
+                Log.w(TAG, "HTTP ${connection.responseCode}: $errorBody")
+                throw HttpErrorException(connection.responseCode, isRepoNotFound = repoNotFound)
+              }
+
+              val appendMode = outputTmpFile.exists() && outputTmpFile.length() > 0
+              connection.inputStream.use { inputStream ->
+              FileOutputStream(outputTmpFile, appendMode).use { outputStream ->
+
+               val buffer = ByteArray(DEFAULT_BUFFER_SIZE)
+               var bytesRead: Int
+               var lastSetProgressTs: Long = 0
+               var lastForegroundUpdateTs: Long = 0
+               var deltaBytes = 0L
+              while (inputStream.read(buffer).also { bytesRead = it } != -1) {
+                outputStream.write(buffer, 0, bytesRead)
+                downloadedBytes += bytesRead
+                deltaBytes += bytesRead
+
+                // Report progress every 200 ms.
+                val curTs = System.currentTimeMillis()
+                if (curTs - lastSetProgressTs > DOWNLOAD_PROGRESS_UPDATE_INTERVAL_MS) {
+                  // Calculate download rate.
+                  var bytesPerMs = 0f
+                  if (lastSetProgressTs != 0L) {
+                    if (bytesReadSizeBuffer.size == DOWNLOAD_SPEED_ROLLING_BUFFER_SIZE) {
+                      bytesReadSizeBuffer.removeAt(0)
+                    }
+                    bytesReadSizeBuffer.add(deltaBytes)
+                    if (bytesReadLatencyBuffer.size == DOWNLOAD_SPEED_ROLLING_BUFFER_SIZE) {
+                      bytesReadLatencyBuffer.removeAt(0)
+                    }
+                    bytesReadLatencyBuffer.add(curTs - lastSetProgressTs)
+                    deltaBytes = 0L
+                    bytesPerMs = bytesReadSizeBuffer.sum().toFloat() / bytesReadLatencyBuffer.sum()
+                  }
+
+                  setProgress(
+                    Data.Builder()
+                      .putLong(KEY_MODEL_DOWNLOAD_RECEIVED_BYTES, downloadedBytes)
+                      .putLong(KEY_MODEL_DOWNLOAD_RATE, (bytesPerMs * 1000).toLong())
+                      .build()
+                  )
+                  // setForeground re-posts the foreground notification; doing it on
+                  // every progress tick (~200ms) churns the notification for no
+                  // benefit. The worker is already in foreground state — refresh
+                  // the visible progress far less often.
+                  if (curTs - lastForegroundUpdateTs > DOWNLOAD_FOREGROUND_UPDATE_INTERVAL_MS) {
+                    lastForegroundUpdateTs = curTs
+                    setForeground(
+                      createForegroundInfo(
+                        progress = if (totalBytes > 0) (downloadedBytes * 100 / totalBytes).toInt() else 0,
+                        modelName = modelName,
+                      )
+                    )
+                  }
+                  Log.d(TAG, "downloadedBytes: $downloadedBytes")
+                  lastSetProgressTs = curTs
+                }
+              }
+
+              } }
+            } finally {
+              connection.disconnect()
+            }
+
+            // Same-directory atomic replacement preserves a previous valid file
+            // if finalization fails and keeps the staging file resumable.
+            val originalFilePath = outputTmpFile.absolutePath.removeSuffix(".$TMP_FILE_EXT")
+            val originalFile = File(originalFilePath)
+            finalizeDownloadedFile(outputTmpFile, originalFile)
+            Log.d(TAG, "Download done")
+
+            // Unzip if the downloaded file is a zip.
+            if (isZip && unzippedDir != null) {
+              setProgress(Data.Builder().putBoolean(KEY_MODEL_START_UNZIPPING, true).build())
+
+              // Prepare target dir.
+              val destDir =
+                File(
+                  externalFilesDir,
+                  listOf(modelDir, version, unzippedDir).joinToString(File.separator),
+                )
+              // Extract into a sibling temp dir and rename into place only on
+              // success. A process death mid-unzip then cannot leave a partial
+              // directory that ModelFileManager would mistake for a fully
+              // downloaded model ("phantom downloaded" state with no repair).
+              // Any pre-existing dir is stale by definition here — the zip was
+              // just downloaded fresh.
+              val tmpExtractDir = File("${destDir.absolutePath}.$TMP_EXTRACT_EXT")
+              if (tmpExtractDir.exists()) tmpExtractDir.deleteRecursively()
+              tmpExtractDir.mkdirs()
+
+              // Unzip.
+              val unzipBuffer = ByteArray(DOWNLOAD_UNZIP_BUFFER_SIZE)
+              val zipFilePath =
+                "${externalFilesDir}${File.separator}$modelDir${File.separator}$version${File.separator}${fileName}"
+              try {
+                ZipInputStream(BufferedInputStream(FileInputStream(zipFilePath))).use { zipIn ->
+                var zipEntry: ZipEntry? = zipIn.nextEntry
+
+                while (zipEntry != null) {
+                  val destFile = File(tmpExtractDir, zipEntry.name).canonicalFile
+                  if (!destFile.path.startsWith(tmpExtractDir.canonicalPath + File.separator)) {
+                    throw SecurityException("Zip entry outside target dir: ${zipEntry.name}")
+                  }
+                  val filePath = destFile.path
+
+                  // Extract files.
+                  if (!zipEntry.isDirectory) {
+                    FileOutputStream(filePath).use { curBos ->
+                      var len: Int
+                      while (zipIn.read(unzipBuffer).also { len = it } > 0) {
+                        curBos.write(unzipBuffer, 0, len)
+                      }
+                    }
+                  }
+                  // Create dir.
+                  else {
+                    val dir = File(filePath)
+                    dir.mkdirs()
+                  }
+
+                  zipIn.closeEntry()
+                  zipEntry = zipIn.nextEntry
+                }
+                }
+
+                finalizeExtractedDirectory(tmpExtractDir, destDir)
+              } finally {
+                // No-op on success (renamed away); cleans partial extraction on failure.
+                if (tmpExtractDir.exists()) tmpExtractDir.deleteRecursively()
+              }
+
+              // Delete the original file.
+              val zipFile = File(zipFilePath)
+              zipFile.delete()
+            }
+          }
+          Result.success()
+        } catch (e: CancellationException) {
+          throw e
+        } catch (e: SecurityException) {
+          Log.e(TAG, "Zip path traversal blocked: ${e.message}", e)
+
+          for (tmpFile in createdTmpFiles) {
+            if (tmpFile.exists()) {
+              tmpFile.delete()
+              Log.i(TAG, "Deleted partial download after zip security error: ${tmpFile.name}")
+            }
+          }
+
+          Result.failure(
+            Data.Builder().putString(
+              KEY_MODEL_DOWNLOAD_ERROR_MESSAGE,
+              applicationContext.getString(R.string.download_error_zip_corrupted)
+            ).build()
+          )
+        } catch (e: IOException) {
+          Log.e(TAG, e.message, e)
+
+          // Detect disk-full failures: if available space is critically low after
+          // the error, the partial .tmp files are actively harmful — they consume
+          // the little space left and can't be resumed meaningfully. Delete them
+          // to give the user their storage back. For network errors (where space
+          // is still available), keep .tmp files so downloads can resume.
+          val isDiskFull =
+            if (e is DownloadFinalizationException) {
+              false
+            } else {
+              try {
+                val stat = StatFs(Environment.getDataDirectory().path)
+                // Less than 500 MB left → almost certainly a disk-full write failure
+                stat.availableBytes < MIN_STORAGE_FOR_MODEL_INIT_BYTES
+              } catch (_: Exception) {
+                false
+              }
+            }
+
+          if (isDiskFull) {
+            var freedBytes = 0L
+            for (tmpFile in createdTmpFiles) {
+              if (tmpFile.exists()) {
+                val size = tmpFile.length()
+                if (tmpFile.delete()) {
+                  freedBytes += size
+                  Log.i(TAG, "Disk full — deleted partial download: ${tmpFile.name} (${size} bytes)")
+                }
+              }
+            }
+            if (freedBytes > 0) {
+              Log.i(TAG, "Freed ${freedBytes} bytes of partial downloads due to low storage")
+            }
+          }
+
+          val errorMessage = if (isDiskFull) {
+            applicationContext.getString(R.string.download_error_disk_full)
+          } else {
+            when (e) {
+              is DownloadFinalizationException ->
+                applicationContext.getString(R.string.download_error_finalize)
+              is HttpErrorException -> when {
+                e.isRepoNotFound -> applicationContext.getString(R.string.download_error_not_found)
+                e.statusCode == HttpURLConnection.HTTP_NOT_FOUND -> applicationContext.getString(R.string.download_error_not_found)
+                e.statusCode == HttpURLConnection.HTTP_UNAUTHORIZED || e.statusCode == HttpURLConnection.HTTP_FORBIDDEN ->
+                  applicationContext.getString(R.string.download_error_unauthorized)
+                else -> applicationContext.getString(R.string.download_error_server, e.statusCode)
+              }
+              is SocketTimeoutException -> applicationContext.getString(R.string.download_error_timeout)
+              is UnknownHostException -> applicationContext.getString(R.string.download_error_no_internet)
+              is SocketException -> applicationContext.getString(R.string.download_error_connection_lost)
+              else -> applicationContext.getString(R.string.download_error_network)
+            }
+          }
+
+          Result.failure(
+            Data.Builder().putString(KEY_MODEL_DOWNLOAD_ERROR_MESSAGE, errorMessage).build()
+          )
+        } catch (e: Exception) {
+          Log.e(TAG, "Unexpected error during download: ${e.message}", e)
+          Result.failure(
+            Data.Builder().putString(
+              KEY_MODEL_DOWNLOAD_ERROR_MESSAGE,
+              applicationContext.getString(R.string.download_error_network)
+            ).build()
+          )
+        }
+      }
+    }
+  }
+
+  override suspend fun getForegroundInfo(): ForegroundInfo {
+    // Initial progress is 0
+    return createForegroundInfo(0)
+  }
+
+  /**
+   * Creates a [ForegroundInfo] object for the download worker's ongoing notification. This
+   * notification is used to keep the worker running in the foreground, indicating to the user that
+   * an active download is in progress.
+   */
+  private fun createForegroundInfo(progress: Int, modelName: String? = null): ForegroundInfo {
+    // Create a notification for the foreground service
+    var title = applicationContext.getString(R.string.download_notif_title_generic)
+    if (modelName != null) {
+      title = applicationContext.getString(R.string.download_notif_title_named, modelName)
+    }
+    val content = applicationContext.getString(R.string.download_notif_progress, progress)
+
+    val intent =
+      Intent(applicationContext, MainActivity::class.java).apply {
+        flags = Intent.FLAG_ACTIVITY_SINGLE_TOP
+      }
+    val pendingIntent =
+      PendingIntent.getActivity(
+        applicationContext,
+        0,
+        intent,
+        PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT,
+      )
+
+    val notification =
+      NotificationCompat.Builder(applicationContext, FOREGROUND_NOTIFICATION_CHANNEL_ID)
+        .setContentTitle(title)
+        .setContentText(content)
+        .setSmallIcon(R.mipmap.ic_launcher_monochrome)
+        .setOngoing(true) // Makes the notification non-dismissable
+        .setProgress(100, progress, false) // Show progress
+        .setContentIntent(pendingIntent)
+        .build()
+
+    return ForegroundInfo(
+      notificationId,
+      notification,
+      ServiceInfo.FOREGROUND_SERVICE_TYPE_DATA_SYNC,
+    )
+  }
+}

@@ -1,0 +1,67 @@
+/* Copyright 2025 Google LLC
+   Modifications Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+
+Licensed under the Apache License, Version 2.0 (the "License");
+you may not use this file except in compliance with the License.
+You may obtain a copy of the License at
+
+    http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing, software
+distributed under the License is distributed on an "AS IS" BASIS,
+WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+See the License for the specific language governing permissions and
+limitations under the License.
+==============================================================================*/
+
+syntax = "proto3";
+
+package com.ollitert.llm.server.proto;
+
+option java_package = "com.ollitert.llm.server.proto";
+option java_multiple_files = true;
+
+message ImportedModel {
+  string file_name = 1;
+  int64 file_size = 2;
+
+  oneof config {
+    LlmConfig llm_config = 3;
+  }
+
+  // User-chosen display name. If empty, falls back to file_name stem.
+  string display_name = 4;
+}
+
+message LlmConfig {
+  repeated string compatible_accelerators = 1;
+  int32 default_max_tokens = 2;
+  int32 default_topk = 3;
+  float default_topp = 4;
+  float default_temperature = 5;
+  bool support_image = 6;
+  bool support_audio = 7;
+  reserved 8, 9; // was support_tiny_garden, support_mobile_actions (removed — Gallery demo features)
+  bool support_thinking = 10;
+  bool support_tools = 11;
+  bool support_speculative_decoding = 12;
+}
+
+message RepositoryEntry {
+  string id = 1;
+  string url = 2;
+  bool enabled = 3;
+  bool is_built_in = 4;
+  int32 content_version = 5;
+  int64 last_refresh_ms = 6;
+  string last_error = 7;
+}
+
+message Settings {
+  reserved 1, 2, 3, 6, 8, 9, 10;
+  repeated ImportedModel imported_model = 4;
+  // Has the app tos been accepted.
+  bool is_tos_accepted = 5;
+  bool has_seen_benchmark_comparison_help = 7;
+  repeated RepositoryEntry repositories = 11;
+}

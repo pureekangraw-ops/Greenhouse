@@ -1,0 +1,215 @@
+/*
+ * Copyright 2025-2026 @NightMean (https://github.com/NightMean)
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+package com.ollitert.llm.server.ui.settings
+
+import android.content.Context
+import android.content.Intent
+import android.os.Build
+import androidx.compose.animation.core.RepeatMode
+import androidx.compose.animation.core.animateFloat
+import androidx.compose.animation.core.infiniteRepeatable
+import androidx.compose.animation.core.rememberInfiniteTransition
+import androidx.compose.animation.core.tween
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.ColumnScope
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.outlined.BugReport
+import androidx.compose.material.icons.outlined.Favorite
+import androidx.compose.material.icons.outlined.NewReleases
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalUriHandler
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.style.TextDecoration
+import androidx.compose.ui.unit.dp
+import com.google.android.gms.oss.licenses.v2.OssLicensesMenuActivity
+import com.ollitert.llm.server.BuildConfig
+import com.ollitert.llm.server.R
+import com.ollitert.llm.server.common.GitHubConfig
+
+import com.ollitert.llm.server.ui.settings.SettingsViewModel
+import com.ollitert.llm.server.ui.theme.OlliteRTPrimary
+import com.ollitert.llm.server.worker.UpdateCheckWorker
+import java.net.URLEncoder
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+internal fun ColumnScope.SettingsFooter(vm: SettingsViewModel, context: Context) {
+  val uriHandler = LocalUriHandler.current
+
+  Spacer(modifier = Modifier.height(12.dp))
+  FlowRow(
+    modifier = Modifier.align(Alignment.CenterHorizontally),
+    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+    verticalArrangement = Arrangement.spacedBy(4.dp),
+  ) {
+    // What's New
+    Row(
+      modifier = Modifier
+        .clip(RoundedCornerShape(8.dp))
+        .clickable {
+          val intent = UpdateCheckWorker.buildUpdateIntent(context, UpdateCheckWorker.GITHUB_RELEASES_URL)
+          intent.data?.let { uri -> uriHandler.openUri(uri.toString()) }
+        }
+        .padding(horizontal = 10.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+      Icon(
+        imageVector = Icons.Outlined.NewReleases,
+        contentDescription = null,
+        tint = OlliteRTPrimary,
+        modifier = Modifier.size(18.dp),
+      )
+      Text(
+        text = stringResource(R.string.settings_whats_new),
+        style = MaterialTheme.typography.bodyMedium,
+        color = OlliteRTPrimary,
+      )
+    }
+
+    // Report Issue
+    Row(
+      modifier = Modifier
+        .clip(RoundedCornerShape(8.dp))
+        .clickable {
+          val activeModel = vm.activeModelName.value ?: "None"
+          val deviceInfo = listOf(
+            "- App version: OlliteRT v${BuildConfig.VERSION_NAME} (${BuildConfig.GIT_HASH}) [${BuildConfig.CHANNEL}]",
+            "- Device: ${Build.MANUFACTURER} ${Build.MODEL}",
+            "- Android: ${Build.VERSION.RELEASE} (API ${Build.VERSION.SDK_INT})",
+            "- LLM Model: $activeModel",
+          ).joinToString("\n")
+          val encoded = URLEncoder.encode(deviceInfo, "UTF-8")
+          val flavorDropdown = when (BuildConfig.CHANNEL) {
+            "stable" -> "stable (OlliteRT)"
+            "beta" -> "beta (OlliteRT Beta)"
+            "dev" -> "dev (OlliteRT Dev)"
+            else -> ""
+          }
+          val flavorParam = if (flavorDropdown.isNotEmpty()) "&flavor=$flavorDropdown" else ""
+          val url = "${GitHubConfig.NEW_BUG_REPORT_URL}&device-info=$encoded$flavorParam"
+          uriHandler.openUri(url)
+        }
+        .padding(horizontal = 10.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+      Icon(
+        imageVector = Icons.Outlined.BugReport,
+        contentDescription = null,
+        tint = OlliteRTPrimary,
+        modifier = Modifier.size(18.dp),
+      )
+      Text(
+        text = stringResource(R.string.settings_report_issue),
+        style = MaterialTheme.typography.bodyMedium,
+        color = OlliteRTPrimary,
+      )
+    }
+
+    // Donate
+    val heartPulse = rememberInfiniteTransition(label = "heartPulse")
+    val heartScale by heartPulse.animateFloat(
+      initialValue = 1f,
+      targetValue = 1.15f,
+      animationSpec = infiniteRepeatable(
+        animation = tween(durationMillis = 600),
+        repeatMode = RepeatMode.Reverse,
+      ),
+      label = "heartScale",
+    )
+    Row(
+      modifier = Modifier
+        .clip(RoundedCornerShape(8.dp))
+        .clickable { vm.showDonateDialog = true }
+        .padding(horizontal = 10.dp, vertical = 6.dp),
+      verticalAlignment = Alignment.CenterVertically,
+      horizontalArrangement = Arrangement.spacedBy(6.dp),
+    ) {
+      Icon(
+        imageVector = Icons.Outlined.Favorite,
+        contentDescription = null,
+        tint = OlliteRTPrimary,
+        modifier = Modifier
+          .size(18.dp)
+          .graphicsLayer {
+            scaleX = heartScale
+            scaleY = heartScale
+          },
+      )
+      Text(
+        text = stringResource(R.string.settings_donate),
+        style = MaterialTheme.typography.bodyMedium,
+        color = OlliteRTPrimary,
+      )
+    }
+  }
+
+  FlowRow(
+    modifier = Modifier.align(Alignment.CenterHorizontally),
+    horizontalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterHorizontally),
+  ) {
+    Text(
+      text = stringResource(R.string.settings_licenses),
+      style = MaterialTheme.typography.bodySmall,
+      color = OlliteRTPrimary,
+      textDecoration = TextDecoration.Underline,
+      modifier = Modifier
+        .clip(RoundedCornerShape(4.dp))
+        .clickable {
+          context.startActivity(
+            Intent(context, OssLicensesMenuActivity::class.java)
+              .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+          )
+        }
+        .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
+    Text(
+      text = stringResource(R.string.settings_privacy_policy),
+      style = MaterialTheme.typography.bodySmall,
+      color = OlliteRTPrimary,
+      textDecoration = TextDecoration.Underline,
+      modifier = Modifier
+        .clip(RoundedCornerShape(4.dp))
+        .clickable { uriHandler.openUri(GitHubConfig.PRIVACY_POLICY_URL) }
+        .padding(horizontal = 8.dp, vertical = 2.dp),
+    )
+  }
+  Text(
+    text = stringResource(R.string.settings_version_footer, BuildConfig.VERSION_NAME, BuildConfig.GIT_HASH),
+    style = MaterialTheme.typography.bodySmall,
+    color = MaterialTheme.colorScheme.onSurfaceVariant,
+    modifier = Modifier.align(Alignment.CenterHorizontally),
+  )
+}
