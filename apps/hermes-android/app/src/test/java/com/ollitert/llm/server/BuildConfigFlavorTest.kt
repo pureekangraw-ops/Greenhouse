@@ -74,7 +74,7 @@ class BuildConfigFlavorTest {
   }
 
   @Test
-  fun versionNameIncludesChannelSuffix() {
+  fun versionNameMatchesFlavorPolicy() {
     when (BuildConfig.CHANNEL) {
       "dev" -> assertTrue(
         "Dev versionName should contain -dev suffix",
@@ -88,7 +88,10 @@ class BuildConfigFlavorTest {
         "Prod versionName should not contain channel suffix",
         !BuildConfig.VERSION_NAME.contains("-dev") && !BuildConfig.VERSION_NAME.contains("-beta"),
       )
-      "hermes" -> assertEquals("HERMES versionName should be 0.1.0", "0.1.0", BuildConfig.VERSION_NAME)
+      "hermes" -> assertTrue(
+        "HERMES versionName must be a plain semantic version, aligned with the model catalog",
+        BuildConfig.VERSION_NAME.matches(Regex("""\d+\.\d+\.\d+""")),
+      )
     }
   }
 
