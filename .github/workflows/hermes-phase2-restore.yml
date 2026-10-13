@@ -1,0 +1,30 @@
+name: HERMES Phase 2 Restore Tests
+on:
+  push:
+    branches:
+      - feat/hermes-phase2-restore-package-20261013
+    paths:
+      - 'ai/hermes/phase2/**'
+      - '.github/workflows/hermes-phase2-restore.yml'
+  pull_request:
+    paths:
+      - 'ai/hermes/phase2/**'
+      - '.github/workflows/hermes-phase2-restore.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  offline-restore-tests:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Compile and run synthetic tests
+        working-directory: ai/hermes/phase2
+        run: |
+          python -m py_compile restore_safe.py test_restore_safe.py
+          python -m unittest -v test_restore_safe
+# This workflow deliberately does not fetch private Drive files, run GPU, or upload models.
