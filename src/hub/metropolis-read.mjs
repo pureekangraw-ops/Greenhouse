@@ -73,6 +73,12 @@ function reportFromReadback({ workId, actor, pointer, reply, now }) {
   const record = reply?.record;
   const receipt = reply?.receipt;
   const pass = record?.workPass;
+  // Preserve read-only semantics while identifying the exact mismatched context.
+  if (object(record) && record.workId === workId &&
+      (record.checkpointId !== pointer.checkpointId || record.ownerSystem !== pointer.ownerSystem ||
+       (object(receipt) && receipt.checkpointId !== pointer.checkpointId))) {
+    throw new MetropolisReadError('OWNER_READBACK_CONTEXT_MISMATCH', 409);
+  }
   if (reply?.actor !== actor || reply.readbackVerified !== true ||
       reply.ownerExecutionVerified !== false || reply.workTruthChanged !== false ||
       !object(record) || record.workId !== workId ||
