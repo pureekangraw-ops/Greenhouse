@@ -117,8 +117,10 @@ test('readback actor, Work, checkpoint, Work Pass and source receipt must all ag
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ readbackVerified: false }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ workTruthChanged: true }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ workId: 'WORK-other' }) }))]).promise, 'OWNER_READBACK_MISMATCH');
-  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ checkpointId: 'WORK-other:CP-1' }) }))]).promise, 'OWNER_READBACK_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ checkpointId: 'WORK-other:CP-1' }) }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ workPass: { status: 'REVOKED', workId, checkpointId, permissions: { actions: ['read'] } } }) }))]).promise, 'OWNER_READBACK_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ ownerSystem: 'OTHER' }) }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ receipt: { ...reply().receipt, checkpointId: workId + ':CP-02' } }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ receipt: { operation: 'HANDOFF', workId, checkpointId, readbackVerified: true, observedAt: new Date(TIME).toISOString(), persisted: false } }))]).promise, 'OWNER_READBACK_MISMATCH');
 });
 
