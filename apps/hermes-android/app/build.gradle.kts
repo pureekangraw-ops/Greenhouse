@@ -140,7 +140,9 @@ android {
     create("hermes") {
       dimension = "channel"
       applicationIdSuffix = ".hermes"
-      versionName = "0.1.0"
+      // Keep HERMES aligned with APP_VERSION_NAME so shared model compatibility
+      // checks do not hide models behind a stale flavor version.
+      versionName = versionFromProperty
       buildConfigField("String", "CHANNEL", "\"hermes\"")
       buildConfigField("String", "UPDATE_CHANNEL", "\"disabled\"")
       buildConfigField("boolean", "HERMES_LOOPBACK_ONLY", "true")

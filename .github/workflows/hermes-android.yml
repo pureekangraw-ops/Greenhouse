@@ -65,7 +65,7 @@ jobs:
           apk="$(find app/build/outputs/apk/hermes/debug -maxdepth 1 -name '*.apk' -print -quit)"
           test -n "$apk"
           badging="$("$ANDROID_HOME/build-tools/36.0.0/aapt" dump badging "$apk")"
-          echo "$badging" | grep -E "package: name='com.ollitert.llm.server.hermes' versionCode='[1-9][0-9]*' versionName='0\\.1\\.0'"
+          echo "$badging" | grep -E "package: name='com.ollitert.llm.server.hermes' versionCode='[1-9][0-9]*' versionName='0\\.9\\.7'"
           sha256sum "$apk" | tee app/build/outputs/apk/hermes/debug/SHA256SUMS
       - uses: actions/upload-artifact@v4
         with:
