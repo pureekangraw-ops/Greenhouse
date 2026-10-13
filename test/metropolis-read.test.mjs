@@ -102,6 +102,16 @@ test('stale arrival and missing exact read grant fail closed before the Work rea
   assert.equal(denied.fake.calls.length, 1);
 });
 
+test('duplicate arrival Work pointers fail closed without issuing a read', async () => {
+  const pointer = arrival().current.works[0];
+  const duplicate = arrival({ current: { works: [
+    pointer, { ...pointer, checkpointId: workId + ':CP-02' },
+  ] } });
+  const attempt = invoke([rpc(duplicate), rpc(reply())]);
+  await rejectsWith(attempt.promise, 'WORK_CONTEXT_AMBIGUOUS');
+  assert.equal(attempt.fake.calls.length, 1);
+});
+
 test('readback actor, Work, checkpoint, Work Pass and source receipt must all agree', async () => {
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ actor: 'GO' }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ readbackVerified: false }))]).promise, 'OWNER_READBACK_MISMATCH');
