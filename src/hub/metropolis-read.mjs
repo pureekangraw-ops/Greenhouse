@@ -56,7 +56,11 @@ function verifyArrival(arrival, workId, now) {
     throw new MetropolisReadError('ARRIVAL_UNVERIFIED', 409);
   }
   const works = arrival.current?.works;
-  const pointer = Array.isArray(works) ? works.find(item => item?.workId === workId) : null;
+  // Multiple pointers for one Work make the authorization context ambiguous.
+  // Never select an arbitrary checkpoint or grant from conflicting entries.
+  const matches = Array.isArray(works) ? works.filter(item => item?.workId === workId) : [];
+  if (matches.length > 1) throw new MetropolisReadError('WORK_CONTEXT_AMBIGUOUS', 409);
+  const pointer = matches[0] || null;
   if (!pointer || pointer.present !== true || !text(pointer.checkpointId) ||
       !text(pointer.ownerSystem) || !Array.isArray(pointer.authorizedActions) ||
       !pointer.authorizedActions.includes('read')) {
@@ -69,6 +73,12 @@ function reportFromReadback({ workId, actor, pointer, reply, now }) {
   const record = reply?.record;
   const receipt = reply?.receipt;
   const pass = record?.workPass;
+  // Preserve read-only semantics while identifying the exact mismatched context.
+  if (object(record) && record.workId === workId &&
+      (record.checkpointId !== pointer.checkpointId || record.ownerSystem !== pointer.ownerSystem ||
+       (object(receipt) && receipt.checkpointId !== pointer.checkpointId))) {
+    throw new MetropolisReadError('OWNER_READBACK_CONTEXT_MISMATCH', 409);
+  }
   if (reply?.actor !== actor || reply.readbackVerified !== true ||
       reply.ownerExecutionVerified !== false || reply.workTruthChanged !== false ||
       !object(record) || record.workId !== workId ||
