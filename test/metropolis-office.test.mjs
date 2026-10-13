@@ -89,7 +89,9 @@ test('mismatched actor, Work, checkpoint, Work Pass or receipt fails closed',asy
     {receipt:{operation:'HANDOFF',workId,checkpointId,readbackVerified:true,observedAt:new Date(nowMs).toISOString(),persisted:false}},
   ]) {
     const fake=fakeFetch([rpc(arrival()),rpc(workReply(data))]);
-    await assert.rejects(readMetropolisWork({...context,fetchImpl:fake.fetchImpl}),{code:'OWNER_READBACK_MISMATCH'});
+    const code = data.record?.checkpointId !== undefined && data.record.checkpointId !== record.checkpointId
+      ? 'OWNER_READBACK_CONTEXT_MISMATCH' : 'OWNER_READBACK_MISMATCH';
+    await assert.rejects(readMetropolisWork({...context,fetchImpl:fake.fetchImpl}),{code});
   }
 });
 test('rejects missing token, bad Work ID, unauthorized and malformed responses',async()=>{
