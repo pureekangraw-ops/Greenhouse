@@ -56,7 +56,11 @@ function verifyArrival(arrival, workId, now) {
     throw new MetropolisReadError('ARRIVAL_UNVERIFIED', 409);
   }
   const works = arrival.current?.works;
-  const pointer = Array.isArray(works) ? works.find(item => item?.workId === workId) : null;
+  // Multiple pointers for one Work make the authorization context ambiguous.
+  // Never select an arbitrary checkpoint or grant from conflicting entries.
+  const matches = Array.isArray(works) ? works.filter(item => item?.workId === workId) : [];
+  if (matches.length > 1) throw new MetropolisReadError('WORK_CONTEXT_AMBIGUOUS', 409);
+  const pointer = matches[0] || null;
   if (!pointer || pointer.present !== true || !text(pointer.checkpointId) ||
       !text(pointer.ownerSystem) || !Array.isArray(pointer.authorizedActions) ||
       !pointer.authorizedActions.includes('read')) {
