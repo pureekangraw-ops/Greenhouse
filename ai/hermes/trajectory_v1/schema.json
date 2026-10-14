@@ -1,0 +1,124 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "HERMES Trajectory v1",
+  "type": "object",
+  "additionalProperties": false,
+  "required": [
+    "id",
+    "split",
+    "messages",
+    "context",
+    "target"
+  ],
+  "properties": {
+    "id": {
+      "type": "string",
+      "minLength": 1
+    },
+    "split": {
+      "enum": [
+        "train",
+        "dev",
+        "heldout"
+      ]
+    },
+    "messages": {
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": [
+          "role",
+          "content"
+        ],
+        "properties": {
+          "role": {
+            "enum": [
+              "system",
+              "user",
+              "assistant",
+              "tool"
+            ]
+          },
+          "content": {
+            "type": "string"
+          }
+        }
+      }
+    },
+    "context": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "work_id",
+        "source",
+        "freshness",
+        "authorized"
+      ],
+      "properties": {
+        "work_id": {
+          "type": [
+            "string",
+            "null"
+          ]
+        },
+        "source": {
+          "type": "string",
+          "minLength": 1
+        },
+        "freshness": {
+          "enum": [
+            "current",
+            "stale",
+            "unknown",
+            "conflict"
+          ]
+        },
+        "authorized": {
+          "type": "boolean"
+        }
+      }
+    },
+    "target": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": [
+        "next_step",
+        "owner",
+        "reason",
+        "required_evidence",
+        "requires_approval"
+      ],
+      "properties": {
+        "next_step": {
+          "enum": [
+            "ASK",
+            "LOOKUP",
+            "HANDOFF",
+            "STOP"
+          ]
+        },
+        "owner": {
+          "type": "string",
+          "minLength": 1
+        },
+        "reason": {
+          "type": "string",
+          "minLength": 1
+        },
+        "required_evidence": {
+          "type": "array",
+          "uniqueItems": true,
+          "items": {
+            "type": "string",
+            "minLength": 1
+          }
+        },
+        "requires_approval": {
+          "type": "boolean"
+        }
+      }
+    }
+  }
+}
