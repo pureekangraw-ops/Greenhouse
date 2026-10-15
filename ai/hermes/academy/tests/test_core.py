@@ -19,6 +19,15 @@ class TinyTokenizer:
     def __call__(self,text,**kwargs):
         return {'input_ids':list(text.encode()),'offset_mapping':[(i,i+1) for i in range(len(text))]}
 
+class ProvenanceTests(unittest.TestCase):
+    def test_relabeling_arbitrary_raw_file_as_pinned_source_fails(self):
+        from ai.hermes.academy.prepare_commitpack import prepare
+        with tempfile.TemporaryDirectory() as d:
+            raw=Path(d)/'raw.jsonl';raw.write_text('{}\n')
+            with self.assertRaisesRegex(ValueError,'pinned downloaded'):
+                prepare(raw,Path(d)/'curated')
+            self.assertFalse((Path(d)/'curated').exists())
+
 class MaskTests(unittest.TestCase):
     def test_multiturn_masks_tool_and_user(self):
         messages=[{'role':'user','content':'question'},{'role':'assistant','content':'call'},

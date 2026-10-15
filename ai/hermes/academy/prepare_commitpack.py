@@ -7,9 +7,13 @@ from collections import Counter
 from pathlib import Path
 from .data import canonical, sha256, validate_dataset
 REVISION='fc56fe33c030c6daa414c2b112c932b8eed085e6'
+RAW_SHA256='d167da37e1058371c48e057cd8815d03700c867dd8bcf58e61420d4dcd288d73'
 URL=f'https://huggingface.co/datasets/bigcode/commitpackft/resolve/{REVISION}/data/python/data.jsonl'
 
 def prepare(raw, output, per_split=100):
+    if sha256(raw)!=RAW_SHA256:
+        raise ValueError('Raw source differs from pinned downloaded dataset')
+    if per_split<=0:raise ValueError('per_split must be positive')
     root=Path(output)
     root.mkdir(parents=True,exist_ok=False)
     records={s:[] for s in ('train','validation','heldout')}

@@ -32,7 +32,7 @@
   },
   "observed_checks": {
     "unit_tests": {
-      "passed": 26,
+      "passed": 27,
       "kind": "LOCAL_CONTRACT"
     },
     "existing_node_tests": {

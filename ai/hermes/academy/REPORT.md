@@ -22,7 +22,7 @@ Read the HERMES branches and historical training notebook revisions; downloaded 
 - QLoRA v1 continuation, pinned versions verified to exist on PyPI, no-overwrite run/source guards, memory/disk/CUDA checks, exact identity-based optimizer resume, backward probe, logging, deterministic save/reload token comparison and immutable source readback. **GPU path has not run.**
 - Generated-response evaluation, schema checks, arguments/authorization checks, unnecessary ASK metrics, preserved 40-case regression runner, verified adapter/run export and SHA-256/ZIP readback. **No candidate model inference or export of trained candidate occurred.**
 - Self-contained Colab notebook with embedded package, component corpus, tests and test-only legacy files. All CPU cells ran sequentially. Its full Academy gate correctly reports missing eight capabilities; TRAIN and model TEST stay disabled.
-- **26/26 local unit/contract tests passed**; **98/98 existing Node tests passed**. Compile checks passed. These do not establish production or model quality.
+- **27/27 local unit/contract tests passed**; **98/98 existing Node tests passed**. Compile checks passed. These do not establish production or model quality.
 - Actual authorized GO calls returned PANTHEON HEALTHY and Factory CONNECTED, LOGIC READY; CODE/VISUAL UNKNOWN. Saved responses prove read-only connectivity, not a HERMES-driven sandbox execution.
 
 ## Material blockers and unmet acceptance

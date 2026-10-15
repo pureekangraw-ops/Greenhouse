@@ -24,8 +24,9 @@ test_model_approval_cannot_grant_authority (test_core.PolicyTests.test_model_app
 test_readonly_does_not_need_mutation_approval (test_core.PolicyTests.test_readonly_does_not_need_mutation_approval) ... ok
 test_unknown_argument_rejected (test_core.PolicyTests.test_unknown_argument_rejected) ... ok
 test_unknown_tool_rejected (test_core.PolicyTests.test_unknown_tool_rejected) ... ok
+test_relabeling_arbitrary_raw_file_as_pinned_source_fails (test_core.ProvenanceTests.test_relabeling_arbitrary_raw_file_as_pinned_source_fails) ... ok
 
 ----------------------------------------------------------------------
-Ran 26 tests in 0.011s
+Ran 27 tests in 0.018s
 
 OK
