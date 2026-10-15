@@ -1,0 +1,31 @@
+test_hash_readback_and_tamper (test_core.ArtifactTests.test_hash_readback_and_tamper) ... ok
+test_nested_manifest_is_itself_sealed (test_core.ArtifactTests.test_nested_manifest_is_itself_sealed) ... ok
+test_symlink_rejected (test_core.ArtifactTests.test_symlink_rejected) ... ok
+test_unexpected_file_rejected (test_core.ArtifactTests.test_unexpected_file_rejected) ... ok
+test_duplicate_prompt_rejected (test_core.DataTests.test_duplicate_prompt_rejected) ... ok
+test_false_quality_rejected (test_core.DataTests.test_false_quality_rejected) ... ok
+test_full_academy_rejects_component_only_corpus (test_core.DataTests.test_full_academy_rejects_component_only_corpus) ... ok
+test_lineage_leak_rejected (test_core.DataTests.test_lineage_leak_rejected) ... ok
+test_manifest_tamper_rejected (test_core.DataTests.test_manifest_tamper_rejected) ... ok
+test_string_false_quality_is_not_a_boolean_approval (test_core.DataTests.test_string_false_quality_is_not_a_boolean_approval) ... ok
+test_upstream_synthetic_not_silently_allowed (test_core.DataTests.test_upstream_synthetic_not_silently_allowed) ... ok
+test_answer_not_in_generation_prompt (test_core.EvalTests.test_answer_not_in_generation_prompt) ... ok
+test_invalid_json_counts_failure (test_core.EvalTests.test_invalid_json_counts_failure) ... ok
+test_missing_predictions_fail (test_core.EvalTests.test_missing_predictions_fail) ... ok
+test_missing_required_field_fails (test_core.EvalTests.test_missing_required_field_fails) ... ok
+test_unnecessary_ask_counted (test_core.EvalTests.test_unnecessary_ask_counted) ... ok
+test_multiturn_masks_tool_and_user (test_core.MaskTests.test_multiturn_masks_tool_and_user) ... ok
+test_no_assistant (test_core.MaskTests.test_no_assistant) ... ok
+test_no_truncation (test_core.MaskTests.test_no_truncation) ... ok
+test_token_crossing_header_boundary_is_masked (test_core.MaskTests.test_token_crossing_header_boundary_is_masked) ... ok
+test_unstable_template_rejected (test_core.MaskTests.test_unstable_template_rejected) ... ok
+test_existing_owner_task_required (test_core.PolicyTests.test_existing_owner_task_required) ... ok
+test_model_approval_cannot_grant_authority (test_core.PolicyTests.test_model_approval_cannot_grant_authority) ... ok
+test_readonly_does_not_need_mutation_approval (test_core.PolicyTests.test_readonly_does_not_need_mutation_approval) ... ok
+test_unknown_argument_rejected (test_core.PolicyTests.test_unknown_argument_rejected) ... ok
+test_unknown_tool_rejected (test_core.PolicyTests.test_unknown_tool_rejected) ... ok
+
+----------------------------------------------------------------------
+Ran 26 tests in 0.011s
+
+OK

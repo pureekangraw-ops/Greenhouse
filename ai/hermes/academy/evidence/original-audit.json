@@ -1,0 +1,119 @@
+{
+  "evidence_type": "STATIC_ORIGINAL_BYTES_AND_EMBEDDED_DATA_AUDIT",
+  "notebooks": [
+    {
+      "file": "HERMES_Academy_Term1.ipynb",
+      "sha256": "13015bff7b194807d46c76e436fc2f7934115895f4b0fa7810f6de78b7c6ace8",
+      "bytes": 109794,
+      "cells": 8,
+      "recorded_errors": [
+        {
+          "cell": 2,
+          "type": "ImportError",
+          "message": "Found an incompatible version of torchao. Found version 0.10.0, but only versions above 0.16.0 are supported"
+        }
+      ]
+    },
+    {
+      "file": "HERMES_Academy_v4_STANDALONE.ipynb",
+      "sha256": "b64efb2d96c648f9b32396e0b282a2bed6f93f83929a041b1422492f59899511",
+      "bytes": 40730,
+      "cells": 21,
+      "recorded_errors": []
+    },
+    {
+      "file": "HERMES_v2_QLoRA_Preflight.ipynb",
+      "sha256": "831985273c24e7bf8d47e7902dd60062c2678f0998683f2d34bf6de6241f53d5",
+      "bytes": 167018,
+      "cells": 19,
+      "recorded_errors": []
+    },
+    {
+      "file": "HERMES_Academy_Prepare_Train_Test_v4.ipynb",
+      "sha256": "fe9a3b94e7608a0d8f702079fd275a450bdfbbedc36dcbf46b8f399e3b0ee9a1",
+      "bytes": 25266,
+      "cells": 20,
+      "recorded_errors": [
+        {
+          "cell": 3,
+          "type": "AssertionError",
+          "message": "Missing companion dataset: /content/HERMES_Academy_train_UNREVIEWED.jsonl"
+        },
+        {
+          "cell": 18,
+          "type": "NameError",
+          "message": "name 'DATASET_READY' is not defined"
+        }
+      ]
+    },
+    {
+      "file": "HERMES_Academy_Nursery_to_Graduation.ipynb",
+      "sha256": "8f50d8b01d427b06687361a4cc174c7e9ee85b188948f4e2f641a4cee8037c93",
+      "bytes": 135397,
+      "cells": 61,
+      "recorded_errors": []
+    },
+    {
+      "file": "HERMES_Academy_3_Stages.ipynb",
+      "sha256": "a424f4a63dc8ee62e26f6b29fde4477de81e6680f9d4a99c441aa91e5c02dbf9",
+      "bytes": 105583,
+      "cells": 11,
+      "recorded_errors": []
+    },
+    {
+      "file": "HERMES_Academy_Prepare_Train_Test_v4.ipynb",
+      "sha256": "ab12f3ecc7f08cfce67e1d43ceae71ea9977a514315d4d5f5d435c423bfc9af7",
+      "bytes": 19639,
+      "cells": 20,
+      "recorded_errors": []
+    }
+  ],
+  "original_v1_package": {
+    "sha256": "a8687ec549673599dbce9b3534f395851d158aea6c5a114cd295ca7bca8d1a56",
+    "manifest_entries_verified": 17,
+    "adapter_structure": {
+      "base_model_name_or_path": "Qwen/Qwen2.5-1.5B-Instruct",
+      "revision": null,
+      "r": 8,
+      "lora_alpha": 16,
+      "target_modules": [
+        "v_proj",
+        "q_proj",
+        "o_proj",
+        "k_proj"
+      ],
+      "peft_version": "0.21.1"
+    },
+    "inference_executed": false,
+    "source_modified": false
+  },
+  "embedded_540": {
+    "counts": {
+      "HERMES_Academy_train_UNREVIEWED.jsonl": 360,
+      "HERMES_Academy_validation_UNREVIEWED.jsonl": 90,
+      "HERMES_Academy_test_UNREVIEWED.jsonl": 90
+    },
+    "total": 540,
+    "origin": {
+      "synthetic_author_created": 540
+    },
+    "review": {
+      "UNREVIEWED": 540
+    },
+    "decisions": {
+      "PROCEED": 285,
+      "ASK": 105,
+      "DENY": 150
+    },
+    "unique_exact_requests": 540,
+    "unique_requests_after_removing_four_observed_prefixes": 108,
+    "prefix_variant_excess": 432,
+    "missing_decisions": [
+      "DEFER",
+      "DISCARD",
+      "KEEP"
+    ],
+    "training_qualified_rows": 0,
+    "label_semantics_independently_verified": false
+  }
+}

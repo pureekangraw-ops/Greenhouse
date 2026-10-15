@@ -1,0 +1,13 @@
+{
+  "scanned": 56025,
+  "excluded": {
+    "license_or_provenance": 46528,
+    "invalid_python": 620,
+    "size_or_empty": 2194,
+    "curation_limit": 6333,
+    "benchmark_name_quarantine": 17,
+    "duplicate": 33
+  },
+  "qualified_scope": "code syntax and source provenance only; NOT nine-capability Academy readiness",
+  "label_semantics_not_independently_verified": true
+}

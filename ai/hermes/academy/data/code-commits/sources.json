@@ -1,0 +1,12 @@
+{
+  "commitpack-python": {
+    "url": "https://huggingface.co/datasets/bigcode/commitpackft/resolve/fc56fe33c030c6daa414c2b112c932b8eed085e6/data/python/data.jsonl",
+    "revision": "fc56fe33c030c6daa414c2b112c932b8eed085e6",
+    "license": "MIT dataset; selected rows also marked MIT",
+    "license_evidence": "https://huggingface.co/datasets/bigcode/commitpackft/blob/fc56fe33c030c6daa414c2b112c932b8eed085e6/README.md",
+    "raw_sha256": "d167da37e1058371c48e057cd8815d03700c867dd8bcf58e61420d4dcd288d73",
+    "benchmark": false,
+    "license_approved": true,
+    "allow_upstream_synthetic": false
+  }
+}

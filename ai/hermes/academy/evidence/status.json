@@ -1,0 +1,57 @@
+{
+  "status": "PARTIAL_BUILD",
+  "trained_this_task": false,
+  "end_to_end_verified": false,
+  "python": "3.12.14",
+  "cuda_device_present": false,
+  "data": {
+    "code_component": {
+      "train": 100,
+      "validation": 100,
+      "heldout": 100
+    },
+    "all_nine_qualified": false,
+    "original_540_qualified": 0,
+    "upstream_synthetic_training_used": false
+  },
+  "source_downloads": {
+    "commitpack_python": {
+      "sha256": "d167da37e1058371c48e057cd8815d03700c867dd8bcf58e61420d4dcd288d73",
+      "bytes": 135858935
+    },
+    "glaive": {
+      "sha256": "e9b5d671812b5ca2fbd7b625a37d5c99a19576c37252cdc806defe256aea6dad",
+      "bytes": 271190065,
+      "records": 112960,
+      "training_qualified": false
+    },
+    "xlam": {
+      "payload_read": "HTTP 401",
+      "training_qualified": false
+    }
+  },
+  "observed_checks": {
+    "unit_tests": {
+      "passed": 26,
+      "kind": "LOCAL_CONTRACT"
+    },
+    "existing_node_tests": {
+      "passed": 98
+    },
+    "original_v1_package_manifest_files": 17,
+    "original_tokenizer_rows": 300,
+    "notebook_cpu_cells": "EXECUTED",
+    "gpu_training": "NOT_RUN",
+    "adapter_candidate_reload": "NOT_RUN",
+    "legacy_regression_model_inference": "NOT_RUN",
+    "live_health": "READ_ONLY_RESPONSES_SAVED",
+    "sandbox_pantheon_factory_model_execution": "NOT_RUN",
+    "LIGHT_runtime_acceptance": "NOT_RUN"
+  },
+  "blockers": [
+    "No qualified corpus spanning all nine requested capabilities and six decisions.",
+    "Origin policy for generated upstream datasets remains unresolved.",
+    "Current executor has no CUDA GPU; no Colab execution tool is connected.",
+    "No HERMES-controlled sandbox model execution or LIGHT runtime evidence."
+  ]
+}

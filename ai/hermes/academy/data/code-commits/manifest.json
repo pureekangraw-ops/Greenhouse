@@ -1,0 +1,46 @@
+{
+  "status": "VALIDATED",
+  "counts": {
+    "train": 100,
+    "validation": 100,
+    "heldout": 100
+  },
+  "coverage": {
+    "train": {
+      "code": 100
+    },
+    "validation": {
+      "code": 100
+    },
+    "heldout": {
+      "code": 100
+    }
+  },
+  "decisions": {
+    "train": {},
+    "validation": {},
+    "heldout": {}
+  },
+  "files": {
+    "sources.json": {
+      "sha256": "b9746988c3f6b23f3cde59400ca4cc698d531963e5a441a62a91037f72732abd",
+      "bytes": 607
+    },
+    "train.jsonl": {
+      "sha256": "227de6129688d5e5599b9cb36db28ce802e3250d222d4ce33f004c0625472aa3",
+      "bytes": 322638
+    },
+    "validation.jsonl": {
+      "sha256": "3aacb31a9b2e72a23f7fd1725086d2a5046142515b1fe5d5a870a1c7e9d1c6c6",
+      "bytes": 314845
+    },
+    "heldout.jsonl": {
+      "sha256": "3e5b27a5291890ff91de0d82b02dd5cfde4a9c0c31937e13539ca2a40abeea78",
+      "bytes": 313134
+    }
+  },
+  "required_capabilities": [
+    "code"
+  ],
+  "semantic_review_limit": "Lineage and exact checks do not prove semantic independence; source quality evidence remains mandatory."
+}

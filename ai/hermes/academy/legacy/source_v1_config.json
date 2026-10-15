@@ -1,0 +1,27 @@
+{
+  "model_id": "Qwen/Qwen2.5-1.5B-Instruct",
+  "seed": 42,
+  "epochs": 3,
+  "lora_r": 8,
+  "batch_size": 1,
+  "gradient_accumulation": 8,
+  "max_length": 256,
+  "learning_rate": 0.0002,
+  "source_branch": "feat/hermes-colab-lab-20261012",
+  "source_commit": "e9bbf751e1961a24243691d3b981c1d23f045b31",
+  "dataset_kind": "synthetic command classification",
+  "acceptance_accuracy": 0.95,
+  "production_accepted": false,
+  "persistence_mode": "stage_then_existing_drive_connector",
+  "gpu": "NVIDIA L4",
+  "packages": {
+    "torch": "2.11.0+cu130",
+    "transformers": "5.18.0",
+    "peft": "0.21.1",
+    "accelerate": "1.15.0",
+    "datasets": "4.8.5",
+    "bitsandbytes": "0.50.2",
+    "safetensors": "0.8.0"
+  },
+  "base_revision": "989aa7980e4cf806f80c7fef2b1adb7bc71aa306"
+}

@@ -1,0 +1,11 @@
+{
+  "package_drive_id": "1fhouSQxwuYLjyB-m-s3KeDc4KP-f7uWZ",
+  "package_sha256": "a8687ec549673599dbce9b3534f395851d158aea6c5a114cd295ca7bca8d1a56",
+  "test_only": true,
+  "synthetic": true,
+  "files": {
+    "source_v1_config.json": "0b965513424bf5bcf1bcd436f7d5174ed4b012d1ab090247a87fe5c24ea9a4a7",
+    "system_prompt.txt": "00963e2576e722dd492566b901a617edbeb6aa44be1420e9995d87e98ba81b6f",
+    "regression_v1.jsonl": "323d324db2d9a6b2b9a2a645eb29403f94c7a319a792c47457931614fe8f034c"
+  }
+}

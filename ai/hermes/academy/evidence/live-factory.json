@@ -1,0 +1,27 @@
+{
+  "evidence_type": "AUTHORIZED_TOOL_READBACK",
+  "tool": "pantheon_factory",
+  "observed_at": "2026-10-15 22:14:49 UTC",
+  "environment": "production_readonly",
+  "response": {
+    "ok": true,
+    "upstream_status": 200,
+    "result": {
+      "factory": {
+        "connection": "CONNECTED",
+        "service": "factory-district",
+        "station_status": "READY",
+        "rail_status": "READY",
+        "machinery": {
+          "CODE": "UNKNOWN",
+          "VISUAL": "UNKNOWN",
+          "LOGIC": "READY"
+        },
+        "preflight_configured": true,
+        "dispatch_enabled": true
+      }
+    }
+  },
+  "model_generated": false,
+  "end_to_end_model_execution_verified": false
+}

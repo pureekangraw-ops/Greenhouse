@@ -1,0 +1,37 @@
+name: HERMES Academy CPU checks
+on:
+  pull_request:
+    paths:
+      - 'ai/hermes/academy/**'
+      - '.github/workflows/hermes-academy.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  cpu-contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: python -m pip install jsonschema==4.23.0
+      - run: python -m unittest discover -s ai/hermes/academy/tests -v
+      - run: python -m compileall -q ai/hermes/academy
+      - name: Verify component corpus and full Academy hold
+        run: |
+          python - <<'PY'
+          from ai.hermes.academy.data import verify_manifest, validate_dataset
+          root='ai/hermes/academy/data/code-commits'
+          assert verify_manifest(root)['counts']=={'train':100,'validation':100,'heldout':100}
+          try:
+              validate_dataset(root)
+          except ValueError as exc:
+              assert 'missing capabilities' in str(exc)
+          else:
+              raise AssertionError('Component corpus must not pass the full Academy gate')
+          PY
+      - name: Check standalone bundle is reproducible
+        run: |
+          python -m ai.hermes.academy.build_notebook
+          git diff --exit-code -- ai/hermes/academy/HERMES_Academy_Recovery.ipynb

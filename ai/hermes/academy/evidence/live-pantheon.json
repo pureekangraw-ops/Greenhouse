@@ -1,0 +1,21 @@
+{
+  "evidence_type": "AUTHORIZED_TOOL_READBACK",
+  "tool": "pantheon_health",
+  "observed_at": "2026-10-15 22:14:49 UTC",
+  "environment": "production_readonly",
+  "response": {
+    "connected": true,
+    "status": "HEALTHY",
+    "service": "pantheon-workhub",
+    "stage": "primary-preview",
+    "read_only": true,
+    "source": "PANTHEON /health",
+    "factory": {
+      "connection": "CONNECTED",
+      "station_status": "READY",
+      "rail_status": "READY"
+    }
+  },
+  "model_generated": false,
+  "end_to_end_model_execution_verified": false
+}
