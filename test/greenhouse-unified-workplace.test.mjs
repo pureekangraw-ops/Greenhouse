@@ -21,6 +21,9 @@ test('Greenhouse mounts the personal planner as a distinct local-only surface', 
   assert.match(planner, /src="\/greenhouse\/personal\/app\.js" defer/);
   assert.doesNotMatch(planner, /<script>\s*[\s\S]*?<\/script>/i);
   assert.match(plannerJs, /localStorage/);
+  assert.match(planner, /data-view="hermes"/);
+  assert.match(plannerJs, /function hermesPage\(\)/);
+  assert.match(plannerJs, /state\.view==='hermes'\?hermesPage\(\)/);
   assert.match(plannerJs, /normalizeLocalAIEndpoint/);
   assert.match(plannerJs, /\['localhost','127\.0\.0\.1'\]/);
   assert.match(plannerJs, /\/models/);
