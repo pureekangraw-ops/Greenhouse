@@ -5,7 +5,7 @@ Status: prototype integration on a review branch. Not merged or deployed. No liv
 ## Product boundary
 
 - Greenhouse remains the owner-workspace shell and read-only surface for authorized Work readbacks. The source Work System retains Work identity, lifecycle, and continuity.
-- The `พื้นที่ส่วนตัว` route reuses the Factory District AI Universal Workplace interface as a personal planning/draft module for Puree, Go, and Saeng.
+- The `พื้นที่ส่วนตัว` route vendors the Factory District AI Universal Workplace interface from `yggmetro-group1/factory-district/imports/universal-workplace` as a personal planning/draft module for Puree, Go, and Saeng. The copy is reviewed into this Greenhouse branch; the repositories do not auto-sync, so future changes must be intentionally mirrored.
 - Tasks, projects, activity, and manual handoff JSON in the personal module stay in browser `localStorage`. They do not create/update official Work, sync to Greenhouse/GO/Metropolis, or execute tools.
 - Handoff remains an explicit user-mediated file export/import and preview. A returned result is a proposal for the local draft only, not an Owner Source result.
 - Greenhouse's official readback remains separate and read-only. No new login, command, runner, approval queue, or Work lifecycle path is added.
