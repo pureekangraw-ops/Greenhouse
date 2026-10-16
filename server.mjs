@@ -19,6 +19,10 @@ const staticFiles = new Map([
   ['/greenhouse/manifest.webmanifest', ['greenhouse/manifest.webmanifest', 'application/manifest+json; charset=utf-8']],
   ['/greenhouse/icon.svg', ['greenhouse/icon.svg', 'image/svg+xml; charset=utf-8']],
   ['/greenhouse/sw.js', ['greenhouse/sw.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/personal/', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'"]],
+  ['/greenhouse/personal/index.html', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'"]],
+  ['/greenhouse/personal/app.js', ['greenhouse/personal/app.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/personal/app.css', ['greenhouse/personal/app.css', 'text/css; charset=utf-8']],
 ]);
 const commonHeaders = {
   'cache-control': 'no-store',
@@ -26,8 +30,8 @@ const commonHeaders = {
   'referrer-policy': 'no-referrer',
   'content-security-policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'",
 };
-function send(response, code, data, contentType = 'application/json; charset=utf-8') {
-  response.writeHead(code, { ...commonHeaders, 'content-type': contentType });
+function send(response, code, data, contentType = 'application/json; charset=utf-8', extraHeaders = {}) {
+  response.writeHead(code, { ...commonHeaders, ...extraHeaders, 'content-type': contentType });
   response.end(typeof data === 'string' ? data : JSON.stringify(data));
 }
 function validOrigin(request) {
@@ -246,7 +250,7 @@ export function createGreenhouseServer({
     if (!item) return send(response, 404, { code: 'NOT_FOUND' });
     try {
       const content = await readFile(join(root, item[0]), 'utf8');
-      return send(response, 200, content, item[1]);
+      return send(response, 200, content, item[1], item[2] ? { 'content-security-policy': item[2] } : {});
     } catch {
       return send(response, 503, { code: 'STATIC_ASSET_UNAVAILABLE' });
     }

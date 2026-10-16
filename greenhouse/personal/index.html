@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#f7f8f6">
+<meta name="description" content="AI Universal Workplace — พื้นที่ทำงานร่วมกันของคุณ โก และแสง พร้อมระบบมอบหมายงาน handoff และตรวจผล">
+<title>AI Universal Workplace — พื้นที่ร่างส่วนตัว</title>
+<link rel="stylesheet" href="/greenhouse/personal/app.css">
+</head>
+<body>
+<div class="app">
+<aside class="sidebar" aria-label="เมนูหลัก">
+  <div class="brand"><div class="brand-mark" aria-hidden="true">AI</div><div><div class="brand-name">AI Universal Workplace</div><span class="brand-caption">พื้นที่ทำงานของคุณ</span></div></div>
+  <div class="side-label">Workspace</div>
+  <nav class="nav-list" id="desktopNav">
+    <button class="nav-btn active" data-view="home"><span class="nav-icon">⌂</span>ภาพรวม</button>
+    <button class="nav-btn" data-view="tasks"><span class="nav-icon">☑</span>งานทั้งหมด<span class="nav-count" id="navOpenCount">0</span></button>
+    <button class="nav-btn" data-view="team"><span class="nav-icon">♧</span>ทีมผู้ช่วย</button>
+    <button class="nav-btn" data-view="projects"><span class="nav-icon">▦</span>โปรเจกต์</button>
+    <button class="nav-btn" data-view="schedule"><span class="nav-icon">◷</span>กำหนดส่ง</button>
+  </nav>
+  <div class="side-bottom">
+    <div class="side-label">Account</div>
+    <nav class="nav-list"><button class="nav-btn" data-view="settings"><span class="nav-icon">⚙</span>ตั้งค่าและข้อมูล</button></nav>
+    <div class="privacy-card"><b>🔒 ข้อมูลอยู่บนเครื่องนี้</b><p>ต้นแบบนี้เก็บข้อมูลใน browser ปัจจุบัน ยังไม่ sync ข้ามอุปกรณ์</p></div>
+    <div class="workspace-name"><span class="workspace-dot"></span>พื้นที่ส่วนตัว <span class="nav-count">Local</span></div>
+  </div>
+</aside>
+<div class="main-shell">
+  <header class="topbar">
+    <div class="mobile-brand"><span class="brand-mark" aria-hidden="true">AI</span>AI Universal Workplace</div>
+    <div class="crumb"><span>พื้นที่ส่วนตัว</span><span>›</span><strong id="crumbName">ภาพรวม</strong></div>
+    <div class="top-actions">
+      <label class="search-wrap"><span aria-hidden="true">⌕</span><input class="search" id="globalSearch" type="search" placeholder="ค้นหางานหรือโปรเจกต์…" aria-label="ค้นหางานหรือโปรเจกต์"></label>
+      <button class="avatar" id="profileButton" aria-label="แก้ไขชื่อผู้ใช้" title="แก้ไขชื่อผู้ใช้">PK</button>
+    </div>
+  </header>
+  <aside class="integration-banner" role="note">
+    <div><strong>พื้นที่ร่างส่วนตัว · LOCAL ONLY</strong><p>งานและ handoff ในหน้านี้เก็บใน browser เครื่องนี้เท่านั้น ไม่ใช่ Work ของระบบเจ้าของ และไม่ sync หรือส่งคำสั่งไป Greenhouse/GO</p></div>
+    <a href="/greenhouse/">← กลับ Owner Workspace</a>
+  </aside>
+  <main class="content" id="main" tabindex="-1"></main>
+</div>
+<nav class="mobile-nav" id="mobileNav" aria-label="เมนูสำหรับมือถือ">
+  <button class="active" data-view="home"><span>⌂</span>ภาพรวม</button>
+  <button data-view="tasks"><span>☑</span>งาน</button>
+  <button data-view="team"><span>♧</span>ทีม</button>
+  <button data-view="projects"><span>▦</span>โปรเจกต์</button>
+  <button data-view="schedule"><span>◷</span>กำหนดส่ง</button>
+  <button data-view="settings"><span>⚙</span>ตั้งค่า</button>
+</nav>
+</div>
+<dialog class="dialog" id="taskDialog" aria-labelledby="taskDialogTitle">
+  <div class="dialog-head"><div><h2 id="taskDialogTitle">เพิ่มงาน</h2><p>เพิ่มงานเข้า workspace ของคุณ</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="ปิด">×</button></div>
+  <form class="dialog-form" id="taskForm">
+    <input type="hidden" name="id">
+    <div class="field"><label for="taskTitle">ชื่องาน *</label><input id="taskTitle" name="title" required maxlength="120" placeholder="เช่น ร่าง flow หน้า onboarding"></div>
+    <div class="field"><label for="taskDetails">รายละเอียด</label><textarea id="taskDetails" name="details" maxlength="500" placeholder="บันทึกบริบทสั้น ๆ"></textarea></div>
+    <div class="form-grid">
+      <div class="field"><label for="taskSpace">พื้นที่</label><select id="taskSpace" name="space"></select></div>
+      <div class="field"><label for="taskProject">โปรเจกต์</label><select id="taskProject" name="projectId"></select></div>
+      <div class="field"><label for="taskDue">กำหนดส่ง</label><input id="taskDue" name="dueDate" type="date"></div>
+      <div class="field"><label for="taskPriority">ความสำคัญ</label><select id="taskPriority" name="priority"><option value="normal">ปกติ</option><option value="high">สูง</option><option value="low">ต่ำ</option></select></div>
+      <div class="field"><label for="taskAssignee">ผู้รับผิดชอบ</label><select id="taskAssignee" name="assignee"></select></div>
+      <div class="field"><label for="taskStatus">สถานะ</label><select id="taskStatus" name="status"><option value="next">ถัดไป</option><option value="doing">กำลังทำ</option><option value="review">รอตรวจ</option><option value="done">เสร็จแล้ว</option></select></div>
+    </div>
+    <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>ยกเลิก</button><button class="primary" type="submit">บันทึกงาน</button></div>
+  </form>
+</dialog>
+<dialog class="dialog" id="projectDialog" aria-labelledby="projectDialogTitle">
+  <div class="dialog-head"><div><h2 id="projectDialogTitle">สร้างโปรเจกต์</h2><p>จัดกลุ่มงานให้เห็นเป้าหมายและความคืบหน้า</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="ปิด">×</button></div>
+  <form class="dialog-form" id="projectForm">
+    <input type="hidden" name="id">
+    <div class="field"><label for="projectName">ชื่อโปรเจกต์ *</label><input id="projectName" name="name" required maxlength="70" placeholder="เช่น เว็บไซต์ร้านค้า"></div>
+    <div class="field"><label for="projectDescription">เป้าหมาย / คำอธิบาย</label><textarea id="projectDescription" name="description" maxlength="300" placeholder="ผลลัพธ์ที่ต้องการ"></textarea></div>
+    <div class="form-grid"><div class="field"><label for="projectSpace">พื้นที่</label><select id="projectSpace" name="space"></select></div><div class="field"><label for="projectStatus">สถานะ</label><select id="projectStatus" name="status"><option value="active">กำลังทำ</option><option value="paused">พักไว้</option><option value="done">เสร็จแล้ว</option></select></div></div>
+    <div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>ยกเลิก</button><button class="primary" type="submit">บันทึกโปรเจกต์</button></div>
+  </form>
+</dialog>
+<dialog class="dialog" id="nameDialog" aria-labelledby="nameDialogTitle">
+  <div class="dialog-head"><div><h2 id="nameDialogTitle">ตั้งชื่อพื้นที่</h2><p>ชื่อนี้แสดงเฉพาะบนอุปกรณ์นี้</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="ปิด">×</button></div>
+  <form class="dialog-form" id="nameForm"><div class="field"><label for="displayName">ชื่อที่ใช้แสดง</label><input id="displayName" name="name" maxlength="40" placeholder="ชื่อของคุณ"></div><div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>ยกเลิก</button><button class="primary" type="submit">บันทึก</button></div></form>
+</dialog>
+<input type="file" id="importFile" accept="application/json,.json" hidden>
+<input type="file" id="handoffFile" accept="application/json,.json" hidden>
+<dialog class="dialog" id="handoffDialog" aria-labelledby="handoffDialogTitle"><div class="dialog-head"><div><h2 id="handoffDialogTitle">ตรวจผลจากผู้ช่วย</h2><p>อ่านผลก่อนนำกลับมาอัปเดตงาน</p></div><button class="dialog-close" type="button" data-close-dialog aria-label="ปิด">×</button></div><div class="dialog-form"><div id="handoffPreview"></div><div class="dialog-actions"><button class="secondary" type="button" data-close-dialog>ยกเลิก</button><button class="primary" type="button" data-action="apply-handoff">ยืนยันการเปลี่ยนแปลง</button></div></div></dialog>
+<div class="toast" id="toast" role="status" aria-live="polite"></div>
+<script src="/greenhouse/personal/app.js" defer></script>
+</body>
+</html>
