@@ -21,7 +21,11 @@ test('Greenhouse mounts the personal planner as a distinct local-only surface', 
   assert.match(planner, /src="\/greenhouse\/personal\/app\.js" defer/);
   assert.doesNotMatch(planner, /<script>\s*[\s\S]*?<\/script>/i);
   assert.match(plannerJs, /localStorage/);
-  assert.doesNotMatch(plannerJs, /\bfetch\s*\(/);
+  assert.match(plannerJs, /normalizeLocalAIEndpoint/);
+  assert.match(plannerJs, /\['localhost','127\.0\.0\.1'\]/);
+  assert.match(plannerJs, /\/models/);
+  assert.match(plannerJs, /\/chat\/completions/);
+  assert.match(plannerJs, /ไม่แนบรายการงาน\/โปรเจกต์โดยอัตโนมัติ/);
   assert.doesNotMatch(plannerJs, /\/api\//);
 });
 
@@ -36,5 +40,5 @@ test('inline style allowance is scoped to the planner route; scripts remain same
   assert.match(plannerRouteLine, /script-src 'self'/);
   assert.match(plannerRouteLine, /style-src 'self' 'unsafe-inline'/);
   assert.doesNotMatch(ordinaryRouteLine, /unsafe-inline/);
-  assert.match(server, /connect-src 'self'/);
+  assert.match(server, /connect-src 'self' http:\/\/localhost:\* http:\/\/127\.0\.0\.1:\*/);
 });

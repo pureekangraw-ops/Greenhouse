@@ -19,8 +19,8 @@ const staticFiles = new Map([
   ['/greenhouse/manifest.webmanifest', ['greenhouse/manifest.webmanifest', 'application/manifest+json; charset=utf-8']],
   ['/greenhouse/icon.svg', ['greenhouse/icon.svg', 'image/svg+xml; charset=utf-8']],
   ['/greenhouse/sw.js', ['greenhouse/sw.js', 'text/javascript; charset=utf-8']],
-  ['/greenhouse/personal/', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'"]],
-  ['/greenhouse/personal/index.html', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'"]],
+  ['/greenhouse/personal/', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:*; manifest-src 'self'; worker-src 'self'"]],
+  ['/greenhouse/personal/index.html', ['greenhouse/personal/index.html', 'text/html; charset=utf-8', "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data:; connect-src 'self' http://localhost:* http://127.0.0.1:*; manifest-src 'self'; worker-src 'self'"]],
   ['/greenhouse/personal/app.js', ['greenhouse/personal/app.js', 'text/javascript; charset=utf-8']],
   ['/greenhouse/personal/app.css', ['greenhouse/personal/app.css', 'text/css; charset=utf-8']],
 ]);
