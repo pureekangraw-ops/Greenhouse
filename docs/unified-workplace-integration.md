@@ -13,6 +13,10 @@ Status: prototype integration on a review branch. Not merged or deployed. HERMES
 
 ## Routes and security
 
+- Cloudflare Pages project `greenhouse-owner` keeps `main` as production; preview deployments are enabled only for `feat/unified-workplace-personal-planner-20261016`. This gives the owner a test URL without changing production.
+- The Pages `_headers` file applies the local-only Content-Security-Policy when this static route is served, not only when it runs behind `server.mjs`.
+- The Pages preview URL is public to anyone who has it (no sign-in gate has been configured). Task/project data remains in that visitor's browser; prompts are sent directly from the browser to its own loopback HERMES endpoint. Avoid shared-device data and do not share the preview URL if you do not want others opening the page.
+
 - `/greenhouse/` is the Greenhouse shell.
 - `/greenhouse/personal/` serves the local planner from the same origin, with an explicit local-only banner and a return link.
 - The planner's JavaScript and CSS are external same-origin assets so `script-src 'self'` remains in force. Its small allowance for inline style attributes is scoped to the personal HTML route only; it does not allow inline scripts or arbitrary remote network connections.

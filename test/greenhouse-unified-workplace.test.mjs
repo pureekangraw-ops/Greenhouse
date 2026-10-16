@@ -45,3 +45,13 @@ test('inline style allowance is scoped to the planner route; scripts remain same
   assert.doesNotMatch(ordinaryRouteLine, /unsafe-inline/);
   assert.match(server, /connect-src 'self' http:\/\/localhost:\* http:\/\/127\.0\.0\.1:\*/);
 });
+
+test('Cloudflare Pages static route keeps the local model CSP allowlist', async () => {
+  const headers = await read('../_headers');
+  assert.match(headers, /^\/greenhouse\/personal\/$/m);
+  assert.match(headers, /^\/greenhouse\/personal\/\*$/m);
+  assert.match(headers, /script-src 'self'/);
+  assert.match(headers, /style-src 'self' 'unsafe-inline'/);
+  assert.match(headers, /connect-src 'self' http:\/\/localhost:\* http:\/\/127\.0\.0\.1:\*/);
+  assert.doesNotMatch(headers, /https?:\/\/\*/);
+});
