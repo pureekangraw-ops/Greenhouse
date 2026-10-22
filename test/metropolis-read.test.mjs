@@ -102,13 +102,25 @@ test('stale arrival and missing exact read grant fail closed before the Work rea
   assert.equal(denied.fake.calls.length, 1);
 });
 
+test('duplicate arrival Work pointers fail closed without issuing a read', async () => {
+  const pointer = arrival().current.works[0];
+  const duplicate = arrival({ current: { works: [
+    pointer, { ...pointer, checkpointId: workId + ':CP-02' },
+  ] } });
+  const attempt = invoke([rpc(duplicate), rpc(reply())]);
+  await rejectsWith(attempt.promise, 'WORK_CONTEXT_AMBIGUOUS');
+  assert.equal(attempt.fake.calls.length, 1);
+});
+
 test('readback actor, Work, checkpoint, Work Pass and source receipt must all agree', async () => {
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ actor: 'GO' }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ readbackVerified: false }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ workTruthChanged: true }))]).promise, 'OWNER_READBACK_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ workId: 'WORK-other' }) }))]).promise, 'OWNER_READBACK_MISMATCH');
-  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ checkpointId: 'WORK-other:CP-1' }) }))]).promise, 'OWNER_READBACK_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ checkpointId: 'WORK-other:CP-1' }) }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ workPass: { status: 'REVOKED', workId, checkpointId, permissions: { actions: ['read'] } } }) }))]).promise, 'OWNER_READBACK_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ record: record({ ownerSystem: 'OTHER' }) }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
+  await rejectsWith(invoke([rpc(arrival()), rpc(reply({ receipt: { ...reply().receipt, checkpointId: workId + ':CP-02' } }))]).promise, 'OWNER_READBACK_CONTEXT_MISMATCH');
   await rejectsWith(invoke([rpc(arrival()), rpc(reply({ receipt: { operation: 'HANDOFF', workId, checkpointId, readbackVerified: true, observedAt: new Date(TIME).toISOString(), persisted: false } }))]).promise, 'OWNER_READBACK_MISMATCH');
 });
 
