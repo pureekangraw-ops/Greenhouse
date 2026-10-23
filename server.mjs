@@ -1,3 +1,4 @@
+import { handleLocalAITest } from './src/greenhouse/local-ai-test.mjs';
 import { handleOwnerRequestRead } from './src/greenhouse/request-owner-http.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
@@ -16,6 +17,8 @@ const staticFiles = new Map([
   ['/greenhouse/', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/index.html', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/app.js', ['greenhouse/app.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/workspace.mjs', ['greenhouse/workspace.mjs', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/workspace-model.mjs', ['greenhouse/workspace-model.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/ui-state.mjs', ['greenhouse/ui-state.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/app.css', ['greenhouse/app.css', 'text/css; charset=utf-8']],
   ['/greenhouse/manifest.webmanifest', ['greenhouse/manifest.webmanifest', 'application/manifest+json; charset=utf-8']],
@@ -104,7 +107,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
  */
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
-  allowLocalEventEvidence = false, hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
+  localAIConnector = null, allowLocalEventEvidence = false, hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
   commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
@@ -121,6 +124,17 @@ export function createGreenhouseServer({
     try { url = new URL(request.url || '/', 'http://127.0.0.1'); }
     catch { return send(response, 400, {code:'REQUEST_INVALID'}); }
 
+    if (url.pathname === '/api/greenhouse/local-ai') {
+      if (!['GET','POST'].includes(request.method)) return send(response,405,{code:'METHOD_NOT_ALLOWED'});
+      try {
+        const session = localAIConnector && ownerSessionResolver ? await ownerSessionResolver(request) : null;
+        const raw = request.method === 'POST' ? await readRequestBody(request,8192) : undefined;
+        const result = await handleLocalAITest(new Request('http://' + request.headers.host + request.url, {
+          method:request.method,headers:request.headers,...(raw !== undefined ? {body:raw} : {}),
+        }), {connector:localAIConnector,session});
+        return send(response,result.status,await result.json());
+      } catch(error) {return send(response,error instanceof GreenhouseEventError ? error.status : 400,{code:'LOCAL_AI_REQUEST_REJECTED'});}
+    }
     if (url.pathname.startsWith('/api/greenhouse/requests/')) {
       // Fetch Request rejects TRACE/TRACK/CONNECT at construction time.
       // Reject methods at the Node boundary first, as the Pages handler does.

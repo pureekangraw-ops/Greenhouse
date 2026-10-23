@@ -1,3 +1,4 @@
+import './workspace.mjs';
 import { getConnectionState, getErrorState } from './ui-state.mjs';
 
 const connection = document.querySelector('#connection');
@@ -101,7 +102,7 @@ document.querySelector('#reload').addEventListener('click', loadInbox);
 // Refresh only while the page is visible. Read-only: never dispatches or changes Work.
 setInterval(() => { if (!document.hidden && !refreshButton.disabled) loadInbox(); }, 60000);
 loadInbox();
-if ('serviceWorker' in navigator) navigator.serviceWorker.register('/greenhouse/sw.js', {scope:'/greenhouse/'}).catch(() => {});
+if ('serviceWorker' in navigator && location.protocol !== 'file:') navigator.serviceWorker.register('/greenhouse/sw.js', {scope:'/greenhouse/'}).catch(() => {});
 
 // Installation is an explicit user gesture; no automatic install prompt.
 const installButton = document.querySelector('#install');
