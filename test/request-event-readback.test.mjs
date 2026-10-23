@@ -8,8 +8,8 @@ import { once } from 'node:events';
 import { signGreenhouseEvent } from '../src/greenhouse/events.mjs';
 const harness = new URL('./fixtures/request-workflow/harness.mjs',import.meta.url);
 const secret = 'synthetic-only-secret-at-least-32-bytes';
-async function start(file) {
- const child = spawn(process.execPath,[harness.pathname,'serve',file],{stdio:['ignore','pipe','pipe']});
+async function start(file, mode = 'serve') {
+ const child = spawn(process.execPath,[harness.pathname,mode,file],{stdio:['ignore','pipe','pipe']});
  let errors=''; child.stderr.on('data',chunk=>errors+=chunk);
  const port = await new Promise((resolve,reject)=>{
   child.once('exit',code=>reject(Error(`harness exit ${code}: ${errors}`)));
@@ -87,4 +87,52 @@ test('adapter fails closed on denied readers, missing records, unsupported scope
  const allowed=createRequestEventReadback({db,source:'shop',evidenceScope:'LOCAL_TEST',authorize:()=>true});
  await assert.rejects(allowed.inboxReader({session:{actorId:'test'},cursor:'invalid'}),{code:'CURSOR_INVALID'});
  await assert.rejects(allowed.inboxReader({session:{actorId:'test'}}),/offline/);
+});
+
+
+test('24 concurrent real producer confirms persist one event, read through HTTP Office route after restart',async()=>{
+ const {handleOwnerRequestRead}=await import('../src/greenhouse/request-owner-http.mjs');
+ const {DatabaseSync}=await import('node:sqlite');
+ const dir=await mkdtemp(join(tmpdir(),'greenhouse-owner-http-'));let owner,office;
+ try {
+  const file=join(dir,'requests.sqlite');owner=await start(file,'owner');
+  const session=await fetch(owner.base+'/api/v1/requests');assert.equal(session.status,200);
+  const cookie=session.headers.get('set-cookie').split(';')[0];
+  const headers={origin:'https://yggmetro.com',cookie,'content-type':'application/json'};
+  const created=await fetch(owner.base+'/api/v1/requests/synthetic-http',{method:'POST',headers,body:JSON.stringify({brief:{goal:'SYNTHETIC PRIVATE GOAL'}})});assert.equal(created.status,200);
+  const confirms=await Promise.all(Array.from({length:24},()=>fetch(owner.base+'/api/v1/requests/synthetic-http/confirm',{method:'POST',headers,body:'{}'})));
+  for(const response of confirms)assert.equal(response.status,200,await response.text());
+  const db=new DatabaseSync(file,{readOnly:true});
+  const rows=db.prepare("SELECT event_id,timestamp FROM ygg_request_events WHERE request_id='synthetic-http' AND to_value='SUBMITTED'").all();assert.equal(rows.length,1);db.close();
+  const request=new Request('https://greenhouse-owner.pages.dev/api/greenhouse/requests/synthetic-http',{headers:{authorization:'Bearer synthetic-owner-token-at-least-32-bytes'}});
+  const fetchImpl=(url,options)=>{assert.ok(/^https:\/\/yggmetro\.com\/api\/v1\/admin\/requests\/(synthetic-http|synthetic-greenhouse-runner)$/.test(url));assert.equal(options.method,'GET');assert.equal(options.redirect,'error');return fetch(owner.base+new URL(url).pathname,options);};
+  const {createGreenhouseServer}=await import('../server.mjs');
+  office=createGreenhouseServer({fetchImpl});await new Promise(resolve=>office.listen(0,'127.0.0.1',resolve));
+  const officeRead=()=>fetch('http://127.0.0.1:'+office.address().port+'/api/greenhouse/requests/synthetic-http',{headers:request.headers});
+  const first=await officeRead();assert.equal(first.status,200);const before=await first.json();
+  assert.equal(before.items[0].sourceEventId,rows[0].event_id);assert.equal(before.items[0].occurredAt,rows[0].timestamp);assert.equal(before.items[0].evidenceScope,'OWNER_HTTP_READBACK');assert.equal(before.items[0].receiptId,null);assert.ok(!JSON.stringify(before).includes('PRIVATE GOAL'));
+  await owner.stop();owner=await start(file,'owner');
+  const second=await officeRead();assert.equal(second.status,200);assert.deepEqual((await second.json()).items,before.items);
+  const {verifyRequestChain}=await import('../scripts/verify-request-chain.mjs');
+  const result=await verifyRequestChain({target:'https://greenhouse-owner.pages.dev',requestId:'synthetic-greenhouse-runner',token:'synthetic-owner-token-at-least-32-bytes',fetchImpl:(url,options)=>{
+   const u=new URL(url);
+   if(u.origin==='https://yggmetro.com')return fetch(owner.base+u.pathname,options);
+   assert.equal(u.origin,'https://greenhouse-owner.pages.dev');
+   return fetch('http://127.0.0.1:'+office.address().port+u.pathname,options);
+  }});
+  assert.equal(result.officeReadback,true);assert.equal(result.hubDeliveryVerified,false);
+  console.log(JSON.stringify({evidenceScope:'LOCAL_HTTP_INTEGRATION',concurrentProducerConfirms:24,persistedSubmissionEvents:rows.length,ownerProcessRestarted:true,sourceEventId:rows[0].event_id,receiptStatus:'MISSING',liveDeployment:false}));
+ }finally{if(office)await new Promise(resolve=>office.close(resolve));if(owner)await owner.stop();await rm(dir,{recursive:true,force:true});}
+});
+
+test('HTTP owner reader rejects bad credentials, redirects, forged records and invalid inputs',async()=>{
+ const {readOwnerRequest,handleOwnerRequestRead}=await import('../src/greenhouse/request-owner-http.mjs');
+ const config={requestId:'synthetic-http',authorization:'Bearer synthetic-owner-token-at-least-32-bytes'};
+ await assert.rejects(readOwnerRequest({...config,requestId:'../customers'}),{code:'REQUEST_ID_INVALID'});
+ await assert.rejects(readOwnerRequest({...config,authorization:'Bearer short'}),{code:'OWNER_AUTH_REQUIRED'});
+ for(const status of [401,403,404,302,503])await assert.rejects(readOwnerRequest({...config,fetchImpl:async()=>new Response('',{status})}));
+ for(const body of [{ok:true,request:{request_id:'other'},events:[]},{ok:true,request:{request_id:'synthetic-http'},events:[]},{ok:true,request:{request_id:'synthetic-http'},events:Array(2).fill({kind:'STATUS',from_value:'DRAFT',to_value:'SUBMITTED'})}])await assert.rejects(readOwnerRequest({...config,fetchImpl:async()=>Response.json(body)}));
+ await assert.rejects(readOwnerRequest({...config,fetchImpl:async()=>new Response('x'.repeat(262145))}),{code:'REQUEST_OWNER_TOO_LARGE'});
+ const called=()=>{throw Error('must not call owner');};
+ for(const [request,status] of [[new Request('https://greenhouse-owner.pages.dev/api/greenhouse/requests/synthetic-http',{method:'POST'}),405],[new Request('https://greenhouse-owner.pages.dev/api/greenhouse/requests/synthetic-http',{headers:{origin:'https://evil.test'}}),403],[new Request('https://greenhouse-owner.pages.dev/api/greenhouse/requests/synthetic-http?token=forbidden'),400]])assert.equal((await handleOwnerRequestRead(request,'synthetic-http',{fetchImpl:called})).status,status);
 });

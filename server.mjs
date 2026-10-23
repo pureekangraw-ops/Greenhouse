@@ -1,3 +1,4 @@
+import { handleOwnerRequestRead } from './src/greenhouse/request-owner-http.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -118,6 +119,13 @@ export function createGreenhouseServer({
     if (!validOrigin(request)) return send(response, 403, { code: 'ORIGIN_DENIED' });
     const url = new URL(request.url || '/', 'http://127.0.0.1');
 
+    if (url.pathname.startsWith('/api/greenhouse/requests/')) {
+      const requestId = url.pathname.slice('/api/greenhouse/requests/'.length);
+      const result = await handleOwnerRequestRead(new Request('http://' + request.headers.host + request.url, {
+        method: request.method, headers: request.headers,
+      }), requestId, {fetchImpl, now});
+      return send(response, result.status, await result.json());
+    }
     if (url.pathname === '/api/greenhouse/status' && request.method === 'GET') {
       // Adapter presence is not authentication: never advertise an owner session
       // until the existing session resolver has verified this request.
