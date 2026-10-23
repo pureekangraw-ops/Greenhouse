@@ -1,6 +1,7 @@
+import {testDeviceAI} from './device-ai.mjs';
 import {demoEvents,filterEvents,eventHistory,acceptReadback,escapeHTML as esc} from './workspace-model.mjs';
 const $=selector=>document.querySelector(selector);
-let mode='demo',liveItems=[],selectedId=demoEvents[0].sourceEventId,aiConfig=null,aiBusy=false,readSequence=0;
+let mode='demo',liveItems=[],selectedId=demoEvents[0].sourceEventId,aiConfig=null,aiBusy=false,readSequence=0,aiController=null;
 const items=()=>mode==='demo'?demoEvents:liveItems;
 const format=value=>Number.isFinite(Date.parse(value))?new Date(value).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'ยังไม่มีข้อมูล';
 function view(name){
@@ -46,7 +47,20 @@ $('#request-read-form').addEventListener('submit',async event=>{
  }catch(error){$('#read-message').textContent=error.name==='TimeoutError'?'หมดเวลารอผลอ่านกลับ':error.message==='READBACK_INVALID'?'รูปแบบผลอ่านกลับไม่ตรงตามสัญญา':['ต้องเชื่อมตัวอ่านที่ยืนยันตัวตนฝั่งเซิร์ฟเวอร์ก่อน · ไม่ต้องกรอก token ในหน้านี้','ไม่พบคำขอหรือ route ยังไม่พร้อม','ระบบเจ้าของยังไม่พร้อมอ่านกลับ'].includes(error.message)?error.message:'การเชื่อมต่อไม่พร้อม ลองอีกครั้ง';}
  finally{$('#read-request').disabled=false;}
 });
-function updateRun(){ $('#ai-run').disabled=aiBusy||!aiConfig?.configured||!aiConfig?.csrfToken||!$('#ai-synthetic').checked||!$('#ai-model').value||!$('#ai-input').value.trim(); }
+function updateRun(){
+ const device=$('#ai-route').value==='device';
+ const ready=device?$('#device-protocol').value==='chat-completions-compatible'&&$('#device-confirm').checked&&$('#device-model').value.trim():aiConfig?.configured&&aiConfig?.csrfToken&&$('#ai-model').value;
+ $('#ai-run').disabled=aiBusy||!ready||!$('#ai-synthetic').checked||!$('#ai-input').value.trim();
+}
+function deviceMode(){
+ const device=$('#ai-route').value==='device';$('#device-config').hidden=!device;$('#ai-refresh').hidden=device;$('#ai-model').closest('label').hidden=device;
+ if(device){$('#ai-state').textContent='DEVICE · PROTOCOL UNVERIFIED';$('#ai-connection').textContent='สถานะการเชื่อมต่อจากเบราว์เซอร์: ยังไม่ทดสอบ · สถานะ RUNNING มาจากหน้าจอเจ้าของ ไม่ใช่ health check';}
+ else aiStatus();
+ updateRun();
+}
+$('#ai-route').addEventListener('change',deviceMode);
+for(const selector of ['#device-protocol','#device-model','#device-confirm'])$(selector).addEventListener('input',updateRun);
+$('#ai-cancel').addEventListener('click',()=>aiController?.abort());
 async function aiStatus(){
  $('#ai-refresh').disabled=true;aiConfig=null;updateRun();
  try{
@@ -61,13 +75,26 @@ async function aiStatus(){
 $('#ai-refresh').addEventListener('click',aiStatus);for(const selector of ['#ai-model','#ai-input','#ai-synthetic'])$(selector).addEventListener('input',updateRun);
 $('#ai-clear').addEventListener('click',()=>{if(aiBusy)return;$('#ai-input').value='';$('#ai-synthetic').checked=false;$('#ai-output').textContent='ล้างข้อความและผลลัพธ์แล้ว';$('#ai-result-status').textContent='ยังไม่ได้ทดสอบ';$('#ai-time').textContent='— ms';updateRun();});
 $('#ai-form').addEventListener('submit',async event=>{
- event.preventDefault();if($('#ai-run').disabled)return;aiBusy=true;updateRun();$('#ai-clear').disabled=true;$('#ai-refresh').disabled=true;$('#ai-result-status').textContent='กำลังทดสอบ…';$('#ai-output').textContent='รอคำตอบจาก provider ที่ได้รับอนุญาต';const started=performance.now();
+ event.preventDefault();if($('#ai-run').disabled)return;aiBusy=true;aiController=new AbortController();updateRun();$('#ai-clear').disabled=true;$('#ai-refresh').disabled=true;$('#ai-route').disabled=true;$('#ai-cancel').hidden=false;$('#ai-result-status').textContent='กำลังทดสอบ inference…';$('#ai-output').textContent='ยังไม่มีคำตอบ · การเริ่มทดสอบไม่ใช่การยืนยันว่าเชื่อมต่อแล้ว';const started=performance.now();
+ let timeout,providerTimedOut=false;
  try{
-  const response=await fetch('/api/greenhouse/local-ai',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-csrf-token':aiConfig.csrfToken},body:JSON.stringify({model:$('#ai-model').value,text:$('#ai-input').value,syntheticOnly:true}),signal:AbortSignal.timeout(12000)});
-  const body=await response.json();if(!response.ok)throw Error('TEST_UNAVAILABLE');
+  let body;
+  if($('#ai-route').value==='device'){
+   body=await testDeviceAI({model:$('#device-model').value,text:$('#ai-input').value,protocol:$('#device-protocol').value,protocolConfirmed:$('#device-confirm').checked,syntheticOnly:$('#ai-synthetic').checked,signal:aiController.signal});
+   $('#ai-connection').textContent='ได้รับ HTTP response และคำตอบตามรูปแบบที่เลือกจาก loopback บนอุปกรณ์นี้ · ไม่ใช่หลักฐานการลงมือ';
+  }else{
+   timeout=setTimeout(()=>{providerTimedOut=true;aiController.abort();},12000);
+   const response=await fetch('/api/greenhouse/local-ai',{method:'POST',credentials:'same-origin',cache:'no-store',headers:{'content-type':'application/json','x-csrf-token':aiConfig.csrfToken},body:JSON.stringify({model:$('#ai-model').value,text:$('#ai-input').value,syntheticOnly:true}),signal:aiController.signal});
+   body=await response.json();if(!response.ok)throw Error('TEST_UNAVAILABLE');
+  }
   if(typeof body.reply!=='string'||typeof body.modelStatus!=='string'||body.executed!==false)throw Error('TEST_INVALID');
   $('#ai-output').textContent=body.reply;$('#ai-result-status').textContent=body.modelStatus==='RESPONDED'?'โมเดลตอบแล้ว · ไม่ใช่ผลการลงมือ':body.modelStatus+' · คำตอบสำรองจาก policy ไม่ใช่คำตอบโมเดล';$('#ai-state').textContent=body.modelStatus;$('#overview-ai').textContent=body.modelStatus==='RESPONDED'?'ตอบในการทดสอบแล้ว':'ใช้คำตอบสำรอง';
- }catch(error){$('#ai-result-status').textContent=error.name==='TimeoutError'?'TIMEOUT · โมเดลยังไม่ตอบ':'ERROR · ยังยืนยันผลทดสอบไม่ได้';$('#ai-output').textContent='ลองใหม่หลังตรวจการเชื่อมต่อ · ยังใช้หน้าเหตุการณ์ต่อได้';$('#ai-state').textContent='TEST_ERROR';$('#overview-ai').textContent='ทดสอบยังไม่พร้อม';}
- finally{$('#ai-time').textContent=Math.round(performance.now()-started)+' ms';aiBusy=false;$('#ai-clear').disabled=false;$('#ai-refresh').disabled=false;updateRun();}
+ }catch(error){
+  const code=error.code|| (providerTimedOut?'TIMEOUT':aiController.signal.aborted?'CANCELLED':'TEST_ERROR');
+  $('#ai-result-status').textContent=code+' · ยังไม่ยืนยันผล inference';
+  $('#ai-output').textContent=code==='DEVICE_BLOCKED_OR_UNREACHABLE'?'เบราว์เซอร์อาจบล็อก loopback หรือ server อาจเข้าถึงไม่ได้ ไม่สรุปว่า HERMES หยุดทำงาน และไม่เปลี่ยน auth/CORS/เครือข่าย':code==='CANCELLED'?'ยกเลิกแล้ว · ไม่ได้ยืนยันผลทดสอบ':'ตรวจ protocol และการอนุญาตบนอุปกรณ์ตามปกติ · ยังใช้หน้าเหตุการณ์ต่อได้';
+  if($('#ai-route').value==='device')$('#ai-connection').textContent=error.reachable?'ได้รับ HTTP response แล้ว แต่ยังไม่ยืนยันรูปแบบหรือผล inference':'ยังไม่ยืนยันการเชื่อมต่อจากเบราว์เซอร์';
+  $('#ai-state').textContent=code;$('#overview-ai').textContent='ทดสอบยังไม่พร้อม';
+ }finally{clearTimeout(timeout);$('#ai-time').textContent=Math.round(performance.now()-started)+' ms';aiBusy=false;aiController=null;$('#ai-clear').disabled=false;$('#ai-refresh').disabled=false;$('#ai-route').disabled=false;$('#ai-cancel').hidden=true;updateRun();}
 });
 render();aiStatus();

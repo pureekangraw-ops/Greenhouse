@@ -17,6 +17,7 @@ const staticFiles = new Map([
   ['/greenhouse/', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/index.html', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/app.js', ['greenhouse/app.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/device-ai.mjs', ['greenhouse/device-ai.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/workspace.mjs', ['greenhouse/workspace.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/workspace-model.mjs', ['greenhouse/workspace-model.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/ui-state.mjs', ['greenhouse/ui-state.mjs', 'text/javascript; charset=utf-8']],
@@ -29,7 +30,7 @@ const commonHeaders = {
   'cache-control': 'no-store',
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
-  'content-security-policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'",
+  'content-security-policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:8000; manifest-src 'self'; worker-src 'self'",
 };
 function send(response, code, data, contentType = 'application/json; charset=utf-8') {
   response.writeHead(code, { ...commonHeaders, 'content-type': contentType });

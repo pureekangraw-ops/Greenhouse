@@ -51,13 +51,80 @@
     <section data-panel="detail" hidden><div id="event-detail"></div></section>
     <section data-panel="ai" hidden>
       <div class="lab-heading"><div><p class="eyebrow">OPTIONAL · SYNTHETIC TEST ONLY</p><h2>Local AI Lab</h2><p>พื้นที่ทดลองคำตอบ แยกจากเหตุการณ์และข้อมูลลูกค้า</p></div><span class="pill" id="ai-state">DISCONNECTED</span></div>
-      <div class="lab-grid"><form id="ai-form" class="lab-card"><h3>ช่องเชื่อมต่อโมเดล</h3><p id="ai-connection">รอชื่อและปลายทาง runtime ที่ได้รับอนุญาต · ยังไม่มีการติดต่อเครื่องใด</p><button type="button" class="text-button" id="ai-refresh">ตรวจสถานะ connector ↻</button><label>โมเดล<select id="ai-model" disabled><option value="">ยังไม่มีโมเดลที่ตั้งค่า</option></select></label><label>ข้อความทดสอบสังเคราะห์<textarea id="ai-input" rows="5" maxlength="2000">ตัวอย่างสมมติ: อยากทำเว็บไซต์แนะนำร้านต้นไม้ ควรถามข้อมูลอะไรเพิ่ม?</textarea></label><label class="checkbox-label"><input id="ai-synthetic" type="checkbox"> ยืนยันว่าเป็นข้อมูลสมมติ ไม่มีข้อมูลลูกค้าหรือรหัสลับ</label><div class="lab-actions"><button class="button" id="ai-run" disabled>ทดสอบคำตอบ</button><button class="text-button" type="button" id="ai-clear">ล้างข้อความและผลลัพธ์</button></div></form><div class="lab-card output-card"><div class="panel-heading"><h3>ผลทดสอบ</h3><span id="ai-time">— ms</span></div><p id="ai-result-status" role="status">ยังไม่ได้ทดสอบ</p><pre id="ai-output">คำตอบจะแสดงที่นี่เมื่อเชื่อมต่อและเริ่มทดสอบ</pre><p class="boundary-note">คำตอบ AI ไม่ใช่หลักฐานการลงมือหรือใบรับจาก Hub · ไม่บันทึก input/output ลง browser storage</p></div></div>
+      <div class="lab-grid"><form id="ai-form" class="lab-card"><h3>ช่องเชื่อมต่อโมเดล</h3><label>เส้นทางทดสอบ<select id="ai-route"><option value="provider">Provider ที่ระบบอนุญาต</option><option value="device">HERMES บนอุปกรณ์นี้ · loopback</option></select></label><div id="device-config" hidden><p class="data-banner">ข้อมูลจากหน้าจอเจ้าของ: HERMES-R5 RUNNING · Android CPU · loopback-only · ยังไม่ทดสอบการเชื่อมต่อจากหน้านี้</p><dl><dt>ปลายทางที่เจ้าของระบุ</dt><dd><code>http://localhost:8000/v1</code></dd></dl><p>ต้องเปิดหน้านี้ในเบราว์เซอร์บน Android เครื่องเดียวกับ HERMES เท่านั้น ไม่มีการเรียกผ่าน Cloudflare</p><label>รูปแบบ API ที่ต้องการทดลอง<select id="device-protocol"><option value="">ยังไม่ยืนยัน protocol</option><option value="chat-completions-compatible">ทดลอง Chat Completions-compatible</option></select></label><label>Model ID ตาม API ของ runtime<input id="device-model" maxlength="120" autocomplete="off" placeholder="ระบุเมื่อยืนยัน Model ID แล้ว"></label><label class="checkbox-label"><input type="checkbox" id="device-confirm"> ยอมรับว่า /v1 อย่างเดียวไม่ยืนยัน protocol และจะทดสอบข้อมูลสมมติบนเครื่องนี้เท่านั้น</label><p>ไม่มีการสแกน /models หรือปลายทางอื่น · HTTPS → HTTP loopback อาจถูกเบราว์เซอร์ปฏิเสธ ต้องใช้สิทธิ์อุปกรณ์ที่รองรับตามปกติ ห้ามปิดระบบรักษาความปลอดภัยเพื่อฝืนเชื่อมต่อ</p></div><p id="ai-connection">รอชื่อและปลายทาง runtime ที่ได้รับอนุญาต · ยังไม่มีการติดต่อเครื่องใด</p><button type="button" class="text-button" id="ai-refresh">ตรวจสถานะ connector ↻</button><label>โมเดล<select id="ai-model" disabled><option value="">ยังไม่มีโมเดลที่ตั้งค่า</option></select></label><label>ข้อความทดสอบสังเคราะห์<textarea id="ai-input" rows="5" maxlength="2000">ตัวอย่างสมมติ: อยากทำเว็บไซต์แนะนำร้านต้นไม้ ควรถามข้อมูลอะไรเพิ่ม?</textarea></label><label class="checkbox-label"><input id="ai-synthetic" type="checkbox"> ยืนยันว่าเป็นข้อมูลสมมติ ไม่มีข้อมูลลูกค้าหรือรหัสลับ</label><div class="lab-actions"><button class="button" id="ai-run" disabled>ทดสอบคำตอบ</button><button class="text-button" type="button" id="ai-cancel" hidden>ยกเลิกการทดสอบ</button><button class="text-button" type="button" id="ai-clear">ล้างข้อความและผลลัพธ์</button></div></form><div class="lab-card output-card"><div class="panel-heading"><h3>ผลทดสอบ</h3><span id="ai-time">— ms</span></div><p id="ai-result-status" role="status">ยังไม่ได้ทดสอบ</p><pre id="ai-output">คำตอบจะแสดงที่นี่เมื่อเชื่อมต่อและเริ่มทดสอบ</pre><p class="boundary-note">คำตอบ AI ไม่ใช่หลักฐานการลงมือหรือใบรับจาก Hub · ไม่บันทึก input/output ลง browser storage</p></div></div>
     </section>
     <section class="section-head"><div><p class="eyebrow">ขอบเขตความปลอดภัย</p><h2>สิทธิ์การดำเนินการยังอยู่กับเจ้าของ</h2></div></section>
     <section class="safety"><span aria-hidden="true">⌑</span><p>ยังไม่เปิดคำขอระยะไกล จนกว่าจะยืนยันการเข้าสู่ระบบของเจ้าของ WorkContext และสิทธิ์ของคำสั่งผ่าน Hub เดิม ใบรับการส่งคำขอไม่ใช่หลักฐานว่าดำเนินการสำเร็จ</p></section>
   </main>
   <footer><span>Greenhouse · หน้ารับข้อมูล</span><span>เก็บเฉพาะหน้าแอปออฟไลน์ · ไม่เก็บข้อมูลส่วนตัว</span></footer>
   <script>globalThis.fetch=async(url)=>new Response(JSON.stringify(String(url).endsWith('/local-ai')?{configured:false,models:[],state:'DISCONNECTED'}:String(url).endsWith('/status')?{ownerSession:false,inboxReader:false}:{code:'OFFLINE_PREVIEW_ONLY'}),{status:String(url).includes('/requests/')?503:200,headers:{'content-type':'application/json'}});(() => {
+  // greenhouse/device-ai.mjs
+  var DEVICE_AI_BASE = "http://localhost:8000/v1";
+  var failure = (code, reachable = false) => Object.assign(new Error(code), { code, reachable });
+  async function testDeviceAI({ model, text: text2, protocol, syntheticOnly, protocolConfirmed, signal, fetchImpl = fetch, timeoutMs = 1e4 } = {}) {
+    if (protocol !== "chat-completions-compatible" || protocolConfirmed !== true || syntheticOnly !== true || typeof model !== "string" || !model.trim() || model.length > 120 || typeof text2 !== "string" || !text2.trim() || text2.length > 2e3) throw failure("DEVICE_CONFIG_REQUIRED");
+    const controller = new AbortController();
+    let timedOut = false;
+    const cancel = () => controller.abort();
+    if (signal?.aborted) throw failure("CANCELLED");
+    signal?.addEventListener("abort", cancel, { once: true });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    let reachable = false;
+    try {
+      const response = await fetchImpl(DEVICE_AI_BASE + "/chat/completions", {
+        method: "POST",
+        mode: "cors",
+        credentials: "omit",
+        redirect: "error",
+        cache: "no-store",
+        referrerPolicy: "no-referrer",
+        headers: { "content-type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ model: model.trim(), messages: [{ role: "user", content: text2.trim() }], stream: false, max_tokens: 256 })
+      });
+      reachable = true;
+      if (!response.ok) throw failure("DEVICE_HTTP_" + response.status, true);
+      const reader = response.body?.getReader();
+      if (!reader) throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      let raw = "", size = 0;
+      const decoder = new TextDecoder();
+      try {
+        for (; ; ) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 65536) {
+            await reader.cancel();
+            throw failure("DEVICE_RESPONSE_TOO_LARGE", true);
+          }
+          raw += decoder.decode(value, { stream: true });
+        }
+        raw += decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      }
+      const content = body?.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim() || content.length > 4e3) throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      return { reply: content, modelStatus: "RESPONDED", executed: false, reachable: true, model: model.trim(), syntheticOnly: true };
+    } catch (error) {
+      if (controller.signal.aborted) throw failure(timedOut ? "TIMEOUT" : "CANCELLED", reachable);
+      if (error.code?.startsWith("DEVICE_")) throw error;
+      throw failure("DEVICE_BLOCKED_OR_UNREACHABLE", reachable);
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", cancel);
+    }
+  }
+
   // greenhouse/workspace-model.mjs
   var demoEvents = [
     { title: "\u0E04\u0E33\u0E02\u0E2D\u0E40\u0E27\u0E47\u0E1A\u0E44\u0E0B\u0E15\u0E4C\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07", sourceEventId: "demo-event-001", correlationId: "demo-request-001", category: "REQUEST_SUBMITTED", ownerSource: "demo-shop", occurredAt: "2026-10-23T08:15:00.000Z", persistedAt: "2026-10-23T08:15:00.000Z", evidence: ["demo://request-001/submitted"], receiptStatus: "MISSING", evidenceScope: "DEMO", freshness: "UNKNOWN" },
@@ -87,6 +154,7 @@
   var aiConfig = null;
   var aiBusy = false;
   var readSequence = 0;
+  var aiController = null;
   var items = () => mode === "demo" ? demoEvents : liveItems;
   var format = (value) => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25";
   function view(name) {
@@ -170,8 +238,24 @@
     }
   });
   function updateRun() {
-    $("#ai-run").disabled = aiBusy || !aiConfig?.configured || !aiConfig?.csrfToken || !$("#ai-synthetic").checked || !$("#ai-model").value || !$("#ai-input").value.trim();
+    const device = $("#ai-route").value === "device";
+    const ready = device ? $("#device-protocol").value === "chat-completions-compatible" && $("#device-confirm").checked && $("#device-model").value.trim() : aiConfig?.configured && aiConfig?.csrfToken && $("#ai-model").value;
+    $("#ai-run").disabled = aiBusy || !ready || !$("#ai-synthetic").checked || !$("#ai-input").value.trim();
   }
+  function deviceMode() {
+    const device = $("#ai-route").value === "device";
+    $("#device-config").hidden = !device;
+    $("#ai-refresh").hidden = device;
+    $("#ai-model").closest("label").hidden = device;
+    if (device) {
+      $("#ai-state").textContent = "DEVICE \xB7 PROTOCOL UNVERIFIED";
+      $("#ai-connection").textContent = "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C: \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E17\u0E14\u0E2A\u0E2D\u0E1A \xB7 \u0E2A\u0E16\u0E32\u0E19\u0E30 RUNNING \u0E21\u0E32\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48 health check";
+    } else aiStatus();
+    updateRun();
+  }
+  $("#ai-route").addEventListener("change", deviceMode);
+  for (const selector of ["#device-protocol", "#device-model", "#device-confirm"]) $(selector).addEventListener("input", updateRun);
+  $("#ai-cancel").addEventListener("click", () => aiController?.abort());
   async function aiStatus() {
     $("#ai-refresh").disabled = true;
     aiConfig = null;
@@ -212,31 +296,51 @@
     event.preventDefault();
     if ($("#ai-run").disabled) return;
     aiBusy = true;
+    aiController = new AbortController();
     updateRun();
     $("#ai-clear").disabled = true;
     $("#ai-refresh").disabled = true;
-    $("#ai-result-status").textContent = "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u2026";
-    $("#ai-output").textContent = "\u0E23\u0E2D\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E08\u0E32\u0E01 provider \u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15";
+    $("#ai-route").disabled = true;
+    $("#ai-cancel").hidden = false;
+    $("#ai-result-status").textContent = "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E14\u0E2A\u0E2D\u0E1A inference\u2026";
+    $("#ai-output").textContent = "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E33\u0E15\u0E2D\u0E1A \xB7 \u0E01\u0E32\u0E23\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E32\u0E23\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27";
     const started = performance.now();
+    let timeout, providerTimedOut = false;
     try {
-      const response = await fetch("/api/greenhouse/local-ai", { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "content-type": "application/json", "x-csrf-token": aiConfig.csrfToken }, body: JSON.stringify({ model: $("#ai-model").value, text: $("#ai-input").value, syntheticOnly: true }), signal: AbortSignal.timeout(12e3) });
-      const body = await response.json();
-      if (!response.ok) throw Error("TEST_UNAVAILABLE");
+      let body;
+      if ($("#ai-route").value === "device") {
+        body = await testDeviceAI({ model: $("#device-model").value, text: $("#ai-input").value, protocol: $("#device-protocol").value, protocolConfirmed: $("#device-confirm").checked, syntheticOnly: $("#ai-synthetic").checked, signal: aiController.signal });
+        $("#ai-connection").textContent = "\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A HTTP response \u0E41\u0E25\u0E30\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E32\u0E01 loopback \u0E1A\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E19\u0E35\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D";
+      } else {
+        timeout = setTimeout(() => {
+          providerTimedOut = true;
+          aiController.abort();
+        }, 12e3);
+        const response = await fetch("/api/greenhouse/local-ai", { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "content-type": "application/json", "x-csrf-token": aiConfig.csrfToken }, body: JSON.stringify({ model: $("#ai-model").value, text: $("#ai-input").value, syntheticOnly: true }), signal: aiController.signal });
+        body = await response.json();
+        if (!response.ok) throw Error("TEST_UNAVAILABLE");
+      }
       if (typeof body.reply !== "string" || typeof body.modelStatus !== "string" || body.executed !== false) throw Error("TEST_INVALID");
       $("#ai-output").textContent = body.reply;
       $("#ai-result-status").textContent = body.modelStatus === "RESPONDED" ? "\u0E42\u0E21\u0E40\u0E14\u0E25\u0E15\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D" : body.modelStatus + " \xB7 \u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E2A\u0E33\u0E23\u0E2D\u0E07\u0E08\u0E32\u0E01 policy \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E42\u0E21\u0E40\u0E14\u0E25";
       $("#ai-state").textContent = body.modelStatus;
       $("#overview-ai").textContent = body.modelStatus === "RESPONDED" ? "\u0E15\u0E2D\u0E1A\u0E43\u0E19\u0E01\u0E32\u0E23\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27" : "\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E2A\u0E33\u0E23\u0E2D\u0E07";
     } catch (error) {
-      $("#ai-result-status").textContent = error.name === "TimeoutError" ? "TIMEOUT \xB7 \u0E42\u0E21\u0E40\u0E14\u0E25\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E15\u0E2D\u0E1A" : "ERROR \xB7 \u0E22\u0E31\u0E07\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49";
-      $("#ai-output").textContent = "\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48\u0E2B\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D \xB7 \u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49";
-      $("#ai-state").textContent = "TEST_ERROR";
+      const code = error.code || (providerTimedOut ? "TIMEOUT" : aiController.signal.aborted ? "CANCELLED" : "TEST_ERROR");
+      $("#ai-result-status").textContent = code + " \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25 inference";
+      $("#ai-output").textContent = code === "DEVICE_BLOCKED_OR_UNREACHABLE" ? "\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E2D\u0E32\u0E08\u0E1A\u0E25\u0E47\u0E2D\u0E01 loopback \u0E2B\u0E23\u0E37\u0E2D server \u0E2D\u0E32\u0E08\u0E40\u0E02\u0E49\u0E32\u0E16\u0E36\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E48\u0E32 HERMES \u0E2B\u0E22\u0E38\u0E14\u0E17\u0E33\u0E07\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19 auth/CORS/\u0E40\u0E04\u0E23\u0E37\u0E2D\u0E02\u0E48\u0E32\u0E22" : code === "CANCELLED" ? "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25\u0E17\u0E14\u0E2A\u0E2D\u0E1A" : "\u0E15\u0E23\u0E27\u0E08 protocol \u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E1A\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34 \xB7 \u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49";
+      if ($("#ai-route").value === "device") $("#ai-connection").textContent = error.reachable ? "\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A HTTP response \u0E41\u0E25\u0E49\u0E27 \u0E41\u0E15\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E2B\u0E23\u0E37\u0E2D\u0E1C\u0E25 inference" : "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C";
+      $("#ai-state").textContent = code;
       $("#overview-ai").textContent = "\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21";
     } finally {
+      clearTimeout(timeout);
       $("#ai-time").textContent = Math.round(performance.now() - started) + " ms";
       aiBusy = false;
+      aiController = null;
       $("#ai-clear").disabled = false;
       $("#ai-refresh").disabled = false;
+      $("#ai-route").disabled = false;
+      $("#ai-cancel").hidden = true;
       updateRun();
     }
   });

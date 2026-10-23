@@ -94,7 +94,7 @@ compare owner_hash, which is not present in that API response. Receipt MISSING.
 - Provider boundary tests: default off; allowlist/schema; synthetic-only;
   authorization/CSRF/origin; redaction; reply; error/timeout/unsafe output fallback;
   actual existing Node HTTP injection path. No actual AI server involved.
-- Full regression: **116/116 tests, zero skips**; syntax/diff checks and **16/16** offline policy drills pass.
+- Full regression: **120/120 tests, zero skips**; syntax/diff checks and **16/16** offline policy drills pass.
 - Existing Pages Functions compile locally. No deployment/upload occurred.
 
 Run using an installed Playwright package/Chromium (no dependency install needed
@@ -116,3 +116,52 @@ explicit fixtures for responses; they are not production/model acceptance.
 Remaining gates: approved runtime details/provider binding; authorized same-origin
 owner readback adapter; separately approved preview/deployment; GO Office UI
 cutover. Live chain, production auth and real model acceptance remain unproven.
+
+## Android device loopback continuation
+
+Owner-provided screenshot reports HERMES-R5 RUNNING on Android CPU, API base
+`http://localhost:8000/v1`, auth off, CORS all origins, client all, and explicit
+loopback-only accessibility on that device (not Wi-Fi). Reported load was 7.9s,
+request count zero. This is owner screenshot context, not this environment's
+health check; no device connection/inference has been verified.
+
+The Local AI panel now has an explicit **HERMES on this device / loopback** path.
+The user must open the workspace in a browser on that same Android device.
+No Cloudflare/Node server fetches localhost. No runtime/private-network discovery
+or port exposure is introduced. The exact URL is fixed; there is no free-text
+host, credentials field, /models probe, redirect following or alternate target.
+
+No available repository runtime documentation verified the API contract. `/v1`
+alone is insufficient. Therefore the initial state is PROTOCOL UNVERIFIED, model
+ID is blank, and inference is disabled. The user must explicitly select the
+Chat Completions-compatible **experiment**, enter a confirmed runtime Model ID,
+and confirm both protocol uncertainty and synthetic-only input before clicking.
+This tests only POST `/v1/chat/completions` with one synthetic user message,
+stream:false and bounded output. It does not assert HERMES supports that route.
+
+The device path runs only in the browser with credentials omitted, redirect
+rejection, normal CORS mode and no referrer. No bearer/CSRF from the server
+provider path is sent to the device. Browser HTTPS-to-HTTP/private-network
+policies may reject it; use only supported normal device permissions, never
+bypass security. No runtime auth/CORS/client/port settings were changed.
+The local preview CSP permits only the exact reported `http://localhost:8000`
+origin in addition to self; it adds no wildcard or other private destinations.
+No deployed policy was modified.
+
+Separate UI states distinguish not-tested, HTTP-reached-but-protocol-unverified,
+blocked-or-unreachable, inference response, timeout and cancellation. A browser
+failure is not presented as proof HERMES stopped. A returned synthetic model
+reply is not a Work action or Hub receipt. The generic authorized server-provider
+path remains intact. Abort/cancel and a 10-second device timeout bound each test.
+
+[Device-loopback configuration screenshot](screenshots/07-device-loopback-unverified.png)
+shows the unverified/disabled state. Browser screenshot testing made **no** device
+request; network behavior was tested only with an injected fetch implementation
+(no socket). Tests cover no-fetch before consent/config, one fixed destination,
+no credentials/discovery, response schema/size, HTTP/protocol vs network failure,
+timeout and cancellation. Real Android/browser/runtime inference is pending.
+
+The previous Library upload remains requested. Its prepared transfer helper
+failed before preparation at hosted-app tool discovery (network failure); no
+Library IDs exist yet. Keep all screenshots and the updated offline artifact
+for transfer through a working Library connection; this is separate from deploy.

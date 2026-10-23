@@ -32,6 +32,9 @@ try{
  await nav('ai').click();assert.equal(await page.locator('#ai-run').isDisabled(),true);assert.equal(await page.locator('#ai-model').isDisabled(),true);
  await page.locator('#data-mode').selectOption('demo');
  await page.screenshot({path:output+'04-local-ai-disconnected.png',fullPage:true});
+ await page.locator('#ai-route').selectOption('device');assert.equal(await page.locator('#ai-run').isDisabled(),true);assert.match(await page.locator('#ai-state').textContent(),/PROTOCOL UNVERIFIED/);
+ await page.screenshot({path:output+'07-device-loopback-unverified.png',fullPage:true});
+ await page.locator('#ai-route').selectOption('provider');await page.locator('#ai-state').getByText('DISCONNECTED',{exact:true}).waitFor();
  await page.locator('#data-mode').selectOption('live');
  // Inject same-origin API test responses, never an actual model endpoint.
  await page.route('**/api/greenhouse/local-ai',route=>route.request().method()==='GET'?route.fulfill({json:{configured:true,models:['synthetic-test-provider'],csrfToken:'synthetic-csrf'}}):route.fulfill({json:{reply:'Synthetic test reply',modelStatus:'RESPONDED',executed:false}}));
@@ -51,5 +54,5 @@ try{
  for(const name of ['overview','events','detail','ai']){await nav(name).click();assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=window.innerWidth),true,'no mobile horizontal overflow: '+name);}
  await page.screenshot({path:output+'06-local-ai-mobile.png',fullPage:true});
  assert.equal(externalRequests,0);assert.deepEqual(errors,[]);
- console.log(JSON.stringify({views:4,search:true,filters:true,detailHistory:true,liveEmpty:true,readbackAuthError:true,selectedReadbackFixture:true,aiDisconnected:true,aiConfiguredFixture:true,aiReplyFixture:true,aiErrorFixture:true,clear:true,mobileWidths:[390],externalRequests,browserErrors:errors.length,storageEntries:0,screenshots:6,liveModelTested:false}));
+ console.log(JSON.stringify({views:4,search:true,filters:true,detailHistory:true,liveEmpty:true,readbackAuthError:true,selectedReadbackFixture:true,aiDisconnected:true,aiConfiguredFixture:true,aiReplyFixture:true,aiErrorFixture:true,clear:true,mobileWidths:[390],externalRequests,browserErrors:errors.length,storageEntries:0,screenshots:7,deviceConfiguredButNotCalled:true,liveModelTested:false}));
 }finally{await context.close();await browser.close();await new Promise(resolve=>server.close(resolve));}
