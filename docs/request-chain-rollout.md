@@ -152,3 +152,39 @@ This command has **not** been executed. Record its preview URL/deployment ID,
 then obtain/use the existing admin credential and run the named synthetic chain
 only within the separately approved write scope. No production deployment or
 configuration mutation is implicit in that command.
+
+## Review corrections before any preview
+
+The HTTP reader accepts an upstream missing request only when the fixed GO
+admin endpoint returns HTTP 404, JSON content type and the exact existing body
+`{"ok":false,"code":"REQUEST_NOT_FOUND"}`. GO authenticates this endpoint before
+its owned-record check. Unknown/HTML/malformed 404s instead return 502 and are
+not authentication evidence. Only that verified typed source response becomes
+`{"code":"REQUEST_NOT_FOUND","ownerResponseVerified":true}`. The runner requires
+this marker before creating even a synthetic customer session; legacy unmarked
+404 responses cannot enable writes. The marker describes validation against
+GO's response contract, not an independently issued credential/receipt.
+
+The Node route rejects non-GET methods before constructing a Fetch Request and
+contains malformed URL/construction errors. TRACE/POST/OPTIONS/DELETE return
+405, malformed targets return 400, and subsequent requests still succeed. The
+Pages handler retains its existing GET-only behavior.
+
+**Office UI acceptance is still separate.** A browser Office UI hosted on a
+different origin cannot call this Greenhouse route directly: cross-origin
+requests remain rejected and CORS is not enabled. GO must coordinate an existing
+or new **same-origin server-side Office adapter** in its own project, under its
+existing admin authentication, to call the exact Greenhouse selected-request
+route server-to-server. The adapter must forward only the existing authorized
+GO admin bearer to this fixed destination, omit the browser's foreign Origin
+header on that server-to-server call, and return only the metadata allowlist to
+the authenticated same-origin UI. It must not become an unauthenticated proxy.
+GO owns that code and its UI; ATLAS has made no frontend or GO repository edits.
+Until GO implements/tests this handoff, the selected-request API passing is not
+Office browser/UI acceptance. No CORS/auth relaxation is proposed.
+
+The HTTP adapter trusts the authenticated GO admin endpoint's response and
+checks request ID, event kind/transition, CUSTOMER actor type and timestamp.
+It does **not** independently compare actor_id against owner_hash: owner_hash is
+absent from that API response. Only the original local database adapter performs
+that SQL comparison. Neither adapter issues a Hub receipt: receipt stays MISSING.

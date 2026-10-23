@@ -15,13 +15,21 @@ export async function readOwnerRequest({requestId, authorization, fetchImpl = fe
       method:'GET', headers:{authorization,accept:'application/json'},
       redirect:'error',cache:'no-store',signal:controller.signal,
     });
-    if ([401,403,404].includes(response.status)) fail(response.status === 404 ? 'REQUEST_NOT_FOUND' : 'OWNER_AUTH_REQUIRED',response.status);
-    if (!response.ok) fail('REQUEST_OWNER_UNAVAILABLE',502);
+    if ([401,403].includes(response.status)) fail('OWNER_AUTH_REQUIRED',response.status);
+    if (!response.ok && response.status !== 404) fail('REQUEST_OWNER_UNAVAILABLE',502);
+    if (response.status === 404 && !/^application\/json(?:;|$)/i.test(response.headers.get('content-type') || '')) fail('REQUEST_OWNER_INVALID',502);
     const reader=response.body?.getReader();if(!reader)fail('REQUEST_OWNER_INVALID',502);
     let size=0,raw='';const decoder=new TextDecoder();
     try {for(;;){const {done,value}=await reader.read();if(done)break;size+=value.byteLength;if(size>262144){await reader.cancel();fail('REQUEST_OWNER_TOO_LARGE',502);}raw+=decoder.decode(value,{stream:true});}raw+=decoder.decode();}
     finally {reader.releaseLock();}
     let body;try {body=JSON.parse(raw);}catch{fail('REQUEST_OWNER_INVALID',502);}
+    if (response.status === 404) {
+      // GO authenticates this admin endpoint before owned() emits this exact
+      // error. A generic proxy/router 404 is not evidence of authentication.
+      if (!body || Array.isArray(body) || body.ok !== false || body.code !== 'REQUEST_NOT_FOUND' ||
+          Object.keys(body).length !== 2) fail('REQUEST_OWNER_INVALID',502);
+      throw Object.assign(new Error('REQUEST_NOT_FOUND'), {code:'REQUEST_NOT_FOUND',status:404,ownerResponseVerified:true});
+    }
     if(body?.ok!==true || body.request?.request_id!==requestId || !Array.isArray(body.events) || body.events.length>1000) fail('REQUEST_OWNER_INVALID',502);
     const submitted=body.events.filter(e=>e?.kind==='STATUS'&&e.from_value==='DRAFT'&&e.to_value==='SUBMITTED');
     // An ambiguous source must not become two apparent submissions.
@@ -51,5 +59,5 @@ export async function handleOwnerRequestRead(request, requestId, options = {}) {
   if(request.headers.get('sec-fetch-site')==='cross-site'||(request.headers.get('origin')&&request.headers.get('origin')!==origin))return reply({code:'ORIGIN_DENIED'},403);
   if(new URL(request.url).search)return reply({code:'QUERY_NOT_ALLOWED'},400);
   try{return reply(await readOwnerRequest({requestId,authorization:request.headers.get('authorization'),...options}),200);}
-  catch(error){return reply({code:error.code||'REQUEST_OWNER_UNAVAILABLE'},error.status||502);}
+  catch(error){return reply({code:error.code||'REQUEST_OWNER_UNAVAILABLE',...(error.ownerResponseVerified === true ? {ownerResponseVerified:true} : {})},error.status||502);}
 }

@@ -117,14 +117,23 @@ export function createGreenhouseServer({
   const highImpactTargets = new Set(highImpactCommandTargets);
   return createServer(async (request, response) => {
     if (!validOrigin(request)) return send(response, 403, { code: 'ORIGIN_DENIED' });
-    const url = new URL(request.url || '/', 'http://127.0.0.1');
+    let url;
+    try { url = new URL(request.url || '/', 'http://127.0.0.1'); }
+    catch { return send(response, 400, {code:'REQUEST_INVALID'}); }
 
     if (url.pathname.startsWith('/api/greenhouse/requests/')) {
+      // Fetch Request rejects TRACE/TRACK/CONNECT at construction time.
+      // Reject methods at the Node boundary first, as the Pages handler does.
+      if (request.method !== 'GET') return send(response, 405, {code:'READ_ONLY'});
       const requestId = url.pathname.slice('/api/greenhouse/requests/'.length);
-      const result = await handleOwnerRequestRead(new Request('http://' + request.headers.host + request.url, {
-        method: request.method, headers: request.headers,
-      }), requestId, {fetchImpl, now});
-      return send(response, result.status, await result.json());
+      try {
+        const result = await handleOwnerRequestRead(new Request('http://' + request.headers.host + request.url, {
+          method: request.method, headers: request.headers,
+        }), requestId, {fetchImpl, now});
+        return send(response, result.status, await result.json());
+      } catch {
+        return send(response, 400, {code:'REQUEST_INVALID'});
+      }
     }
     if (url.pathname === '/api/greenhouse/status' && request.method === 'GET') {
       // Adapter presence is not authentication: never advertise an owner session

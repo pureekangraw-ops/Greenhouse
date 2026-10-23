@@ -23,7 +23,9 @@ async function call(path,body) {
 const path='/api/greenhouse/requests/'+requestId;
 const office=()=>fetchImpl(target+path,{headers:{authorization:'Bearer '+token},redirect:'error',cache:'no-store',signal:AbortSignal.timeout(15000)});
 const preflight=await office();
-if(preflight.status!==404||(await preflight.json()).code!=='REQUEST_NOT_FOUND')throw Error('PREFLIGHT_EXPECTED_ABSENT_REQUEST');
+let absence;
+try {absence=await preflight.json();} catch {throw Error('PREFLIGHT_EXPECTED_ABSENT_REQUEST');}
+if(preflight.status!==404 || absence?.code!=='REQUEST_NOT_FOUND' || absence.ownerResponseVerified!==true)throw Error('PREFLIGHT_EXPECTED_ABSENT_REQUEST');
 // A new customer session sees only its own empty request list, never other customers.
 const empty=await call('/api/v1/requests');
 assert.equal(empty.requests.length,0);
