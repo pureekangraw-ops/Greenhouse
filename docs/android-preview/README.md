@@ -76,3 +76,53 @@ and bounded timeout are available. Real Android inference remains unverified.
 
 Rollback, only if requested: remove this exact preview deployment ID. Production
 has not moved and requires no rollback. No production merge/deployment is implied.
+
+## Route/build diagnosis (2026-10-23, branch-only follow-up)
+
+Cloudflare project readback confirms `build_command: ""`, `destination_dir: "."`,
+`root_dir: "/"`. Production still points to deployment
+`41829745-666c-4093-8604-5e9f1f6eab0b`, source
+`4628a8628ff0a34b2a60a83020e72dcc0927591c`. That root is Genome Hub.
+This is a different artifact from the isolated demo worker above, not a missing
+Greenhouse implementation. The source root already links to `/greenhouse/`.
+
+| Artifact | Route | Result |
+| --- | --- | --- |
+| Repository root / existing production build | `/` | Preserved Genome Hub |
+| Repository root | `/greenhouse/` | Greenhouse source workspace (full integration surface, not isolated demo) |
+| Isolated demo worker | `/`, `/greenhouse/`, `/greenhouse/index.html` | Same demo workspace |
+| Isolated demo worker | `/greenhouse` | 308 to `/greenhouse/` (new branch fix) |
+| Isolated demo worker | `/preview-version.json` | Embedded source SHA and demo restrictions |
+| Isolated demo worker | `/api/*` | 404 `PREVIEW_API_DISABLED`, no privileged handler |
+| Isolated demo worker | Other routes | 404 |
+
+The branch adds the missing slashless redirect, executable routing regression,
+and named package commands. It does not replace root `index.html`, modify Pages
+configuration, deploy, merge, or change the existing production mapping.
+
+Build the explicit isolated artifact with `npm run build:demo` (requires esbuild;
+`ESBUILD_MODULE` can select an existing installation), then run
+`npm run test:demo-routing`. Default output is
+`/tmp/greenhouse-demo-deployment`; `DEMO_PREVIEW_OUTPUT` selects another output
+folder. Only its `_worker.js` is the deployable demo responder. Do not upload the
+repository root or `functions/` for a public demo. `version.json` is a local build
+record; the worker serves the public `/preview-version.json` itself.
+
+The red regression reproduced `/greenhouse` returning 404 instead of 308. After
+the fix, direct worker requests validate all aliases, redirect, HEAD, method and
+unknown-path handling, and GET/POST denial of selected privileged API paths.
+Local Chromium validates mobile demo search/detail/AI controls with zero browser
+errors and zero device calls. These are local artifact tests, not public or Android
+inference acceptance.
+
+Next deployment action, requiring separate authorization: rebuild at the final
+committed SHA, upload only the isolated `_worker.js` to the existing project's
+**preview** branch using the previously approved direct-upload mechanism, and
+verify its preview URL and `/preview-version.json`. The atlas branch is excluded
+from the project's custom automatic preview list, so pushing this PR alone does
+not publish it. Keep the canonical production URL unchanged. Moving the demo to
+that canonical hostname would require a separately approved production deployment
+and a decision about preserving the old root entry; this patch does neither.
+A repository-root build or merge is not a substitute for uploading the isolated
+artifact and may activate full integration routes. The earlier browser
+`ERR_TUNNEL_CONNECTION_FAILED` is independent of this route correction.

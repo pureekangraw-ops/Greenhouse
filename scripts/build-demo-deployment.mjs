@@ -28,6 +28,7 @@ const worker=`const html=${JSON.stringify(html)};const headers=${JSON.stringify(
 export default {async fetch(request){const path=new URL(request.url).pathname;
  if(path.startsWith('/api/'))return Response.json({code:'PREVIEW_API_DISABLED'},{status:404,headers:{'cache-control':'no-store'}});
  if(!['GET','HEAD'].includes(request.method))return new Response('Read only',{status:405});
+ if(path==='/greenhouse')return new Response(null,{status:308,headers:{location:'/greenhouse/','cache-control':'no-store'}});
  if(path==='/preview-version.json')return Response.json(version,{headers:{'cache-control':'no-store'}});
  if(!['/','/greenhouse/','/greenhouse/index.html'].includes(path))return new Response('Not found',{status:404});
  return new Response(request.method==='HEAD'?null:html,{headers});}};

@@ -8,6 +8,8 @@
     "test": "node --test test/*.test.mjs",
     "evaluate:agents": "node scripts/evaluate-agents.mjs",
     "preview": "node server.mjs",
-    "start": "node server.mjs"
+    "start": "node server.mjs",
+    "build:demo": "node scripts/build-demo-deployment.mjs",
+    "test:demo-routing": "node scripts/test-demo-routing.mjs"
   }
 }
