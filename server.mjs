@@ -53,7 +53,8 @@ function sanitizeInboxResult(result) {
   if (!result || !Array.isArray(result.items) || result.items.length > 100 ||
       typeof result.observedAt !== 'string' || !Number.isFinite(Date.parse(result.observedAt)) ||
       (result.nextCursor != null && (typeof result.nextCursor !== 'string' || result.nextCursor.length > 512))) return null;
-  const fields = ['title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId'];
+  const fields = ['title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId',
+    'sourceEventId', 'correlationId', 'category', 'occurredAt', 'persistedAt', 'evidenceScope', 'receiptStatus'];
   const items = [];
   for (const item of result.items) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -64,6 +65,12 @@ function sanitizeInboxResult(result) {
         safe[field] = item[field];
       }
     }
+    if (item.evidence != null) {
+      if (!Array.isArray(item.evidence) || item.evidence.length > 16 ||
+          item.evidence.some(ref => typeof ref !== 'string' || ref.length > 512)) return null;
+      safe.evidence = [...item.evidence];
+    }
+    if (item.receiptId === null) safe.receiptId = null;
     items.push(safe);
   }
   return { items, observedAt: result.observedAt, nextCursor: result.nextCursor ?? null };
@@ -96,7 +103,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
  */
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
-  hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
+  allowLocalEventEvidence = false, hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
   commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
@@ -194,6 +201,19 @@ export function createGreenhouseServer({
           event,
           idempotencyKey: event.source + ':' + event.eventId,
         });
+        if (allowLocalEventEvidence && receipt?.evidenceScope === 'LOCAL_TEST' &&
+            receipt.persisted === true && receipt.receiptId === null && receipt.receiptStatus === 'MISSING' &&
+            receipt.duplicate === true && receipt.sourceEventId === event.eventId &&
+            typeof receipt.persistedAt === 'string' && Number.isFinite(Date.parse(receipt.persistedAt)) &&
+            Array.isArray(receipt.evidence) && receipt.evidence.length <= 16 &&
+            receipt.evidence.every(ref => typeof ref === 'string' && ref.length <= 512)) {
+          return send(response, 200, {
+            receiptId: null, receiptStatus: 'MISSING', evidenceScope: 'LOCAL_TEST',
+            duplicate: true, persisted: true, sourceEventId: receipt.sourceEventId,
+            persistedAt: receipt.persistedAt, evidence: receipt.evidence,
+            receivedAt: event.receivedAt, execution: 'NOT_ASSERTED',
+          });
+        }
         if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() || typeof receipt.duplicate !== 'boolean') {
           return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
         }
@@ -203,7 +223,8 @@ export function createGreenhouseServer({
           receivedAt: event.receivedAt,
           execution: 'NOT_ASSERTED',
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof GreenhouseEventError) return send(response, error.status, { code: error.code });
         return send(response, 502, { code: 'HUB_EVENT_DELIVERY_FAILED' });
       }
     }
