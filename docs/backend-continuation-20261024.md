@@ -71,3 +71,13 @@ PR remains draft and unmerged. No deploy, settings, keys, permissions, customer
 writes or production acceptance. Shop/Office frontend files are untouched. Review
 this backend-only correction, resolve GO adapter/device questions, and obtain
 separate action-specific approval before any deployed integration test.
+
+## Review correction: cancellation cleanup
+
+Reviewer P2 reproduced at f6c0adc5: rejected stream cancellation changed the
+oversize response to 502; pending cancellation delayed the response indefinitely.
+Both regressions failed before this correction. The handler now initiates cancel
+with a rejection handler without awaiting cleanup, then returns the established
+413 and releases its reader lock. No API/auth/provider behavior changes.
+Affected suite: 10/10 pass, including reject/pending cancellation, zero provider
+calls and released reader locks. Changed module syntax/diff checks pass.

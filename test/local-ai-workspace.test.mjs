@@ -73,3 +73,21 @@ test('Local AI counts UTF-8 bytes and accepts the exact body limit',async()=>{
  }
  assert.equal(calls,1);
 });
+for(const cleanup of ['reject','pending'])test('Local AI returns 413 when oversized stream cancellation is '+cleanup,async()=>{
+ let cancelled=false,calls=0,timer;
+ const body=new ReadableStream({
+  start(controller){controller.enqueue(new Uint8Array(8193));},
+  cancel(){cancelled=true;return cleanup==='reject'?Promise.reject(Error('cleanup failed')):new Promise(()=>{});},
+ });
+ const req=new Request(origin+'/api/greenhouse/local-ai',{method:'POST',duplex:'half',headers:{origin,'content-type':'application/json','x-csrf-token':session.csrfToken},body});
+ try{
+  const response=await Promise.race([
+   handleLocalAITest(req,{connector:{async test(){calls++;}},session}),
+   new Promise(resolve=>{timer=setTimeout(()=>resolve(null),100);}),
+  ]);
+  assert.equal(cancelled,true);assert.equal(calls,0);
+  assert.ok(response,'response must not wait for stream cleanup');
+  assert.equal(response.status,413);assert.deepEqual(await response.json(),{code:'REQUEST_TOO_LARGE'});
+  assert.equal(body.locked,false);
+ }finally{clearTimeout(timer);}
+});

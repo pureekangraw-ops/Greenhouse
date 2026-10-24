@@ -35,7 +35,11 @@ export async function handleLocalAITest(request,{connector=null,session=null}={}
     for(;;){
      const {done,value}=await reader.read();if(done)break;
      size+=value.byteLength;
-     if(size>8192){await reader.cancel();return reply({code:'REQUEST_TOO_LARGE'},413);}
+     if(size>8192){
+      // Cleanup must neither delay nor replace the established 413 response.
+      void reader.cancel().catch(()=>{});
+      return reply({code:'REQUEST_TOO_LARGE'},413);
+     }
      raw+=decoder.decode(value,{stream:true});
     }
     raw+=decoder.decode();
