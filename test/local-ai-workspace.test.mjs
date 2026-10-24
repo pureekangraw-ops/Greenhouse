@@ -54,3 +54,22 @@ test('existing Node injection serves configured test panel without contacting a 
   assert.equal((await fetch(base+'/api/greenhouse/local-ai',{method:'POST',headers:{origin:base,'content-type':'application/json','x-csrf-token':session.csrfToken},body:'x'.repeat(8193)})).status,413);
  }finally{await new Promise(resolve=>server.close(resolve));}
 });
+
+test('Local AI rejects oversized streams before consuming the remaining body',async()=>{
+ let pulls=0,cancelled=false,calls=0;
+ const body=new ReadableStream({pull(controller){pulls++;controller.enqueue(new Uint8Array(4096));if(pulls===20)controller.close();},cancel(){cancelled=true;}});
+ const req=new Request(origin+'/api/greenhouse/local-ai',{method:'POST',duplex:'half',headers:{origin,'content-type':'application/json','x-csrf-token':session.csrfToken},body});
+ const connector={async test(){calls++;}};
+ const response=await handleLocalAITest(req,{connector,session});
+ assert.equal(response.status,413);assert.equal((await response.json()).code,'REQUEST_TOO_LARGE');
+ assert.equal(cancelled,true);assert.ok(pulls<20);assert.equal(calls,0);
+});
+test('Local AI counts UTF-8 bytes and accepts the exact body limit',async()=>{
+ let calls=0;const connector={async test(){calls++;return {syntheticOnly:true};}};
+ const base=JSON.stringify({...input,text:'ก'});const bytes=new TextEncoder().encode(base).length;
+ for(const extra of [0,1]){
+  const req=new Request(origin+'/api/greenhouse/local-ai',{method:'POST',headers:{origin,'content-type':'application/json','x-csrf-token':session.csrfToken},body:base+' '.repeat(8192-bytes+extra)});
+  assert.equal((await handleLocalAITest(req,{connector,session})).status,extra?413:200);
+ }
+ assert.equal(calls,1);
+});

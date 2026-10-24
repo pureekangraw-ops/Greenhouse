@@ -26,7 +26,21 @@ export async function handleLocalAITest(request,{connector=null,session=null}={}
  if(request.headers.get('origin')!==origin||request.headers.get('x-csrf-token')!==session.csrfToken)return reply({code:'CSRF_REQUIRED'},403);
  if(!/^application\/json(?:;|$)/i.test(request.headers.get('content-type')||''))return reply({code:'JSON_REQUIRED'},415);
  try{
-  const raw=await request.text();if(new TextEncoder().encode(raw).length>8192)return reply({code:'REQUEST_TOO_LARGE'},413);
+  // Enforce the byte limit while reading, including chunked requests without
+  // Content-Length. Do not buffer an unbounded body before rejecting it.
+  const reader=request.body?.getReader();let raw='',size=0;
+  const decoder=new TextDecoder();
+  if(reader){
+   try{
+    for(;;){
+     const {done,value}=await reader.read();if(done)break;
+     size+=value.byteLength;
+     if(size>8192){await reader.cancel();return reply({code:'REQUEST_TOO_LARGE'},413);}
+     raw+=decoder.decode(value,{stream:true});
+    }
+    raw+=decoder.decode();
+   }finally{reader.releaseLock();}
+  }
   let input;try{input=JSON.parse(raw);}catch{return reply({code:'SYNTHETIC_TEST_INVALID'},400);}
   try{return reply(await connector.test(input));}catch(error){return reply({code:error.message==='SYNTHETIC_TEST_INVALID'?'SYNTHETIC_TEST_INVALID':'LOCAL_AI_UNAVAILABLE'},error.message==='SYNTHETIC_TEST_INVALID'?400:502);}
  }catch{return reply({code:'LOCAL_AI_UNAVAILABLE'},502);}
