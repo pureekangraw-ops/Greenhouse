@@ -7,7 +7,7 @@
   <meta name="description" content="กล่องรับงานเจ้าของ Greenhouse และผลอ่านกลับที่ตรวจสอบแล้ว">
   <link rel="manifest" href="/greenhouse/manifest.webmanifest">
   <link rel="stylesheet" href="/greenhouse/app.css">
-  <title>Greenhouse · กล่องรับงานเจ้าของ</title>
+  <title>Greenhouse · Workspace</title>
 </head>
 <body>
   <header class="topbar">
@@ -15,11 +15,17 @@
     <span class="connection" id="connection"><i></i> กำลังตรวจการเชื่อมต่อ</span>
   </header>
   <main>
-    <section class="intro">
-      <p class="eyebrow">METROPOLIS · มุมมองที่ตรวจสอบได้</p>
-      <h1>จุดเดียวสำหรับตรวจสอบ<br><em>ไม่สร้างแหล่งความจริงซ้ำ</em></h1>
-      <p class="lede">เหตุการณ์ ผลอ่านกลับ และคำขอจะแสดงเมื่อระบบเจ้าของยืนยันข้อมูลแล้วเท่านั้น</p>
-    </section>
+    <div class="workspace-top"><div><p class="eyebrow">GREENHOUSE / WORKSPACE</p><h1 id="view-title">ภาพรวม</h1><p class="lede">เห็นที่มา ตรวจหลักฐาน แล้วค่อยไปต่อ</p></div><label class="mode-control">ชุดข้อมูล<select id="data-mode"><option value="demo">ตัวอย่าง · DEMO</option><option value="live">ผลอ่านกลับจริง</option></select></label></div>
+    <nav class="workspace-nav" aria-label="มุมมอง Greenhouse">
+      <button data-view="overview" aria-current="page">◫ <span>ภาพรวม</span></button><button data-view="events">≡ <span>เหตุการณ์</span></button><button data-view="detail">↗ <span>รายละเอียด</span></button><button data-view="ai">✳ <span>Local AI Lab</span></button>
+    </nav>
+    <div id="data-banner" class="data-banner" role="status">DEMO · ข้อมูลสังเคราะห์สำหรับทดลองหน้าจอ ไม่ใช่กิจกรรมจริง</div>
+    <section data-panel="overview">
+      <div class="welcome"><div><p class="eyebrow">YOUR OBSERVATION SPACE</p><h2>ทุกเหตุการณ์มีที่มา<br><em>ทุกผลลัพธ์ต้องมีหลักฐาน</em></h2><p>สำรวจรายการและแหล่งข้อมูลได้ แม้ Local AI ยังไม่เชื่อมต่อ</p><button class="button" data-view="events">เปิดรายการเหตุการณ์ →</button></div><div class="orb" aria-hidden="true"><span>G</span><small>OBSERVE<br>VERIFY<br>UNDERSTAND</small></div></div>
+      <div class="metric-grid"><article><span id="count-label">รายการตัวอย่าง</span><strong id="visible-count">3</strong><small>เฉพาะชุดที่แสดง ไม่ใช่ยอดรวมระบบ</small></article><article><span>เวลาข้อมูลล่าสุดในชุด</span><strong id="latest-time" class="small-value">—</strong><small>ความใหม่ของระบบจริง: ยังไม่ยืนยัน</small></article><article><span>Local AI</span><strong id="overview-ai" class="small-value">ยังไม่เชื่อมต่อ</strong><small>ปิด AI แล้วใช้มุมมองหลักต่อได้</small></article></div>
+      <div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>รายการในชุดที่กำลังดู</h2></div><button class="text-button" data-view="events">ดูทั้งหมด →</button></div><div id="recent-events" class="event-list"></div>
+      <p class="boundary-note">ยังไม่มีรายการสดทั้งระบบหรือสถิติรวม · ไม่แสดงตัวเลขแทนข้อมูลที่ยังไม่ได้รับ</p>
+      <details class="integration-details"><summary>สถานะการเชื่อมต่อเดิมและ Operational Log</summary>
     <section class="status-panel" aria-labelledby="status-heading">
       <div class="panel-heading"><div><p class="eyebrow">การเชื่อมต่อ</p><h2 id="status-heading">กำลังตรวจสอบ</h2></div><span class="pill pill--unknown" id="status-pill">UNKNOWN</span></div>
       <p id="status-detail">หน้าพร้อมใช้งานแบบออฟไลน์ โดยไม่เก็บหรือแสดงข้อมูล Work ส่วนตัว</p>
@@ -31,6 +37,19 @@
     <section class="inbox" id="operations" aria-live="polite" style="margin-bottom:34px"><div class="empty"><h3>ยังไม่ยืนยันข้อมูลการเดินงาน</h3><p>แสดงเฉพาะ Operational Log ที่อ่านจากระบบจริง</p></div></section>
     <section class="section-head"><div><p class="eyebrow">กล่องรับรายการ</p><h2>ผลอ่านกลับจากระบบเจ้าของ</h2></div><button class="text-button" id="reload" type="button">รีเฟรช ↻</button></section>
     <section class="inbox" id="inbox" aria-live="polite"><div class="empty"><span class="empty-icon">↻</span><h3>กำลังตรวจรายการ</h3><p>กำลังขอผลอ่านกลับจาก Hub</p></div></section>
+      </details>
+    </section>
+    <section data-panel="events" hidden>
+      <div class="panel-heading"><div><p class="eyebrow">EVENT EXPLORER</p><h2>ค้นจากสิ่งที่ตรวจสอบได้</h2></div><span id="event-count" class="pill">3 รายการ</span></div>
+      <div class="filter-bar"><label>ค้นหา<input id="event-search" type="search" placeholder="ชื่อ, Event ID หรือ Request ID"></label><label>ประเภท<select id="category-filter"><option value="">ทุกประเภท</option><option value="REQUEST_SUBMITTED">Request submitted</option><option value="REVIEW_NOTE">Review note · demo</option></select></label><label>แหล่งข้อมูล<select id="source-filter"><option value="">ทุกแหล่งข้อมูล</option></select></label></div>
+      <div id="event-results" class="event-list" aria-live="polite"></div>
+      <form id="request-read-form" class="source-form"><div><p class="eyebrow">SELECTED REQUEST READBACK</p><h3>อ่านคำขอจากระบบเจ้าของ</h3><p>ใช้ตัวอ่านที่ยืนยันตัวตนฝั่งเซิร์ฟเวอร์ · ไม่มีช่องกรอก token และไม่ส่งข้อมูลไป AI</p></div><label>Request ID<input id="request-id" required pattern="[A-Za-z0-9:_-]{1,120}" maxlength="120" placeholder="synthetic-greenhouse-…" autocomplete="off"></label><button class="button" id="read-request">อ่านข้อมูล</button><p id="read-message" role="status">ยังไม่ได้อ่านข้อมูลจริง</p></form>
+    </section>
+    <section data-panel="detail" hidden><div id="event-detail"></div></section>
+    <section data-panel="ai" hidden>
+      <div class="lab-heading"><div><p class="eyebrow">OPTIONAL · SYNTHETIC TEST ONLY</p><h2>Local AI Lab</h2><p>พื้นที่ทดลองคำตอบ แยกจากเหตุการณ์และข้อมูลลูกค้า</p></div><span class="pill" id="ai-state">DISCONNECTED</span></div>
+      <div class="lab-grid"><form id="ai-form" class="lab-card"><h3>ช่องเชื่อมต่อโมเดล</h3><label>เส้นทางทดสอบ<select id="ai-route"><option value="provider">Provider ที่ระบบอนุญาต</option><option value="device">HERMES บนอุปกรณ์นี้ · loopback</option></select></label><div id="device-config" hidden><p class="data-banner">ข้อมูลจากหน้าจอเจ้าของ: HERMES-R5 RUNNING · Android CPU · loopback-only · ยังไม่ทดสอบการเชื่อมต่อจากหน้านี้</p><dl><dt>ปลายทางที่เจ้าของระบุ</dt><dd><code>http://localhost:8000/v1</code></dd></dl><p>ต้องเปิดหน้านี้ในเบราว์เซอร์บน Android เครื่องเดียวกับ HERMES เท่านั้น ไม่มีการเรียกผ่าน Cloudflare</p><label>รูปแบบ API ที่ต้องการทดลอง<select id="device-protocol"><option value="">ยังไม่ยืนยัน protocol</option><option value="chat-completions-compatible">ทดลอง Chat Completions-compatible</option></select></label><label>Model ID ตาม API ของ runtime<input id="device-model" maxlength="120" autocomplete="off" placeholder="ระบุเมื่อยืนยัน Model ID แล้ว"></label><label class="checkbox-label"><input type="checkbox" id="device-confirm"> ยอมรับว่า /v1 อย่างเดียวไม่ยืนยัน protocol และจะทดสอบข้อมูลสมมติบนเครื่องนี้เท่านั้น</label><p>ไม่มีการสแกน /models หรือปลายทางอื่น · HTTPS → HTTP loopback อาจถูกเบราว์เซอร์ปฏิเสธ ต้องใช้สิทธิ์อุปกรณ์ที่รองรับตามปกติ ห้ามปิดระบบรักษาความปลอดภัยเพื่อฝืนเชื่อมต่อ</p></div><p id="ai-connection">รอชื่อและปลายทาง runtime ที่ได้รับอนุญาต · ยังไม่มีการติดต่อเครื่องใด</p><button type="button" class="text-button" id="ai-refresh">ตรวจสถานะ connector ↻</button><label>โมเดล<select id="ai-model" disabled><option value="">ยังไม่มีโมเดลที่ตั้งค่า</option></select></label><label>ข้อความทดสอบสังเคราะห์<textarea id="ai-input" rows="5" maxlength="2000">ตัวอย่างสมมติ: อยากทำเว็บไซต์แนะนำร้านต้นไม้ ควรถามข้อมูลอะไรเพิ่ม?</textarea></label><label class="checkbox-label"><input id="ai-synthetic" type="checkbox"> ยืนยันว่าเป็นข้อมูลสมมติ ไม่มีข้อมูลลูกค้าหรือรหัสลับ</label><div class="lab-actions"><button class="button" id="ai-run" disabled>ทดสอบคำตอบ</button><button class="text-button" type="button" id="ai-cancel" hidden>ยกเลิกการทดสอบ</button><button class="text-button" type="button" id="ai-clear">ล้างข้อความและผลลัพธ์</button></div></form><div class="lab-card output-card"><div class="panel-heading"><h3>ผลทดสอบ</h3><span id="ai-time">— ms</span></div><p id="ai-result-status" role="status">ยังไม่ได้ทดสอบ</p><pre id="ai-output">คำตอบจะแสดงที่นี่เมื่อเชื่อมต่อและเริ่มทดสอบ</pre><p class="boundary-note">คำตอบ AI ไม่ใช่หลักฐานการลงมือหรือใบรับจาก Hub · ไม่บันทึก input/output ลง browser storage</p></div></div>
+    </section>
     <section class="section-head"><div><p class="eyebrow">ขอบเขตความปลอดภัย</p><h2>สิทธิ์การดำเนินการยังอยู่กับเจ้าของ</h2></div></section>
     <section class="safety"><span aria-hidden="true">⌑</span><p>ยังไม่เปิดคำขอระยะไกล จนกว่าจะยืนยันการเข้าสู่ระบบของเจ้าของ WorkContext และสิทธิ์ของคำสั่งผ่าน Hub เดิม ใบรับการส่งคำขอไม่ใช่หลักฐานว่าดำเนินการสำเร็จ</p></section>
   </main>

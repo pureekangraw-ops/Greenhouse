@@ -1,3 +1,5 @@
+import { handleLocalAITest } from './src/greenhouse/local-ai-test.mjs';
+import { handleOwnerRequestRead } from './src/greenhouse/request-owner-http.mjs';
 import { createServer } from 'node:http';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
@@ -15,6 +17,9 @@ const staticFiles = new Map([
   ['/greenhouse/', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/index.html', ['greenhouse/index.html', 'text/html; charset=utf-8']],
   ['/greenhouse/app.js', ['greenhouse/app.js', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/device-ai.mjs', ['greenhouse/device-ai.mjs', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/workspace.mjs', ['greenhouse/workspace.mjs', 'text/javascript; charset=utf-8']],
+  ['/greenhouse/workspace-model.mjs', ['greenhouse/workspace-model.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/ui-state.mjs', ['greenhouse/ui-state.mjs', 'text/javascript; charset=utf-8']],
   ['/greenhouse/app.css', ['greenhouse/app.css', 'text/css; charset=utf-8']],
   ['/greenhouse/manifest.webmanifest', ['greenhouse/manifest.webmanifest', 'application/manifest+json; charset=utf-8']],
@@ -25,7 +30,7 @@ const commonHeaders = {
   'cache-control': 'no-store',
   'x-content-type-options': 'nosniff',
   'referrer-policy': 'no-referrer',
-  'content-security-policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; manifest-src 'self'; worker-src 'self'",
+  'content-security-policy': "default-src 'self'; base-uri 'none'; object-src 'none'; frame-ancestors 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self' http://localhost:8000; manifest-src 'self'; worker-src 'self'",
 };
 function send(response, code, data, contentType = 'application/json; charset=utf-8') {
   response.writeHead(code, { ...commonHeaders, 'content-type': contentType });
@@ -53,7 +58,8 @@ function sanitizeInboxResult(result) {
   if (!result || !Array.isArray(result.items) || result.items.length > 100 ||
       typeof result.observedAt !== 'string' || !Number.isFinite(Date.parse(result.observedAt)) ||
       (result.nextCursor != null && (typeof result.nextCursor !== 'string' || result.nextCursor.length > 512))) return null;
-  const fields = ['title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId'];
+  const fields = ['title', 'ownerSource', 'confidence', 'observedAt', 'freshness', 'workId',
+    'sourceEventId', 'correlationId', 'category', 'occurredAt', 'persistedAt', 'evidenceScope', 'receiptStatus'];
   const items = [];
   for (const item of result.items) {
     if (!item || typeof item !== 'object' || Array.isArray(item)) return null;
@@ -64,6 +70,12 @@ function sanitizeInboxResult(result) {
         safe[field] = item[field];
       }
     }
+    if (item.evidence != null) {
+      if (!Array.isArray(item.evidence) || item.evidence.length > 16 ||
+          item.evidence.some(ref => typeof ref !== 'string' || ref.length > 512)) return null;
+      safe.evidence = [...item.evidence];
+    }
+    if (item.receiptId === null) safe.receiptId = null;
     items.push(safe);
   }
   return { items, observedAt: result.observedAt, nextCursor: result.nextCursor ?? null };
@@ -96,7 +108,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
  */
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
-  hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
+  localAIConnector = null, allowLocalEventEvidence = false, hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
   commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
@@ -109,8 +121,35 @@ export function createGreenhouseServer({
   const highImpactTargets = new Set(highImpactCommandTargets);
   return createServer(async (request, response) => {
     if (!validOrigin(request)) return send(response, 403, { code: 'ORIGIN_DENIED' });
-    const url = new URL(request.url || '/', 'http://127.0.0.1');
+    let url;
+    try { url = new URL(request.url || '/', 'http://127.0.0.1'); }
+    catch { return send(response, 400, {code:'REQUEST_INVALID'}); }
 
+    if (url.pathname === '/api/greenhouse/local-ai') {
+      if (!['GET','POST'].includes(request.method)) return send(response,405,{code:'METHOD_NOT_ALLOWED'});
+      try {
+        const session = localAIConnector && ownerSessionResolver ? await ownerSessionResolver(request) : null;
+        const raw = request.method === 'POST' ? await readRequestBody(request,8192) : undefined;
+        const result = await handleLocalAITest(new Request('http://' + request.headers.host + request.url, {
+          method:request.method,headers:request.headers,...(raw !== undefined ? {body:raw} : {}),
+        }), {connector:localAIConnector,session});
+        return send(response,result.status,await result.json());
+      } catch(error) {return send(response,error instanceof GreenhouseEventError ? error.status : 400,{code:'LOCAL_AI_REQUEST_REJECTED'});}
+    }
+    if (url.pathname.startsWith('/api/greenhouse/requests/')) {
+      // Fetch Request rejects TRACE/TRACK/CONNECT at construction time.
+      // Reject methods at the Node boundary first, as the Pages handler does.
+      if (request.method !== 'GET') return send(response, 405, {code:'READ_ONLY'});
+      const requestId = url.pathname.slice('/api/greenhouse/requests/'.length);
+      try {
+        const result = await handleOwnerRequestRead(new Request('http://' + request.headers.host + request.url, {
+          method: request.method, headers: request.headers,
+        }), requestId, {fetchImpl, now});
+        return send(response, result.status, await result.json());
+      } catch {
+        return send(response, 400, {code:'REQUEST_INVALID'});
+      }
+    }
     if (url.pathname === '/api/greenhouse/status' && request.method === 'GET') {
       // Adapter presence is not authentication: never advertise an owner session
       // until the existing session resolver has verified this request.
@@ -194,6 +233,19 @@ export function createGreenhouseServer({
           event,
           idempotencyKey: event.source + ':' + event.eventId,
         });
+        if (allowLocalEventEvidence && receipt?.evidenceScope === 'LOCAL_TEST' &&
+            receipt.persisted === true && receipt.receiptId === null && receipt.receiptStatus === 'MISSING' &&
+            receipt.duplicate === true && receipt.sourceEventId === event.eventId &&
+            typeof receipt.persistedAt === 'string' && Number.isFinite(Date.parse(receipt.persistedAt)) &&
+            Array.isArray(receipt.evidence) && receipt.evidence.length <= 16 &&
+            receipt.evidence.every(ref => typeof ref === 'string' && ref.length <= 512)) {
+          return send(response, 200, {
+            receiptId: null, receiptStatus: 'MISSING', evidenceScope: 'LOCAL_TEST',
+            duplicate: true, persisted: true, sourceEventId: receipt.sourceEventId,
+            persistedAt: receipt.persistedAt, evidence: receipt.evidence,
+            receivedAt: event.receivedAt, execution: 'NOT_ASSERTED',
+          });
+        }
         if (!receipt || typeof receipt.receiptId !== 'string' || !receipt.receiptId.trim() || typeof receipt.duplicate !== 'boolean') {
           return send(response, 502, { code: 'HUB_RECEIPT_INVALID' });
         }
@@ -203,7 +255,8 @@ export function createGreenhouseServer({
           receivedAt: event.receivedAt,
           execution: 'NOT_ASSERTED',
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof GreenhouseEventError) return send(response, error.status, { code: error.code });
         return send(response, 502, { code: 'HUB_EVENT_DELIVERY_FAILED' });
       }
     }

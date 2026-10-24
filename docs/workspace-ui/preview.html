@@ -1,0 +1,560 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10251f">
+  <meta name="description" content="กล่องรับงานเจ้าของ Greenhouse และผลอ่านกลับที่ตรวจสอบแล้ว">
+  <style>:root{color-scheme:light;--ink:#18241f;--muted:#707b74;--line:#e3e9e4;--paper:#f5f7f4;--green:#163c30;--mint:#e4f1e8;--amber:#f5edd8;--shadow:0 12px 40px #17281e0a;font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif}*{box-sizing:border-box}body{margin:0;background:var(--paper);color:var(--ink);min-height:100vh}.topbar{height:76px;padding:0 max(24px,calc((100vw - 1100px)/2));display:flex;align-items:center;justify-content:space-between;border-bottom:1px solid var(--line);background:#fff}.brand{display:flex;align-items:center;gap:12px;text-decoration:none;color:var(--ink);font-weight:800;letter-spacing:.13em;font-size:12px}.brand small{display:block;color:var(--muted);letter-spacing:0;font-weight:500;margin-top:4px}.brand-mark{display:grid;place-items:center;width:36px;height:36px;background:var(--green);color:#fff;border-radius:12px;font-size:18px;letter-spacing:0}.connection{color:var(--muted);font-size:12px}.connection i{display:inline-block;width:8px;height:8px;border-radius:50%;background:#c8cfc9;margin-right:8px}main{width:min(920px,calc(100% - 40px));margin:0 auto}.intro{padding:74px 0 34px}.eyebrow{font-size:10px;font-weight:800;letter-spacing:.16em;color:#718078;margin:0 0 12px}.intro h1{font-size:clamp(38px,6vw,64px);line-height:1.2;letter-spacing:-.055em;margin:0}.intro h1 em{font-family:Georgia,serif;font-weight:400;color:#55816a}.lede{font-size:16px;line-height:1.7;color:var(--muted);max-width:560px;margin:20px 0 0}.status-panel,.inbox,.safety{background:#fff;border:1px solid var(--line);border-radius:16px;box-shadow:var(--shadow)}.status-panel{padding:24px 26px;margin:18px 0 42px}.panel-heading{display:flex;justify-content:space-between;align-items:center}.panel-heading h2,.section-head h2{font-size:20px;letter-spacing:-.03em;margin:0}.panel-heading .eyebrow{margin-bottom:6px}.status-panel>p{color:var(--muted);line-height:1.6;font-size:14px}.pill{font-size:10px;font-weight:800;letter-spacing:.1em;padding:8px 11px;border-radius:20px}.pill--unknown{background:#eff1ef;color:#717a74}.pill--online{background:var(--mint);color:#286043}.button{border:0;background:var(--green);color:white;padding:11px 15px;border-radius:9px;font-weight:700;cursor:pointer}.button:disabled{opacity:.6;cursor:wait}.section-head{display:flex;justify-content:space-between;align-items:end;margin:0 0 14px}.text-button{border:0;background:none;color:#3d674e;font-weight:700;cursor:pointer;padding:8px}.inbox{min-height:220px;padding:24px}.empty{text-align:center;max-width:440px;margin:18px auto}.empty-icon{display:inline-grid;place-items:center;width:40px;height:40px;border-radius:14px;background:var(--mint);color:#3c704f;font-size:19px}.empty h3{font-size:16px;margin:15px 0 7px}.empty p,.safety p{color:var(--muted);font-size:13px;line-height:1.65;margin:0}.safety{display:flex;gap:14px;align-items:flex-start;padding:19px 22px;background:#fbfcfa;margin-bottom:54px}.safety>span{color:#5b8066;font-size:24px;line-height:1}.readback{border-top:1px solid var(--line);padding:18px 2px}.readback:first-child{border-top:0}.readback h3{font-size:15px;margin:0 0 6px}.readback p{font-size:12px;color:var(--muted);margin:4px 0}.readback code{font-size:11px;overflow-wrap:anywhere}footer{border-top:1px solid var(--line);padding:18px max(20px,calc((100vw - 1100px)/2));display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:11px}@media(max-width:560px){.topbar{height:64px;padding:0 18px}.connection{font-size:10px}main{width:calc(100% - 32px)}.intro{padding:52px 0 24px}.intro h1{font-size:42px}.status-panel{padding:19px;margin-bottom:32px}.section-head h2{font-size:18px}.inbox{padding:18px}.safety{padding:16px}footer{padding:16px;flex-direction:column}}
+/* Workspace views */
+[hidden]{display:none!important}main{width:min(1160px,calc(100% - 64px))}.topbar{padding:0 max(32px,calc((100vw - 1160px)/2))}.workspace-top{display:flex;justify-content:space-between;align-items:center;padding:42px 0 24px}.workspace-top h1{font-size:34px;letter-spacing:-.04em;margin:0}.workspace-top .lede{margin:8px 0 0;font-size:14px}.workspace-nav{display:flex;gap:6px;border-bottom:1px solid var(--line);margin-bottom:24px}.workspace-nav button{background:none;border:0;border-bottom:3px solid transparent;padding:14px 22px;color:var(--muted);font:inherit;cursor:pointer}.workspace-nav button[aria-current=page]{color:var(--green);border-color:var(--green);font-weight:700}.data-banner{border:1px solid #e4d6ad;background:#faf5e8;color:#7b622b;padding:12px 18px;border-radius:9px;font-size:12px;margin-bottom:22px}.data-banner.live{background:#eaf1f0;border-color:#c9dbd6;color:#34554b}.welcome{background:#173e33;color:white;border-radius:20px;padding:38px 44px;display:flex;justify-content:space-between;align-items:center;gap:24px;margin-bottom:24px;overflow:hidden}.welcome .eyebrow{color:#b4cabe}.welcome h2{font-size:clamp(26px,3.5vw,38px);font-weight:500;line-height:1.45;margin:0}.welcome em{font-style:normal;color:#c1d8a6}.welcome p{color:#b9cec3;font-size:13px;line-height:1.7}.welcome .button{background:#d4e8bd;color:#1a392b;margin-top:10px}.orb{flex-shrink:0;border:1px solid #668371;border-radius:50%;width:200px;height:200px;display:grid;place-content:center;text-align:center;box-shadow:0 0 0 24px #a6c6b30a,0 0 0 48px #a6c6b309}.orb span{font:70px Georgia,serif;color:#d4e8bd}.orb small{font-size:9px;letter-spacing:.22em;line-height:1.8;color:#9dbbab}.metric-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin:0 0 32px}.metric-grid article{padding:22px;border:1px solid var(--line);background:white;border-radius:12px}.metric-grid span,.metric-grid small{display:block;font-size:12px;color:var(--muted)}.metric-grid strong{display:block;font-size:38px;font-weight:600;margin:12px 0}.metric-grid .small-value{font-size:20px;min-height:46px;display:flex;align-items:center}.event-list{border:1px solid var(--line);background:white;border-radius:12px;overflow:hidden}.event-row{width:100%;display:grid;grid-template-columns:42px minmax(0,1fr) 170px 170px 20px;align-items:center;gap:16px;padding:20px;text-align:left;background:white;border:0;border-bottom:1px solid var(--line);font:inherit;cursor:pointer;color:var(--ink)}.event-row:last-child{border-bottom:0}.event-row:hover{background:#f1f6f0}.event-symbol{width:36px;height:36px;display:grid;place-items:center;background:#edf4e9;color:#46613e;border-radius:10px;font-size:18px}.event-row strong{font-size:14px;display:block}.event-row small{display:block;color:var(--muted);font-size:11px;margin-top:5px;overflow-wrap:anywhere}.event-tag{font-size:10px;letter-spacing:.04em;color:#446452}.event-row time{font-size:12px;color:var(--muted)}.boundary-note{font-size:12px;color:var(--muted);line-height:1.8;margin:18px 0 26px}.integration-details{margin:28px 0;color:var(--muted)}summary{cursor:pointer;padding:16px;border-top:1px solid var(--line);font-size:13px}.integration-details .status-panel{margin-bottom:24px}.filter-bar{display:grid;grid-template-columns:2fr 1fr 1fr;gap:16px;margin:22px 0}label{display:flex;flex-direction:column;gap:8px;font-size:12px;color:var(--muted)}input,select,textarea{font:inherit;color:var(--ink);background:white;border:1px solid #d8e0d9;border-radius:8px;padding:12px;min-width:0;width:100%}input:focus,select:focus,textarea:focus,button:focus-visible{outline:2px solid #699b75;outline-offset:3px}.mode-control{min-width:190px}.source-form{padding:24px;border:1px solid var(--line);background:#edf2ed;border-radius:12px;margin:26px 0;display:grid;grid-template-columns:1fr 280px auto;gap:16px;align-items:end}.source-form h3{margin:0;font-size:16px}.source-form p{font-size:12px;color:var(--muted);line-height:1.7}.source-form>p{grid-column:1/-1;margin:0}.detail-head{display:flex;align-items:start;justify-content:space-between;margin:24px 0}.detail-head h2{margin:10px 0}.detail-layout{display:grid;grid-template-columns:1.5fr 1fr;gap:20px}.detail-card,.lab-card{background:white;border:1px solid var(--line);padding:26px;border-radius:12px;margin-bottom:22px}.detail-card h3,.lab-card h3{margin:0 0 20px;font-size:17px}dl{margin:0}dt{color:var(--muted);font-size:12px;margin-top:18px}dd{margin:6px 0;font-size:14px;overflow-wrap:anywhere}code{overflow-wrap:anywhere}.timeline{list-style:none;padding:0;margin:0}.timeline li{border-left:2px solid #dbe7d6;padding:0 0 25px 20px;position:relative}.timeline li:before{content:'';position:absolute;left:-5px;top:5px;width:8px;height:8px;background:#62875e;border-radius:50%}.timeline small{display:block;color:var(--muted);font-size:11px;margin-top:7px}.evidence-ref{display:block;border:1px solid var(--line);padding:14px;border-radius:7px;margin-top:12px;font-size:12px;overflow-wrap:anywhere}.lab-heading{display:flex;justify-content:space-between;align-items:center;margin-bottom:24px}.lab-heading h2{font-size:30px;margin:0}.lab-heading p,.lab-card p{font-size:13px;line-height:1.8;color:var(--muted)}.lab-grid{display:grid;grid-template-columns:1fr 1fr;gap:22px}.lab-card label{margin:18px 0}.lab-card textarea{resize:vertical;line-height:1.8}.checkbox-label{flex-direction:row;align-items:start;line-height:1.7}.checkbox-label input{width:16px;flex-shrink:0;margin-top:3px}.lab-actions{display:flex;gap:12px;flex-wrap:wrap}.output-card{background:#f0f4ee}.output-card pre{white-space:pre-wrap;overflow-wrap:anywhere;min-height:200px;font:14px/1.9 inherit;padding:20px;background:#fff;border:1px solid var(--line);border-radius:9px}.output-card .panel-heading span{font-size:12px;color:var(--muted)}.empty{padding:18px}.detail-layout+.boundary-note{margin-top:0}button:disabled{opacity:.5;cursor:not-allowed}[data-panel]{margin-bottom:36px}
+@media(max-width:760px){main{width:calc(100% - 32px)}.workspace-top{align-items:start;gap:18px;padding-top:28px}.workspace-top h1{font-size:28px}.mode-control{min-width:140px}.workspace-nav{gap:0;overflow:auto}.workspace-nav button{padding:12px 14px;white-space:nowrap;font-size:13px}.welcome{padding:25px}.orb{display:none}.metric-grid{grid-template-columns:1fr;gap:10px}.metric-grid article{display:grid;grid-template-columns:1fr 1fr;align-items:center;padding:16px}.metric-grid strong,.metric-grid .small-value{font-size:22px;margin:0;text-align:right;justify-content:end}.metric-grid small{grid-column:1/-1;margin-top:8px}.event-row{grid-template-columns:32px minmax(0,1fr) 16px;gap:10px;padding:16px}.event-row>.event-tag,.event-row>time{display:none}.filter-bar{grid-template-columns:1fr 1fr}.filter-bar label:first-child{grid-column:1/-1}.source-form,.detail-layout,.lab-grid{grid-template-columns:1fr}.lab-heading{gap:12px}.lab-heading h2{font-size:26px}.detail-card,.lab-card{padding:20px}.source-form{padding:20px}.topbar{padding:0 16px}.connection{max-width:135px;text-align:right}}
+</style>
+  <title>Greenhouse · Offline review preview</title>
+</head>
+<body>
+  <header class="topbar">
+    <a class="brand" href="#" aria-label="หน้าแรก Greenhouse"><span class="brand-mark">G</span><span>GREENHOUSE<small>OFFLINE REVIEW · DEMO</small></span></a>
+    <span class="connection" id="connection"><i></i> กำลังตรวจการเชื่อมต่อ</span>
+  </header>
+  <main>
+    <div class="workspace-top"><div><p class="eyebrow">GREENHOUSE / WORKSPACE</p><h1 id="view-title">ภาพรวม</h1><p class="lede">เห็นที่มา ตรวจหลักฐาน แล้วค่อยไปต่อ</p></div><label class="mode-control">ชุดข้อมูล<select id="data-mode"><option value="demo">ตัวอย่าง · DEMO</option><option value="live">ผลอ่านกลับจริง</option></select></label></div>
+    <nav class="workspace-nav" aria-label="มุมมอง Greenhouse">
+      <button data-view="overview" aria-current="page">◫ <span>ภาพรวม</span></button><button data-view="events">≡ <span>เหตุการณ์</span></button><button data-view="detail">↗ <span>รายละเอียด</span></button><button data-view="ai">✳ <span>Local AI Lab</span></button>
+    </nav>
+    <div id="data-banner" class="data-banner" role="status">DEMO · ข้อมูลสังเคราะห์สำหรับทดลองหน้าจอ ไม่ใช่กิจกรรมจริง</div>
+    <section data-panel="overview">
+      <div class="welcome"><div><p class="eyebrow">YOUR OBSERVATION SPACE</p><h2>ทุกเหตุการณ์มีที่มา<br><em>ทุกผลลัพธ์ต้องมีหลักฐาน</em></h2><p>สำรวจรายการและแหล่งข้อมูลได้ แม้ Local AI ยังไม่เชื่อมต่อ</p><button class="button" data-view="events">เปิดรายการเหตุการณ์ →</button></div><div class="orb" aria-hidden="true"><span>G</span><small>OBSERVE<br>VERIFY<br>UNDERSTAND</small></div></div>
+      <div class="metric-grid"><article><span id="count-label">รายการตัวอย่าง</span><strong id="visible-count">3</strong><small>เฉพาะชุดที่แสดง ไม่ใช่ยอดรวมระบบ</small></article><article><span>เวลาข้อมูลล่าสุดในชุด</span><strong id="latest-time" class="small-value">—</strong><small>ความใหม่ของระบบจริง: ยังไม่ยืนยัน</small></article><article><span>Local AI</span><strong id="overview-ai" class="small-value">ยังไม่เชื่อมต่อ</strong><small>ปิด AI แล้วใช้มุมมองหลักต่อได้</small></article></div>
+      <div class="section-head"><div><p class="eyebrow">AT A GLANCE</p><h2>รายการในชุดที่กำลังดู</h2></div><button class="text-button" data-view="events">ดูทั้งหมด →</button></div><div id="recent-events" class="event-list"></div>
+      <p class="boundary-note">ยังไม่มีรายการสดทั้งระบบหรือสถิติรวม · ไม่แสดงตัวเลขแทนข้อมูลที่ยังไม่ได้รับ</p>
+      <details class="integration-details"><summary>สถานะการเชื่อมต่อเดิมและ Operational Log</summary>
+    <section class="status-panel" aria-labelledby="status-heading">
+      <div class="panel-heading"><div><p class="eyebrow">การเชื่อมต่อ</p><h2 id="status-heading">กำลังตรวจสอบ</h2></div><span class="pill pill--unknown" id="status-pill">UNKNOWN</span></div>
+      <p id="status-detail">หน้าพร้อมใช้งานแบบออฟไลน์ โดยไม่เก็บหรือแสดงข้อมูล Work ส่วนตัว</p>
+      <button class="button" id="refresh" type="button">ตรวจการเชื่อมต่อ</button>
+      <button class="button" id="install" type="button" hidden>ติดตั้ง Greenhouse บนเครื่อง</button>
+      <p id="install-help" hidden role="status"></p>
+    </section>
+    <section class="section-head"><div><p class="eyebrow">PIXIE · การเดินงาน</p><h2>สถานะงานและจุดติดขัด</h2></div></section>
+    <section class="inbox" id="operations" aria-live="polite" style="margin-bottom:34px"><div class="empty"><h3>ยังไม่ยืนยันข้อมูลการเดินงาน</h3><p>แสดงเฉพาะ Operational Log ที่อ่านจากระบบจริง</p></div></section>
+    <section class="section-head"><div><p class="eyebrow">กล่องรับรายการ</p><h2>ผลอ่านกลับจากระบบเจ้าของ</h2></div><button class="text-button" id="reload" type="button">รีเฟรช ↻</button></section>
+    <section class="inbox" id="inbox" aria-live="polite"><div class="empty"><span class="empty-icon">↻</span><h3>กำลังตรวจรายการ</h3><p>กำลังขอผลอ่านกลับจาก Hub</p></div></section>
+      </details>
+    </section>
+    <section data-panel="events" hidden>
+      <div class="panel-heading"><div><p class="eyebrow">EVENT EXPLORER</p><h2>ค้นจากสิ่งที่ตรวจสอบได้</h2></div><span id="event-count" class="pill">3 รายการ</span></div>
+      <div class="filter-bar"><label>ค้นหา<input id="event-search" type="search" placeholder="ชื่อ, Event ID หรือ Request ID"></label><label>ประเภท<select id="category-filter"><option value="">ทุกประเภท</option><option value="REQUEST_SUBMITTED">Request submitted</option><option value="REVIEW_NOTE">Review note · demo</option></select></label><label>แหล่งข้อมูล<select id="source-filter"><option value="">ทุกแหล่งข้อมูล</option></select></label></div>
+      <div id="event-results" class="event-list" aria-live="polite"></div>
+      <form id="request-read-form" class="source-form"><div><p class="eyebrow">SELECTED REQUEST READBACK</p><h3>อ่านคำขอจากระบบเจ้าของ</h3><p>ใช้ตัวอ่านที่ยืนยันตัวตนฝั่งเซิร์ฟเวอร์ · ไม่มีช่องกรอก token และไม่ส่งข้อมูลไป AI</p></div><label>Request ID<input id="request-id" required pattern="[A-Za-z0-9:_-]{1,120}" maxlength="120" placeholder="synthetic-greenhouse-…" autocomplete="off"></label><button class="button" id="read-request">อ่านข้อมูล</button><p id="read-message" role="status">ยังไม่ได้อ่านข้อมูลจริง</p></form>
+    </section>
+    <section data-panel="detail" hidden><div id="event-detail"></div></section>
+    <section data-panel="ai" hidden>
+      <div class="lab-heading"><div><p class="eyebrow">OPTIONAL · SYNTHETIC TEST ONLY</p><h2>Local AI Lab</h2><p>พื้นที่ทดลองคำตอบ แยกจากเหตุการณ์และข้อมูลลูกค้า</p></div><span class="pill" id="ai-state">DISCONNECTED</span></div>
+      <div class="lab-grid"><form id="ai-form" class="lab-card"><h3>ช่องเชื่อมต่อโมเดล</h3><label>เส้นทางทดสอบ<select id="ai-route"><option value="provider">Provider ที่ระบบอนุญาต</option><option value="device">HERMES บนอุปกรณ์นี้ · loopback</option></select></label><div id="device-config" hidden><p class="data-banner">ข้อมูลจากหน้าจอเจ้าของ: HERMES-R5 RUNNING · Android CPU · loopback-only · ยังไม่ทดสอบการเชื่อมต่อจากหน้านี้</p><dl><dt>ปลายทางที่เจ้าของระบุ</dt><dd><code>http://localhost:8000/v1</code></dd></dl><p>ต้องเปิดหน้านี้ในเบราว์เซอร์บน Android เครื่องเดียวกับ HERMES เท่านั้น ไม่มีการเรียกผ่าน Cloudflare</p><label>รูปแบบ API ที่ต้องการทดลอง<select id="device-protocol"><option value="">ยังไม่ยืนยัน protocol</option><option value="chat-completions-compatible">ทดลอง Chat Completions-compatible</option></select></label><label>Model ID ตาม API ของ runtime<input id="device-model" maxlength="120" autocomplete="off" placeholder="ระบุเมื่อยืนยัน Model ID แล้ว"></label><label class="checkbox-label"><input type="checkbox" id="device-confirm"> ยอมรับว่า /v1 อย่างเดียวไม่ยืนยัน protocol และจะทดสอบข้อมูลสมมติบนเครื่องนี้เท่านั้น</label><p>ไม่มีการสแกน /models หรือปลายทางอื่น · HTTPS → HTTP loopback อาจถูกเบราว์เซอร์ปฏิเสธ ต้องใช้สิทธิ์อุปกรณ์ที่รองรับตามปกติ ห้ามปิดระบบรักษาความปลอดภัยเพื่อฝืนเชื่อมต่อ</p></div><p id="ai-connection">รอชื่อและปลายทาง runtime ที่ได้รับอนุญาต · ยังไม่มีการติดต่อเครื่องใด</p><button type="button" class="text-button" id="ai-refresh">ตรวจสถานะ connector ↻</button><label>โมเดล<select id="ai-model" disabled><option value="">ยังไม่มีโมเดลที่ตั้งค่า</option></select></label><label>ข้อความทดสอบสังเคราะห์<textarea id="ai-input" rows="5" maxlength="2000">ตัวอย่างสมมติ: อยากทำเว็บไซต์แนะนำร้านต้นไม้ ควรถามข้อมูลอะไรเพิ่ม?</textarea></label><label class="checkbox-label"><input id="ai-synthetic" type="checkbox"> ยืนยันว่าเป็นข้อมูลสมมติ ไม่มีข้อมูลลูกค้าหรือรหัสลับ</label><div class="lab-actions"><button class="button" id="ai-run" disabled>ทดสอบคำตอบ</button><button class="text-button" type="button" id="ai-cancel" hidden>ยกเลิกการทดสอบ</button><button class="text-button" type="button" id="ai-clear">ล้างข้อความและผลลัพธ์</button></div></form><div class="lab-card output-card"><div class="panel-heading"><h3>ผลทดสอบ</h3><span id="ai-time">— ms</span></div><p id="ai-result-status" role="status">ยังไม่ได้ทดสอบ</p><pre id="ai-output">คำตอบจะแสดงที่นี่เมื่อเชื่อมต่อและเริ่มทดสอบ</pre><p class="boundary-note">คำตอบ AI ไม่ใช่หลักฐานการลงมือหรือใบรับจาก Hub · ไม่บันทึก input/output ลง browser storage</p></div></div>
+    </section>
+    <section class="section-head"><div><p class="eyebrow">ขอบเขตความปลอดภัย</p><h2>สิทธิ์การดำเนินการยังอยู่กับเจ้าของ</h2></div></section>
+    <section class="safety"><span aria-hidden="true">⌑</span><p>ยังไม่เปิดคำขอระยะไกล จนกว่าจะยืนยันการเข้าสู่ระบบของเจ้าของ WorkContext และสิทธิ์ของคำสั่งผ่าน Hub เดิม ใบรับการส่งคำขอไม่ใช่หลักฐานว่าดำเนินการสำเร็จ</p></section>
+  </main>
+  <footer><span>Greenhouse · หน้ารับข้อมูล</span><span>เก็บเฉพาะหน้าแอปออฟไลน์ · ไม่เก็บข้อมูลส่วนตัว</span></footer>
+  <script>globalThis.fetch=async(url)=>new Response(JSON.stringify(String(url).endsWith('/local-ai')?{configured:false,models:[],state:'DISCONNECTED'}:String(url).endsWith('/status')?{ownerSession:false,inboxReader:false}:{code:'OFFLINE_PREVIEW_ONLY'}),{status:String(url).includes('/requests/')?503:200,headers:{'content-type':'application/json'}});(() => {
+  // greenhouse/device-ai.mjs
+  var DEVICE_AI_BASE = "http://localhost:8000/v1";
+  var failure = (code, reachable = false) => Object.assign(new Error(code), { code, reachable });
+  async function testDeviceAI({ model, text: text2, protocol, syntheticOnly, protocolConfirmed, signal, fetchImpl = fetch, timeoutMs = 1e4 } = {}) {
+    if (protocol !== "chat-completions-compatible" || protocolConfirmed !== true || syntheticOnly !== true || typeof model !== "string" || !model.trim() || model.length > 120 || typeof text2 !== "string" || !text2.trim() || text2.length > 2e3) throw failure("DEVICE_CONFIG_REQUIRED");
+    const controller = new AbortController();
+    let timedOut = false;
+    const cancel = () => controller.abort();
+    if (signal?.aborted) throw failure("CANCELLED");
+    signal?.addEventListener("abort", cancel, { once: true });
+    const timer = setTimeout(() => {
+      timedOut = true;
+      controller.abort();
+    }, timeoutMs);
+    let reachable = false;
+    try {
+      const response = await fetchImpl(DEVICE_AI_BASE + "/chat/completions", {
+        method: "POST",
+        mode: "cors",
+        credentials: "omit",
+        redirect: "error",
+        cache: "no-store",
+        referrerPolicy: "no-referrer",
+        headers: { "content-type": "application/json" },
+        signal: controller.signal,
+        body: JSON.stringify({ model: model.trim(), messages: [{ role: "user", content: text2.trim() }], stream: false, max_tokens: 256 })
+      });
+      reachable = true;
+      if (!response.ok) throw failure("DEVICE_HTTP_" + response.status, true);
+      const reader = response.body?.getReader();
+      if (!reader) throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      let raw = "", size = 0;
+      const decoder = new TextDecoder();
+      try {
+        for (; ; ) {
+          const { value, done } = await reader.read();
+          if (done) break;
+          size += value.byteLength;
+          if (size > 65536) {
+            await reader.cancel();
+            throw failure("DEVICE_RESPONSE_TOO_LARGE", true);
+          }
+          raw += decoder.decode(value, { stream: true });
+        }
+        raw += decoder.decode();
+      } finally {
+        reader.releaseLock();
+      }
+      let body;
+      try {
+        body = JSON.parse(raw);
+      } catch {
+        throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      }
+      const content = body?.choices?.[0]?.message?.content;
+      if (typeof content !== "string" || !content.trim() || content.length > 4e3) throw failure("DEVICE_PROTOCOL_UNVERIFIED", true);
+      return { reply: content, modelStatus: "RESPONDED", executed: false, reachable: true, model: model.trim(), syntheticOnly: true };
+    } catch (error) {
+      if (controller.signal.aborted) throw failure(timedOut ? "TIMEOUT" : "CANCELLED", reachable);
+      if (error.code?.startsWith("DEVICE_")) throw error;
+      throw failure("DEVICE_BLOCKED_OR_UNREACHABLE", reachable);
+    } finally {
+      clearTimeout(timer);
+      signal?.removeEventListener("abort", cancel);
+    }
+  }
+
+  // greenhouse/workspace-model.mjs
+  var demoEvents = [
+    { title: "\u0E04\u0E33\u0E02\u0E2D\u0E40\u0E27\u0E47\u0E1A\u0E44\u0E0B\u0E15\u0E4C\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07", sourceEventId: "demo-event-001", correlationId: "demo-request-001", category: "REQUEST_SUBMITTED", ownerSource: "demo-shop", occurredAt: "2026-10-23T08:15:00.000Z", persistedAt: "2026-10-23T08:15:00.000Z", evidence: ["demo://request-001/submitted"], receiptStatus: "MISSING", evidenceScope: "DEMO", freshness: "UNKNOWN" },
+    { title: "\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E17\u0E1A\u0E17\u0E27\u0E19\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07", sourceEventId: "demo-event-002", correlationId: "demo-request-001", category: "REVIEW_NOTE", ownerSource: "demo-office", occurredAt: "2026-10-23T08:20:00.000Z", persistedAt: "2026-10-23T08:20:00.000Z", evidence: ["demo://request-001/review"], receiptStatus: "MISSING", evidenceScope: "DEMO", freshness: "UNKNOWN" },
+    { title: "\u0E04\u0E33\u0E02\u0E2D\u0E2A\u0E44\u0E25\u0E14\u0E4C\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07", sourceEventId: "demo-event-003", correlationId: "demo-request-002", category: "REQUEST_SUBMITTED", ownerSource: "demo-shop", occurredAt: "2026-10-23T09:00:00.000Z", persistedAt: "2026-10-23T09:00:00.000Z", evidence: ["demo://request-002/submitted"], receiptStatus: "MISSING", evidenceScope: "DEMO", freshness: "UNKNOWN" }
+  ];
+  function filterEvents(items2, { query = "", category = "", source = "" } = {}) {
+    const term = query.trim().toLocaleLowerCase();
+    return items2.filter((item) => (!category || item.category === category) && (!source || item.ownerSource === source) && (!term || [item.title, item.sourceEventId, item.correlationId, item.ownerSource].some((v) => String(v || "").toLocaleLowerCase().includes(term))));
+  }
+  function eventHistory(items2, item) {
+    return items2.filter((e) => e.correlationId === item.correlationId).sort((a, b) => Date.parse(a.occurredAt) - Date.parse(b.occurredAt));
+  }
+  function acceptReadback(body, requestId) {
+    if (!Array.isArray(body?.items) || body.items.length !== 1) throw Error("READBACK_INVALID");
+    const item = body.items[0];
+    if (item.correlationId !== requestId || typeof item.sourceEventId !== "string" || item.category !== "REQUEST_SUBMITTED" || !Number.isFinite(Date.parse(item.occurredAt)) || !Array.isArray(item.evidence) || item.receiptStatus !== "MISSING" || item.evidenceScope !== "OWNER_HTTP_READBACK") throw Error("READBACK_INVALID");
+    return item;
+  }
+  var escapeHTML = (value) => String(value ?? "\u2014").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+
+  // greenhouse/workspace.mjs
+  var $ = (selector) => document.querySelector(selector);
+  var mode = "demo";
+  var liveItems = [];
+  var selectedId = demoEvents[0].sourceEventId;
+  var aiConfig = null;
+  var aiBusy = false;
+  var readSequence = 0;
+  var aiController = null;
+  var items = () => mode === "demo" ? demoEvents : liveItems;
+  var format = (value) => Number.isFinite(Date.parse(value)) ? new Date(value).toLocaleString("th-TH", { dateStyle: "medium", timeStyle: "short" }) : "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25";
+  function view(name) {
+    if (!["overview", "events", "detail", "ai"].includes(name)) return;
+    document.querySelectorAll("[data-panel]").forEach((panel) => panel.hidden = panel.dataset.panel !== name);
+    document.querySelectorAll(".workspace-nav [data-view]").forEach((button) => {
+      if (button.dataset.view === name) button.setAttribute("aria-current", "page");
+      else button.removeAttribute("aria-current");
+    });
+    $("#view-title").textContent = { overview: "\u0E20\u0E32\u0E1E\u0E23\u0E27\u0E21", events: "\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C", detail: "\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C", ai: "Local AI Lab" }[name];
+    if (name === "detail") renderDetail();
+  }
+  function row(item) {
+    return `<button class="event-row" data-event="${escapeHTML(item.sourceEventId)}"><span class="event-symbol">${item.category === "REQUEST_SUBMITTED" ? "\u2197" : "\u2261"}</span><span><strong>${escapeHTML(item.title)}</strong><small>${escapeHTML(item.sourceEventId)} \xB7 ${escapeHTML(item.ownerSource)}</small></span><span class="event-tag">${escapeHTML(item.category)}</span><time>${escapeHTML(format(item.occurredAt))}</time><span aria-hidden="true">\u2192</span></button>`;
+  }
+  function renderList() {
+    const results = filterEvents(items(), { query: $("#event-search").value, category: $("#category-filter").value, source: $("#source-filter").value });
+    $("#event-count").textContent = results.length + " \u0E23\u0E32\u0E22\u0E01\u0E32\u0E23" + (mode === "demo" ? " \xB7 DEMO" : " \xB7 \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E17\u0E35\u0E48\u0E2D\u0E48\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27");
+    $("#event-results").innerHTML = results.length ? results.map(row).join("") : '<div class="empty"><h3>\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E23\u0E07\u0E01\u0E31\u0E1A\u0E15\u0E31\u0E27\u0E01\u0E23\u0E2D\u0E07</h3><p>\u0E25\u0E2D\u0E07\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19\u0E04\u0E33\u0E04\u0E49\u0E19 \u0E2B\u0E23\u0E37\u0E2D\u0E2D\u0E48\u0E32\u0E19\u0E04\u0E33\u0E02\u0E2D\u0E17\u0E35\u0E48\u0E23\u0E30\u0E1A\u0E38\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07</p></div>';
+  }
+  function render() {
+    $("#data-banner").textContent = mode === "demo" ? "DEMO \xB7 \u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2A\u0E31\u0E07\u0E40\u0E04\u0E23\u0E32\u0E30\u0E2B\u0E4C\u0E2A\u0E33\u0E2B\u0E23\u0E31\u0E1A\u0E17\u0E14\u0E25\u0E2D\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E34\u0E08\u0E01\u0E23\u0E23\u0E21\u0E08\u0E23\u0E34\u0E07" : "LIVE READBACK \xB7 \u0E40\u0E09\u0E1E\u0E32\u0E30\u0E04\u0E33\u0E02\u0E2D\u0E17\u0E35\u0E48\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E41\u0E25\u0E49\u0E27 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2A\u0E14\u0E2B\u0E23\u0E37\u0E2D\u0E2A\u0E16\u0E34\u0E15\u0E34\u0E23\u0E27\u0E21\u0E17\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A";
+    $("#data-banner").classList.toggle("live", mode === "live");
+    $("#count-label").textContent = mode === "demo" ? "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07" : "\u0E04\u0E33\u0E02\u0E2D\u0E17\u0E35\u0E48\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49";
+    $("#visible-count").textContent = mode === "demo" || liveItems.length ? items().length : "\u2014";
+    const last = items().map((i) => i.occurredAt).sort().at(-1);
+    $("#latest-time").textContent = last ? format(last) : "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25";
+    $("#recent-events").innerHTML = items().length ? items().slice(-3).reverse().map(row).join("") : '<div class="empty"><h3>\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E08\u0E23\u0E34\u0E07</h3><p>\u0E40\u0E1B\u0E34\u0E14\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E23\u0E30\u0E1A\u0E38 Request ID \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E32\u0E23\u0E41\u0E17\u0E19\u0E17\u0E35\u0E48\u0E14\u0E49\u0E27\u0E22\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07</p></div>';
+    $("#source-filter").innerHTML = '<option value="">\u0E17\u0E38\u0E01\u0E41\u0E2B\u0E25\u0E48\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25</option>' + [...new Set(items().map((i) => i.ownerSource))].map((s) => `<option value="${escapeHTML(s)}">${escapeHTML(s)}</option>`).join("");
+    renderList();
+    renderDetail();
+  }
+  function renderDetail() {
+    const item = items().find((i) => i.sourceEventId === selectedId);
+    if (!item) {
+      $("#event-detail").innerHTML = '<div class="detail-card empty"><h2>\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19</h2><p>\u0E23\u0E32\u0E22\u0E25\u0E30\u0E40\u0E2D\u0E35\u0E22\u0E14\u0E41\u0E25\u0E30\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E08\u0E30\u0E41\u0E2A\u0E14\u0E07\u0E40\u0E09\u0E1E\u0E32\u0E30\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E43\u0E19\u0E0A\u0E38\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01</p><button class="text-button" data-view="events">\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E1B\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C \u2192</button></div>';
+      return;
+    }
+    const history = eventHistory(items(), item);
+    $("#event-detail").innerHTML = `<button class="text-button" data-view="events">\u2190 \u0E01\u0E25\u0E31\u0E1A\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C</button><div class="detail-head"><div><p class="eyebrow">${mode === "demo" ? "DEMO \xB7 SYNTHETIC EVENT" : "OWNER HTTP READBACK"}</p><h2>${escapeHTML(item.title)}</h2><code>${escapeHTML(item.sourceEventId)}</code></div><span class="pill pill--unknown">${escapeHTML(item.category)}</span></div><div class="detail-layout"><article class="detail-card"><h3>\u0E17\u0E35\u0E48\u0E21\u0E32\u0E41\u0E25\u0E30\u0E40\u0E27\u0E25\u0E32</h3><dl><dt>\u0E23\u0E30\u0E1A\u0E1A\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07</dt><dd>${escapeHTML(item.ownerSource)}</dd><dt>Request ID</dt><dd>${escapeHTML(item.correlationId)}</dd><dt>\u0E40\u0E27\u0E25\u0E32\u0E40\u0E01\u0E34\u0E14\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C</dt><dd>${escapeHTML(format(item.occurredAt))}<br><small>${escapeHTML(item.occurredAt)}</small></dd><dt>\u0E40\u0E27\u0E25\u0E32\u0E1A\u0E31\u0E19\u0E17\u0E36\u0E01\u0E08\u0E32\u0E01\u0E15\u0E49\u0E19\u0E17\u0E32\u0E07</dt><dd>${escapeHTML(item.persistedAt)}</dd><dt>\u0E04\u0E27\u0E32\u0E21\u0E43\u0E2B\u0E21\u0E48</dt><dd>UNKNOWN \xB7 \u0E40\u0E27\u0E25\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E04\u0E27\u0E32\u0E21\u0E43\u0E2B\u0E21\u0E48\u0E02\u0E2D\u0E07\u0E17\u0E31\u0E49\u0E07\u0E23\u0E30\u0E1A\u0E1A</dd></dl></article><article class="detail-card"><h3>\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E17\u0E35\u0E48\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07</h3><p class="boundary-note">${mode === "demo" ? "\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E40\u0E17\u0E48\u0E32\u0E19\u0E31\u0E49\u0E19 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E08\u0E23\u0E34\u0E07" : "\u0E2D\u0E49\u0E32\u0E07\u0E2D\u0E34\u0E07\u0E08\u0E32\u0E01\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E02\u0E2D\u0E07 GO \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E1B\u0E34\u0E14\u0E2B\u0E23\u0E37\u0E2D\u0E14\u0E32\u0E27\u0E19\u0E4C\u0E42\u0E2B\u0E25\u0E14\u0E40\u0E2D\u0E01\u0E2A\u0E32\u0E23\u0E2D\u0E31\u0E15\u0E42\u0E19\u0E21\u0E31\u0E15\u0E34"}</p>${item.evidence.map((ref) => `<code class="evidence-ref">${escapeHTML(ref)}</code>`).join("")}<dl><dt>Hub receipt</dt><dd>MISSING \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E43\u0E1A\u0E23\u0E31\u0E1A\u0E08\u0E32\u0E01 Hub</dd><dt>\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D</dt><dd>NOT_ASSERTED \xB7 \u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E17\u0E33\u0E07\u0E32\u0E19</dd></dl></article><article class="detail-card"><h3>\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E43\u0E19\u0E0A\u0E38\u0E14\u0E17\u0E35\u0E48\u0E2D\u0E48\u0E32\u0E19\u0E44\u0E14\u0E49</h3><ol class="timeline">${history.map((h) => `<li><strong>${escapeHTML(h.title)}</strong><small>${escapeHTML(format(h.occurredAt))} \xB7 ${escapeHTML(h.sourceEventId)}</small></li>`).join("")}</ol><p class="boundary-note">${mode === "demo" ? "\u0E25\u0E33\u0E14\u0E31\u0E1A\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E15\u0E31\u0E27\u0E2D\u0E22\u0E48\u0E32\u0E07\u0E2A\u0E31\u0E07\u0E40\u0E04\u0E23\u0E32\u0E30\u0E2B\u0E4C" : "\u0E21\u0E35\u0E40\u0E09\u0E1E\u0E32\u0E30 submission \u0E17\u0E35\u0E48 API \u0E19\u0E35\u0E49\u0E2A\u0E48\u0E07\u0E01\u0E25\u0E31\u0E1A \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E1B\u0E23\u0E30\u0E27\u0E31\u0E15\u0E34\u0E17\u0E31\u0E49\u0E07\u0E2B\u0E21\u0E14\u0E02\u0E2D\u0E07\u0E04\u0E33\u0E02\u0E2D"}</p></article></div>`;
+  }
+  document.addEventListener("click", (event) => {
+    const nav = event.target.closest("[data-view]");
+    if (nav) view(nav.dataset.view);
+    const entry = event.target.closest("[data-event]");
+    if (entry) {
+      selectedId = entry.dataset.event;
+      view("detail");
+    }
+  });
+  $("#data-mode").addEventListener("change", () => {
+    mode = $("#data-mode").value;
+    selectedId = items()[0]?.sourceEventId;
+    render();
+  });
+  for (const selector of ["#event-search", "#category-filter", "#source-filter"]) $(selector).addEventListener("input", renderList);
+  $("#request-read-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    const requestId = $("#request-id").value.trim();
+    if (!/^[A-Za-z0-9:_-]{1,120}$/.test(requestId)) return;
+    const sequence = ++readSequence;
+    $("#read-request").disabled = true;
+    $("#read-message").textContent = "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u2026";
+    try {
+      const response = await fetch("/api/greenhouse/requests/" + encodeURIComponent(requestId), { cache: "no-store", credentials: "same-origin", signal: AbortSignal.timeout(1e4) });
+      const body = await response.json();
+      if (!response.ok) throw Error([401, 403].includes(response.status) ? "\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E31\u0E27\u0E2D\u0E48\u0E32\u0E19\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E15\u0E31\u0E27\u0E15\u0E19\u0E1D\u0E31\u0E48\u0E07\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E01\u0E48\u0E2D\u0E19 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01 token \u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49" : response.status === 404 ? "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E04\u0E33\u0E02\u0E2D\u0E2B\u0E23\u0E37\u0E2D route \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21" : "\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A");
+      const item = acceptReadback(body, requestId);
+      if (sequence !== readSequence) return;
+      liveItems = [...liveItems.filter((i) => i.correlationId !== requestId), item];
+      mode = "live";
+      $("#data-mode").value = "live";
+      selectedId = item.sourceEventId;
+      render();
+      $("#read-message").textContent = "\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35 Hub receipt";
+      view("detail");
+    } catch (error) {
+      $("#read-message").textContent = error.name === "TimeoutError" ? "\u0E2B\u0E21\u0E14\u0E40\u0E27\u0E25\u0E32\u0E23\u0E2D\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A" : error.message === "READBACK_INVALID" ? "\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E21\u0E48\u0E15\u0E23\u0E07\u0E15\u0E32\u0E21\u0E2A\u0E31\u0E0D\u0E0D\u0E32" : ["\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E31\u0E27\u0E2D\u0E48\u0E32\u0E19\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E15\u0E31\u0E27\u0E15\u0E19\u0E1D\u0E31\u0E48\u0E07\u0E40\u0E0B\u0E34\u0E23\u0E4C\u0E1F\u0E40\u0E27\u0E2D\u0E23\u0E4C\u0E01\u0E48\u0E2D\u0E19 \xB7 \u0E44\u0E21\u0E48\u0E15\u0E49\u0E2D\u0E07\u0E01\u0E23\u0E2D\u0E01 token \u0E43\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49", "\u0E44\u0E21\u0E48\u0E1E\u0E1A\u0E04\u0E33\u0E02\u0E2D\u0E2B\u0E23\u0E37\u0E2D route \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21", "\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A"].includes(error.message) ? error.message : "\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21 \u0E25\u0E2D\u0E07\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07";
+    } finally {
+      $("#read-request").disabled = false;
+    }
+  });
+  function updateRun() {
+    const device = $("#ai-route").value === "device";
+    const ready = device ? $("#device-protocol").value === "chat-completions-compatible" && $("#device-confirm").checked && $("#device-model").value.trim() : aiConfig?.configured && aiConfig?.csrfToken && $("#ai-model").value;
+    $("#ai-run").disabled = aiBusy || !ready || !$("#ai-synthetic").checked || !$("#ai-input").value.trim();
+  }
+  function deviceMode() {
+    const device = $("#ai-route").value === "device";
+    $("#device-config").hidden = !device;
+    $("#ai-refresh").hidden = device;
+    $("#ai-model").closest("label").hidden = device;
+    if (device) {
+      $("#ai-state").textContent = "DEVICE \xB7 PROTOCOL UNVERIFIED";
+      $("#ai-connection").textContent = "\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C: \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E17\u0E14\u0E2A\u0E2D\u0E1A \xB7 \u0E2A\u0E16\u0E32\u0E19\u0E30 RUNNING \u0E21\u0E32\u0E08\u0E32\u0E01\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48 health check";
+    } else aiStatus();
+    updateRun();
+  }
+  $("#ai-route").addEventListener("change", deviceMode);
+  for (const selector of ["#device-protocol", "#device-model", "#device-confirm"]) $(selector).addEventListener("input", updateRun);
+  $("#ai-cancel").addEventListener("click", () => aiController?.abort());
+  async function aiStatus() {
+    $("#ai-refresh").disabled = true;
+    aiConfig = null;
+    updateRun();
+    try {
+      const response = await fetch("/api/greenhouse/local-ai", { cache: "no-store", credentials: "same-origin", signal: AbortSignal.timeout(5e3) });
+      const body = await response.json();
+      if (!response.ok || body.configured !== true || !Array.isArray(body.models) || !body.models.length) throw Error("DISCONNECTED");
+      aiConfig = body;
+      $("#ai-model").innerHTML = body.models.map((model) => `<option value="${escapeHTML(model)}">${escapeHTML(model)}</option>`).join("");
+      $("#ai-model").disabled = false;
+      $("#ai-state").textContent = "CONFIGURED \xB7 NOT TESTED";
+      $("#overview-ai").textContent = "\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E17\u0E14\u0E2A\u0E2D\u0E1A";
+      $("#ai-connection").textContent = "\u0E21\u0E35 provider \u0E17\u0E35\u0E48\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E2A\u0E16\u0E32\u0E19\u0E30\u0E19\u0E35\u0E49\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E42\u0E21\u0E40\u0E14\u0E25\u0E15\u0E2D\u0E1A\u0E44\u0E14\u0E49";
+    } catch {
+      $("#ai-state").textContent = "DISCONNECTED";
+      $("#overview-ai").textContent = "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D";
+      $("#ai-model").innerHTML = '<option value="">\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E42\u0E21\u0E40\u0E14\u0E25\u0E17\u0E35\u0E48\u0E15\u0E31\u0E49\u0E07\u0E04\u0E48\u0E32</option>';
+      $("#ai-model").disabled = true;
+      $("#ai-connection").textContent = "\u0E23\u0E2D\u0E0A\u0E37\u0E48\u0E2D\u0E41\u0E25\u0E30\u0E1B\u0E25\u0E32\u0E22\u0E17\u0E32\u0E07 runtime \u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \xB7 \u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E32\u0E23\u0E15\u0E23\u0E27\u0E08 localhost \u0E2B\u0E23\u0E37\u0E2D\u0E1B\u0E25\u0E32\u0E22\u0E17\u0E32\u0E07\u0E2A\u0E48\u0E27\u0E19\u0E15\u0E31\u0E27";
+    } finally {
+      $("#ai-refresh").disabled = false;
+      updateRun();
+    }
+  }
+  $("#ai-refresh").addEventListener("click", aiStatus);
+  for (const selector of ["#ai-model", "#ai-input", "#ai-synthetic"]) $(selector).addEventListener("input", updateRun);
+  $("#ai-clear").addEventListener("click", () => {
+    if (aiBusy) return;
+    $("#ai-input").value = "";
+    $("#ai-synthetic").checked = false;
+    $("#ai-output").textContent = "\u0E25\u0E49\u0E32\u0E07\u0E02\u0E49\u0E2D\u0E04\u0E27\u0E32\u0E21\u0E41\u0E25\u0E30\u0E1C\u0E25\u0E25\u0E31\u0E1E\u0E18\u0E4C\u0E41\u0E25\u0E49\u0E27";
+    $("#ai-result-status").textContent = "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E17\u0E14\u0E2A\u0E2D\u0E1A";
+    $("#ai-time").textContent = "\u2014 ms";
+    updateRun();
+  });
+  $("#ai-form").addEventListener("submit", async (event) => {
+    event.preventDefault();
+    if ($("#ai-run").disabled) return;
+    aiBusy = true;
+    aiController = new AbortController();
+    updateRun();
+    $("#ai-clear").disabled = true;
+    $("#ai-refresh").disabled = true;
+    $("#ai-route").disabled = true;
+    $("#ai-cancel").hidden = false;
+    $("#ai-result-status").textContent = "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E14\u0E2A\u0E2D\u0E1A inference\u2026";
+    $("#ai-output").textContent = "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E04\u0E33\u0E15\u0E2D\u0E1A \xB7 \u0E01\u0E32\u0E23\u0E40\u0E23\u0E34\u0E48\u0E21\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E01\u0E32\u0E23\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E27\u0E48\u0E32\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27";
+    const started = performance.now();
+    let timeout, providerTimedOut = false;
+    try {
+      let body;
+      if ($("#ai-route").value === "device") {
+        body = await testDeviceAI({ model: $("#device-model").value, text: $("#ai-input").value, protocol: $("#device-protocol").value, protocolConfirmed: $("#device-confirm").checked, syntheticOnly: $("#ai-synthetic").checked, signal: aiController.signal });
+        $("#ai-connection").textContent = "\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A HTTP response \u0E41\u0E25\u0E30\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E15\u0E32\u0E21\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E17\u0E35\u0E48\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E08\u0E32\u0E01 loopback \u0E1A\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E19\u0E35\u0E49 \xB7 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E2B\u0E25\u0E31\u0E01\u0E10\u0E32\u0E19\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D";
+      } else {
+        timeout = setTimeout(() => {
+          providerTimedOut = true;
+          aiController.abort();
+        }, 12e3);
+        const response = await fetch("/api/greenhouse/local-ai", { method: "POST", credentials: "same-origin", cache: "no-store", headers: { "content-type": "application/json", "x-csrf-token": aiConfig.csrfToken }, body: JSON.stringify({ model: $("#ai-model").value, text: $("#ai-input").value, syntheticOnly: true }), signal: aiController.signal });
+        body = await response.json();
+        if (!response.ok) throw Error("TEST_UNAVAILABLE");
+      }
+      if (typeof body.reply !== "string" || typeof body.modelStatus !== "string" || body.executed !== false) throw Error("TEST_INVALID");
+      $("#ai-output").textContent = body.reply;
+      $("#ai-result-status").textContent = body.modelStatus === "RESPONDED" ? "\u0E42\u0E21\u0E40\u0E14\u0E25\u0E15\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E1C\u0E25\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D" : body.modelStatus + " \xB7 \u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E2A\u0E33\u0E23\u0E2D\u0E07\u0E08\u0E32\u0E01 policy \u0E44\u0E21\u0E48\u0E43\u0E0A\u0E48\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E42\u0E21\u0E40\u0E14\u0E25";
+      $("#ai-state").textContent = body.modelStatus;
+      $("#overview-ai").textContent = body.modelStatus === "RESPONDED" ? "\u0E15\u0E2D\u0E1A\u0E43\u0E19\u0E01\u0E32\u0E23\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E41\u0E25\u0E49\u0E27" : "\u0E43\u0E0A\u0E49\u0E04\u0E33\u0E15\u0E2D\u0E1A\u0E2A\u0E33\u0E23\u0E2D\u0E07";
+    } catch (error) {
+      const code = error.code || (providerTimedOut ? "TIMEOUT" : aiController.signal.aborted ? "CANCELLED" : "TEST_ERROR");
+      $("#ai-result-status").textContent = code + " \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25 inference";
+      $("#ai-output").textContent = code === "DEVICE_BLOCKED_OR_UNREACHABLE" ? "\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E2D\u0E32\u0E08\u0E1A\u0E25\u0E47\u0E2D\u0E01 loopback \u0E2B\u0E23\u0E37\u0E2D server \u0E2D\u0E32\u0E08\u0E40\u0E02\u0E49\u0E32\u0E16\u0E36\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E44\u0E21\u0E48\u0E2A\u0E23\u0E38\u0E1B\u0E27\u0E48\u0E32 HERMES \u0E2B\u0E22\u0E38\u0E14\u0E17\u0E33\u0E07\u0E32\u0E19 \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E40\u0E1B\u0E25\u0E35\u0E48\u0E22\u0E19 auth/CORS/\u0E40\u0E04\u0E23\u0E37\u0E2D\u0E02\u0E48\u0E32\u0E22" : code === "CANCELLED" ? "\u0E22\u0E01\u0E40\u0E25\u0E34\u0E01\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25\u0E17\u0E14\u0E2A\u0E2D\u0E1A" : "\u0E15\u0E23\u0E27\u0E08 protocol \u0E41\u0E25\u0E30\u0E01\u0E32\u0E23\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E1A\u0E19\u0E2D\u0E38\u0E1B\u0E01\u0E23\u0E13\u0E4C\u0E15\u0E32\u0E21\u0E1B\u0E01\u0E15\u0E34 \xB7 \u0E22\u0E31\u0E07\u0E43\u0E0A\u0E49\u0E2B\u0E19\u0E49\u0E32\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E15\u0E48\u0E2D\u0E44\u0E14\u0E49";
+      if ($("#ai-route").value === "device") $("#ai-connection").textContent = error.reachable ? "\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A HTTP response \u0E41\u0E25\u0E49\u0E27 \u0E41\u0E15\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E23\u0E39\u0E1B\u0E41\u0E1A\u0E1A\u0E2B\u0E23\u0E37\u0E2D\u0E1C\u0E25 inference" : "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E08\u0E32\u0E01\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C";
+      $("#ai-state").textContent = code;
+      $("#overview-ai").textContent = "\u0E17\u0E14\u0E2A\u0E2D\u0E1A\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21";
+    } finally {
+      clearTimeout(timeout);
+      $("#ai-time").textContent = Math.round(performance.now() - started) + " ms";
+      aiBusy = false;
+      aiController = null;
+      $("#ai-clear").disabled = false;
+      $("#ai-refresh").disabled = false;
+      $("#ai-route").disabled = false;
+      $("#ai-cancel").hidden = true;
+      updateRun();
+    }
+  });
+  render();
+  aiStatus();
+
+  // greenhouse/ui-state.mjs
+  var states = {
+    loading: {
+      connection: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D",
+      heading: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E2A\u0E2D\u0E1A",
+      pill: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08",
+      className: "pill--unknown",
+      detail: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E15\u0E31\u0E27\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01 Hub \u0E42\u0E14\u0E22\u0E44\u0E21\u0E48\u0E40\u0E01\u0E47\u0E1A\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E2A\u0E48\u0E27\u0E19\u0E15\u0E31\u0E27\u0E44\u0E27\u0E49\u0E43\u0E19\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07",
+      inboxTitle: "\u0E01\u0E33\u0E25\u0E31\u0E07\u0E15\u0E23\u0E27\u0E08\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23",
+      inboxDetail: "\u0E23\u0E2D\u0E2A\u0E31\u0E01\u0E04\u0E23\u0E39\u0E48 \u0E23\u0E30\u0E1A\u0E1A\u0E01\u0E33\u0E25\u0E31\u0E07\u0E02\u0E2D\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E08\u0E32\u0E01 Hub",
+      icon: "\u21BB"
+    },
+    disconnected: {
+      connection: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D",
+      heading: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D",
+      pill: "UNKNOWN",
+      className: "pill--unknown",
+      detail: "\u0E2B\u0E19\u0E49\u0E32\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E43\u0E0A\u0E49\u0E07\u0E32\u0E19\u0E41\u0E1A\u0E1A\u0E2D\u0E2D\u0E1F\u0E44\u0E25\u0E19\u0E4C \u0E41\u0E15\u0E48\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E31\u0E27\u0E2D\u0E48\u0E32\u0E19 Hub \u0E41\u0E25\u0E30\u0E44\u0E21\u0E48\u0E21\u0E35\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 Work \u0E16\u0E39\u0E01\u0E40\u0E01\u0E47\u0E1A\u0E44\u0E27\u0E49",
+      inboxTitle: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E17\u0E35\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E41\u0E25\u0E49\u0E27",
+      inboxDetail: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E31\u0E27\u0E2D\u0E48\u0E32\u0E19 Hub \u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15\u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E14\u0E39 Work \u0E40\u0E14\u0E34\u0E21 Greenhouse \u0E08\u0E30\u0E44\u0E21\u0E48\u0E2A\u0E23\u0E49\u0E32\u0E07 Work \u0E2B\u0E23\u0E37\u0E2D\u0E40\u0E14\u0E32\u0E2A\u0E16\u0E32\u0E19\u0E30",
+      icon: "\u21BB"
+    },
+    authRequired: {
+      connection: "\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A",
+      heading: "\u0E15\u0E49\u0E2D\u0E07\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A",
+      pill: "LOGIN",
+      className: "pill--unknown",
+      detail: "\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A\u0E1C\u0E48\u0E32\u0E19\u0E0A\u0E48\u0E2D\u0E07\u0E17\u0E32\u0E07\u0E40\u0E14\u0E34\u0E21\u0E02\u0E2D\u0E07\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E01\u0E48\u0E2D\u0E19 \u0E08\u0E36\u0E07\u0E08\u0E30\u0E14\u0E39 Work \u0E2A\u0E48\u0E27\u0E19\u0E15\u0E31\u0E27\u0E44\u0E14\u0E49",
+      inboxTitle: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E40\u0E02\u0E49\u0E32\u0E2A\u0E39\u0E48\u0E23\u0E30\u0E1A\u0E1A",
+      inboxDetail: "\u0E43\u0E0A\u0E49\u0E01\u0E32\u0E23\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E15\u0E31\u0E27\u0E15\u0E19\u0E40\u0E14\u0E34\u0E21\u0E17\u0E35\u0E48\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07\u0E2D\u0E19\u0E38\u0E21\u0E31\u0E15\u0E34 Greenhouse \u0E08\u0E30\u0E44\u0E21\u0E48\u0E23\u0E31\u0E1A\u0E23\u0E2B\u0E31\u0E2A\u0E1C\u0E48\u0E32\u0E19\u0E2B\u0E23\u0E37\u0E2D token \u0E1C\u0E48\u0E32\u0E19\u0E2B\u0E19\u0E49\u0E32\u0E19\u0E35\u0E49",
+      icon: "\u2311"
+    },
+    connectedEmpty: {
+      connection: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27",
+      heading: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23",
+      pill: "CONNECTED",
+      className: "pill--online",
+      detail: "\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01 Hub \u0E41\u0E1A\u0E1A read-only \u0E41\u0E25\u0E49\u0E27",
+      inboxTitle: "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E21\u0E35\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A",
+      inboxDetail: "Hub \u0E2A\u0E48\u0E07\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E27\u0E48\u0E32\u0E07\u0E01\u0E25\u0E31\u0E1A\u0E21\u0E32 \u0E13 \u0E40\u0E27\u0E25\u0E32",
+      icon: "\u2713"
+    },
+    loadError: {
+      connection: "\u0E15\u0E23\u0E27\u0E08\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08",
+      heading: "\u0E42\u0E2B\u0E25\u0E14\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08",
+      pill: "ERROR",
+      className: "pill--unknown",
+      detail: "\u0E22\u0E31\u0E07\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49 \u0E25\u0E2D\u0E07\u0E15\u0E23\u0E27\u0E08\u0E2D\u0E35\u0E01\u0E04\u0E23\u0E31\u0E49\u0E07\u0E20\u0E32\u0E22\u0E2B\u0E25\u0E31\u0E07",
+      inboxTitle: "\u0E42\u0E2B\u0E25\u0E14\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E44\u0E21\u0E48\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08",
+      inboxDetail: "\u0E44\u0E21\u0E48\u0E21\u0E35\u0E01\u0E32\u0E23\u0E41\u0E2A\u0E14\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E04\u0E49\u0E32\u0E07\u0E2B\u0E23\u0E37\u0E2D\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E33\u0E25\u0E2D\u0E07 \u0E01\u0E14 \u201C\u0E15\u0E23\u0E27\u0E08\u0E01\u0E32\u0E23\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u201D \u0E40\u0E1E\u0E37\u0E48\u0E2D\u0E25\u0E2D\u0E07\u0E43\u0E2B\u0E21\u0E48",
+      icon: "!"
+    },
+    connected: {
+      connection: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27",
+      heading: "\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E15\u0E48\u0E2D\u0E41\u0E25\u0E49\u0E27",
+      pill: "CONNECTED",
+      className: "pill--online",
+      detail: "\u0E23\u0E32\u0E22\u0E01\u0E32\u0E23\u0E15\u0E48\u0E2D\u0E44\u0E1B\u0E19\u0E35\u0E49\u0E21\u0E32\u0E08\u0E32\u0E01 Hub \u0E17\u0E35\u0E48\u0E44\u0E14\u0E49\u0E23\u0E31\u0E1A\u0E2D\u0E19\u0E38\u0E0D\u0E32\u0E15 \u0E41\u0E25\u0E30\u0E40\u0E1B\u0E47\u0E19\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25 read-only"
+    }
+  };
+  function getConnectionState(key) {
+    return states[key] || states.loadError;
+  }
+  function getErrorState(code) {
+    if (code === "OWNER_SESSION_REQUIRED") return "authRequired";
+    if (code === "HUB_READER_UNAVAILABLE" || code === "OWNER_SESSION_UNAVAILABLE") return "disconnected";
+    return "loadError";
+  }
+
+  // greenhouse/app.js
+  var connection = document.querySelector("#connection");
+  var statusHeading = document.querySelector("#status-heading");
+  var statusPill = document.querySelector("#status-pill");
+  var statusDetail = document.querySelector("#status-detail");
+  var inbox = document.querySelector("#inbox");
+  var operations = document.querySelector("#operations");
+  function progressLabel(item) {
+    const execution = String(item.execution ?? "").toUpperCase();
+    const delivery = String(item.delivery ?? "").toUpperCase();
+    const hall = String(item.hall ?? "").toUpperCase();
+    if (hall === "COMPLETED" || hall === "CLOSED") return "\u0E1B\u0E34\u0E14\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27 (\u0E15\u0E32\u0E21\u0E2A\u0E16\u0E32\u0E19\u0E30 Hall)";
+    if (hall === "RETURN_REVIEW" || hall === "RETURNED") return "\u0E2A\u0E48\u0E07\u0E1C\u0E25\u0E01\u0E25\u0E31\u0E1A\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E23\u0E2D\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A";
+    if (["COMPLETED", "SUCCEEDED", "SUCCESS"].includes(execution)) return "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E23\u0E32\u0E22\u0E07\u0E32\u0E19\u0E27\u0E48\u0E32\u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08 \xB7 \u0E23\u0E2D\u0E15\u0E23\u0E27\u0E08\u0E23\u0E31\u0E1A";
+    if (["RUNNING", "EXECUTING", "IN_PROGRESS"].includes(execution)) return "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E01\u0E33\u0E25\u0E31\u0E07\u0E17\u0E33\u0E07\u0E32\u0E19";
+    if (["FAILED", "ERROR", "BLOCKED"].includes(execution)) return "\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E21\u0E37\u0E2D\u0E21\u0E35\u0E1B\u0E31\u0E0D\u0E2B\u0E32";
+    if (["READBACK_VERIFIED", "DELIVERED", "ACCEPTED", "QUEUED"].includes(delivery)) return "\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E01\u0E32\u0E23\u0E2A\u0E48\u0E07\u0E07\u0E32\u0E19\u0E41\u0E25\u0E49\u0E27 \xB7 \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D";
+    return "\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E17\u0E23\u0E32\u0E1A\u0E2A\u0E16\u0E32\u0E19\u0E30\u0E01\u0E32\u0E23\u0E25\u0E07\u0E21\u0E37\u0E2D";
+  }
+  async function loadOperations() {
+    try {
+      const response = await fetch("/api/greenhouse/operations", { cache: "no-store", credentials: "same-origin" });
+      const report = await response.json();
+      if (!response.ok || !report?.counts || !Array.isArray(report.items)) {
+        operations.innerHTML = '<div class="empty"><h3>Operational Log \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21</h3><p>' + text(report.code || "UNKNOWN") + " \u2014 \u0E44\u0E21\u0E48\u0E41\u0E2A\u0E14\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25\u0E08\u0E33\u0E25\u0E2D\u0E07</p></div>";
+        return;
+      }
+      const c = report.counts;
+      const summary = "Attempts: " + text(c.attempts) + " \xB7 Running: " + text(c.running) + " \xB7 Waiting: " + text(c.waiting) + " \xB7 Incidents: " + text(c.incidents) + " \xB7 Hall closed: " + text(c.hallClosed);
+      const rows = report.items.slice(0, 30).map((item) => '<article class="readback"><h3>' + text(item.workId) + "</h3><p>\u0E1B\u0E25\u0E32\u0E22\u0E17\u0E32\u0E07: " + text(item.stationId) + " \xB7 " + text(item.operation) + "</p><p><strong>\u0E04\u0E27\u0E32\u0E21\u0E04\u0E37\u0E1A\u0E2B\u0E19\u0E49\u0E32: " + text(progressLabel(item)) + "</strong></p><p>PIXIE: " + text(item.delivery) + " \xB7 TOOL: " + text(item.execution) + " \xB7 HALL: " + text(item.hall) + "</p><p>\u0E23\u0E2D: " + text(item.waitingOn || "-") + " \xB7 \u0E2A\u0E32\u0E40\u0E2B\u0E15\u0E38: " + text(item.blocker || "-") + "</p><p>\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E25\u0E48\u0E32\u0E2A\u0E38\u0E14: " + text(item.lastSeenAt) + " \xB7 " + text(item.confidence) + "</p></article>").join("");
+      operations.innerHTML = "<p><strong>" + summary + "</strong></p>" + (rows || '<div class="empty"><p>\u0E44\u0E21\u0E48\u0E21\u0E35\u0E40\u0E2B\u0E15\u0E38\u0E01\u0E32\u0E23\u0E13\u0E4C\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08\u0E22\u0E37\u0E19\u0E22\u0E31\u0E19\u0E44\u0E14\u0E49</p></div>');
+    } catch {
+      operations.innerHTML = '<div class="empty"><h3>Operational Log \u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E1E\u0E23\u0E49\u0E2D\u0E21</h3><p>READBACK_UNAVAILABLE</p></div>';
+    }
+  }
+  var refreshButton = document.querySelector("#refresh");
+  function text(value) {
+    return String(value ?? "").replace(/[&<>"']/g, (ch) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[ch]);
+  }
+  function setConnection(key, detail = null) {
+    const state = getConnectionState(key);
+    connection.innerHTML = "<i></i> " + text(state.connection);
+    statusHeading.textContent = state.heading;
+    statusPill.textContent = state.pill;
+    statusPill.className = "pill " + state.className;
+    statusDetail.textContent = detail || state.detail;
+  }
+  function showMessage(key, observedAt = null) {
+    const state = getConnectionState(key);
+    const detail = observedAt && key === "connectedEmpty" ? state.inboxDetail + " " + observedAt + "." : state.inboxDetail;
+    inbox.innerHTML = '<div class="empty"><span class="empty-icon">' + text(state.icon) + "</span><h3>" + text(state.inboxTitle) + "</h3><p>" + text(detail) + "</p></div>";
+  }
+  function showFailure(code) {
+    const key = getErrorState(code);
+    setConnection(key);
+    showMessage(key);
+  }
+  async function loadInbox() {
+    refreshButton.disabled = true;
+    setConnection("loading");
+    showMessage("loading");
+    try {
+      const statusRes = await fetch("/api/greenhouse/status", { cache: "no-store", credentials: "same-origin" });
+      const status = await statusRes.json();
+      if (!statusRes.ok) {
+        showFailure(status.code);
+        return;
+      }
+      if (!status.ownerSession) {
+        showFailure("OWNER_SESSION_REQUIRED");
+        return;
+      }
+      await loadOperations();
+      if (!status.inboxReader) {
+        showFailure("HUB_READER_UNAVAILABLE");
+        return;
+      }
+      const response = await fetch("/api/greenhouse/inbox", { cache: "no-store", credentials: "same-origin" });
+      const payload = await response.json();
+      if (!response.ok || !Array.isArray(payload.items)) {
+        showFailure(payload.code || "HUB_READBACK_FAILED");
+        return;
+      }
+      if (!payload.items.length) {
+        setConnection("connectedEmpty", "\u0E2D\u0E48\u0E32\u0E19\u0E08\u0E32\u0E01 Hub \u0E41\u0E1A\u0E1A read-only \u0E41\u0E25\u0E49\u0E27 \xB7 \u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08 " + text(payload.observedAt || "UNKNOWN"));
+        showMessage("connectedEmpty", text(payload.observedAt || "UNKNOWN"));
+        return;
+      }
+      setConnection("connected");
+      inbox.innerHTML = payload.items.map((item) => `<article class="readback"><h3>${text(item.title || "\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A\u0E08\u0E32\u0E01\u0E23\u0E30\u0E1A\u0E1A\u0E40\u0E08\u0E49\u0E32\u0E02\u0E2D\u0E07")}</h3><p>\u0E41\u0E2B\u0E25\u0E48\u0E07\u0E02\u0E49\u0E2D\u0E21\u0E39\u0E25: ${text(item.ownerSource || "UNKNOWN")} \xB7 \u0E04\u0E27\u0E32\u0E21\u0E40\u0E0A\u0E37\u0E48\u0E2D\u0E21\u0E31\u0E48\u0E19: ${text(item.confidence || "UNKNOWN")}</p><p>\u0E40\u0E27\u0E25\u0E32\u0E17\u0E35\u0E48\u0E15\u0E23\u0E27\u0E08: ${text(item.observedAt || "UNKNOWN")} \xB7 \u0E04\u0E27\u0E32\u0E21\u0E43\u0E2B\u0E21\u0E48: ${text(item.freshness || "UNKNOWN")}</p><code>${text(item.workId || "\u0E44\u0E21\u0E48\u0E21\u0E35 Work ID \u0E43\u0E19\u0E1C\u0E25\u0E2D\u0E48\u0E32\u0E19\u0E01\u0E25\u0E31\u0E1A")}</code></article>`).join("");
+    } catch {
+      showFailure("HUB_READBACK_FAILED");
+    } finally {
+      refreshButton.disabled = false;
+    }
+  }
+  document.querySelector("#refresh").addEventListener("click", loadInbox);
+  document.querySelector("#reload").addEventListener("click", loadInbox);
+  setInterval(() => {
+    if (!document.hidden && !refreshButton.disabled) loadInbox();
+  }, 6e4);
+  loadInbox();
+  if (false) {}
+  });
+  var installButton = document.querySelector("#install");
+  var installHelp = document.querySelector("#install-help");
+  var pendingInstall = null;
+  function showInstallHelp(message) {
+    installHelp.textContent = message;
+    installHelp.hidden = false;
+  }
+  window.addEventListener("beforeinstallprompt", (event) => {
+    event.preventDefault();
+    pendingInstall = event;
+    installButton.hidden = false;
+  });
+  installButton.addEventListener("click", async () => {
+    if (!pendingInstall) {
+      showInstallHelp("\u0E40\u0E1B\u0E34\u0E14\u0E40\u0E21\u0E19\u0E39\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01 \u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B \u0E2B\u0E23\u0E37\u0E2D \u0E40\u0E1E\u0E34\u0E48\u0E21\u0E44\u0E1B\u0E22\u0E31\u0E07\u0E2B\u0E19\u0E49\u0E32\u0E08\u0E2D\u0E2B\u0E25\u0E31\u0E01");
+      return;
+    }
+    const prompt = pendingInstall;
+    pendingInstall = null;
+    installButton.hidden = true;
+    await prompt.prompt();
+    const choice = await prompt.userChoice;
+    if (choice?.outcome !== "accepted") showInstallHelp("\u0E22\u0E31\u0E07\u0E44\u0E21\u0E48\u0E44\u0E14\u0E49\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 \u0E04\u0E38\u0E13\u0E2A\u0E32\u0E21\u0E32\u0E23\u0E16\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E08\u0E32\u0E01\u0E40\u0E21\u0E19\u0E39\u0E40\u0E1A\u0E23\u0E32\u0E27\u0E4C\u0E40\u0E0B\u0E2D\u0E23\u0E4C\u0E44\u0E14\u0E49");
+  });
+  window.addEventListener("appinstalled", () => {
+    pendingInstall = null;
+    installButton.hidden = true;
+    showInstallHelp("\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07 Greenhouse \u0E1A\u0E19\u0E40\u0E04\u0E23\u0E37\u0E48\u0E2D\u0E07\u0E41\u0E25\u0E49\u0E27");
+  });
+  if (window.matchMedia("(display-mode: standalone)").matches) {
+    installButton.hidden = true;
+  } else {
+    showInstallHelp("\u0E1A\u0E19 Android \u0E40\u0E1B\u0E34\u0E14\u0E1C\u0E48\u0E32\u0E19 Chrome \u0E41\u0E25\u0E49\u0E27\u0E40\u0E25\u0E37\u0E2D\u0E01\u0E40\u0E21\u0E19\u0E39 \u22EE \u2192 \u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07\u0E41\u0E2D\u0E1B \u0E40\u0E21\u0E37\u0E48\u0E2D\u0E40\u0E27\u0E47\u0E1A\u0E1E\u0E23\u0E49\u0E2D\u0E21\u0E15\u0E34\u0E14\u0E15\u0E31\u0E49\u0E07");
+  }
+})();
+</script>
+</body>
+</html>
