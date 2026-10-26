@@ -1,7 +1,7 @@
 {
   "$schema":"node_modules/wrangler/config-schema.json",
   "name":"greenhouse-transport",
-  "main":"src/pixie/transport-worker.mjs",
+  "main":"src/greenhouse/read-entry.mjs",
   "compatibility_date":"2026-10-10",
   "services":[{"binding":"METROPOLIS_SERVICE","service":"metropolis"}],
   "d1_databases":[{"binding":"PIXIE_DB","database_name":"pixie","database_id":"0c9fda05-2b91-4b31-9f5f-25e8b7235251"}],
