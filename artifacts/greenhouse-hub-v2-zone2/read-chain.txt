@@ -1,0 +1,12 @@
+✔ actual GO and Greenhouse agree on read tools, protocol and optional list default30 (5.367407ms)
+✔ actual scoped result preserves station/operation proof and false completion; mismatch returns safe code and receipt (0.604933ms)
+✔ actual adapter denies authorization and missing reader with safe code and exact receipt (0.633465ms)
+✔ GO -> actual Hub discovery/schema/relay -> actual Greenhouse scoped read -> GO receipt (34.673585ms)
+ℹ tests 4
+ℹ suites 0
+ℹ pass 4
+ℹ fail 0
+ℹ cancelled 0
+ℹ skipped 0
+ℹ todo 0
+ℹ duration_ms 149.207684

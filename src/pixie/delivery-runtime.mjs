@@ -101,11 +101,12 @@ export function createPixieDeliveryRuntime({store,queue,dispatch,readback,clock=
     if(typeof readback==='function')for(const item of await store.listByState(['ACCEPTED','OUTCOME_UNKNOWN'],limit)){
       try{
         const reply=await readback(item);
+        // Preserve any explicit proof correlation; never substitute a different attempt.
+        if(reply?.attemptId!==undefined && reply.attemptId!==item.attemptId)continue;
         if(reply?.verified===true)await recordReadback({...reply,attemptId:item.attemptId});
-        else if(reply?.notSent===true){
-          await store.transition(item.attemptId,[item.state],'WAITING_ROUTE',{reason:reply.reason||'DESTINATION_NOT_READY'});
-          if((item.retryCount||0)<5)results.push(await queueAttempt(item.attemptId));
-        }
+        // A readback transport's notSent says nothing about the original dispatch.
+        // Hold ACCEPTED/OUTCOME_UNKNOWN until correlated verified evidence arrives.
+        // No authoritative original-no-effect attestation contract exists for replay.
       }catch{}
     }
     return results;

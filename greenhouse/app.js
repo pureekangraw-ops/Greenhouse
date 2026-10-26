@@ -11,12 +11,13 @@ function progressLabel(item) {
   const execution = String(item.execution ?? '').toUpperCase();
   const delivery = String(item.delivery ?? '').toUpperCase();
   const hall = String(item.hall ?? '').toUpperCase();
-  if (hall === 'COMPLETED' || hall === 'CLOSED') return 'ปิดงานแล้ว (ตามสถานะ Hall)';
+  if (hall === 'COMPLETED' || hall === 'CLOSED') return 'Hall รายงาน ' + hall + ' · ไม่ได้ใช้ยืนยัน Work ในรายการหลัก';
   if (hall === 'RETURN_REVIEW' || hall === 'RETURNED') return 'ส่งผลกลับแล้ว · รอตรวจรับ';
   if (['COMPLETED','SUCCEEDED','SUCCESS'].includes(execution)) return 'เครื่องมือรายงานว่าสำเร็จ · รอตรวจรับ';
   if (['RUNNING','EXECUTING','IN_PROGRESS'].includes(execution)) return 'เครื่องมือกำลังทำงาน';
   if (['FAILED','ERROR','BLOCKED'].includes(execution)) return 'เครื่องมือมีปัญหา';
-  if (['READBACK_VERIFIED','DELIVERED','ACCEPTED','QUEUED'].includes(delivery)) return 'ยืนยันการส่งงานแล้ว · ยังไม่ยืนยันการลงมือ';
+  if (delivery === 'QUEUED') return 'คิวรอส่ง · ยังไม่ยืนยันปลายทางรับ';
+  if (['READBACK_VERIFIED','DELIVERED','ACCEPTED'].includes(delivery)) return 'ยืนยันการส่งงานแล้ว · ยังไม่ยืนยันการลงมือ';
   return 'ยังไม่ทราบสถานะการลงมือ';
 }
 async function loadOperations() {

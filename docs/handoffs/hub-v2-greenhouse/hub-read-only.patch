@@ -1,0 +1,79 @@
+diff --git a/src/entry.js b/src/entry.js
+--- a/src/entry.js
++++ b/src/entry.js
+@@ -7,5 +7,6 @@
+   connections() { return privateHub(this.env).connections(); }
+   refresh(connectorId) { return privateHub(this.env).refresh(connectorId); }
+   catalog() { return privateHub(this.env).catalog(); }
++  receipt(input) { return privateHub(this.env).receipt(input); }
+   relay(input) { return privateHub(this.env).relay(input); }
+ }
+diff --git a/src/hub.js b/src/hub.js
+--- a/src/hub.js
++++ b/src/hub.js
+@@ -5,7 +5,7 @@
+   if (typeof s !== "string" || !/^[A-Za-z0-9_-]{1,100}$/.test(s))
+     fail("INVALID_ID");
+ }
+-function publicReceipt(r) {
++export function publicReceipt(r) {
+   return {
+     messageId: r.message_id,
+     toolId: r.tool_id,
+diff --git a/src/private.js b/src/private.js
+--- a/src/private.js
++++ b/src/private.js
+@@ -1,4 +1,4 @@
+-import { Hub } from './hub.js';
++import { Hub, publicReceipt } from './hub.js';
+ import { Store } from './store.js';
+ import { fail, canonical } from './net.js';
+ import { refreshSchemas } from './schema-refresh.js';
+@@ -63,6 +63,15 @@
+     if (canonical(await store.connector(id)) !== canonical(declared)) fail('CONNECTOR_CONFIGURATION_CONFLICT', 409);
+   }
+   return {
++    // Read only: do not sync managed pointers or refresh schemas here.
++    async receipt(input) {
++      if (!input || typeof input !== 'object' || Array.isArray(input) || Object.keys(input).some(k => !['connectorId','messageId'].includes(k)) ||
++          typeof input.connectorId !== 'string' || typeof input.messageId !== 'string' || !/^[A-Za-z0-9_-]{1,100}$/.test(input.connectorId || '') || !/^[A-Za-z0-9_-]{1,100}$/.test(input.messageId || '')) fail('INVALID_RECEIPT_QUERY');
++      if (!configured().some(c => c.id === input.connectorId)) fail('CONNECTOR_NOT_MANAGED', 403);
++      const row = await store.receipt(input.messageId);
++      if (!row || !row.tool_id.startsWith(input.connectorId + '::')) return {status:'NOT_FOUND', receipt:null};
++      return {status:'FOUND', receipt:publicReceipt(row)};
++    },
+     async connections() {
+       await syncManaged(env, serviceFetch(env, fallback));
+       const refresh = await refreshSchemas(hub);
+diff --git a/test/receipt-read.test.js b/test/receipt-read.test.js
+new file mode 100644
+--- /dev/null
++++ b/test/receipt-read.test.js
+@@ -0,0 +1,27 @@
++import test from 'node:test';
++import assert from 'node:assert/strict';
++import {privateHub} from '../src/private.js';
++import {database} from './db.js';
++async function fixture(){
++ const db=database();
++ await db.prepare('INSERT INTO deliveries VALUES(?,?,?,?,?,?,?,?)').bind('exact-1','private-hash','brain::brain_save','{}','UNKNOWN','2026-10-26T00:00:00Z','2026-10-26T00:00:00Z',null).run();
++ return {db,bridge:privateHub({HUB_DB:db,MANAGED_CONNECTORS:JSON.stringify([{id:'brain'},{id:'factory'}])},()=>{throw Error('READ_MUST_NOT_FETCH');})};
++}
++test('exact managed connector lookup preserves uncertainty, redacts hash and never mutates',async()=>{
++ const {db,bridge}=await fixture();
++ const before=await db.prepare('SELECT * FROM deliveries').all();
++ const r=await bridge.receipt({connectorId:'brain',messageId:'exact-1'});
++ assert.equal(r.status,'FOUND');assert.equal(r.receipt.state,'UNKNOWN');assert.equal(r.receipt.taskSuccess,null);assert.equal(r.receipt.messageId,'exact-1');assert.equal('request_hash' in r.receipt,false);
++ assert.deepEqual(await db.prepare('SELECT * FROM deliveries').all(),before);
++ assert.deepEqual(await db.prepare('SELECT * FROM connectors').all(),{results:[]});
++});
++test('cross connector and absent rows are indistinguishable; unmanaged scope denied',async()=>{
++ const {bridge}=await fixture();
++ assert.deepEqual(await bridge.receipt({connectorId:'factory',messageId:'exact-1'}),{status:'NOT_FOUND',receipt:null});
++ assert.deepEqual(await bridge.receipt({connectorId:'brain',messageId:'missing'}),{status:'NOT_FOUND',receipt:null});
++ await assert.rejects(bridge.receipt({connectorId:'unknown',messageId:'exact-1'}),/CONNECTOR_NOT_MANAGED/);
++});
++test('malformed exact lookup fails before storage use',async()=>{
++ const {bridge}=await fixture();
++ for(const input of [{connectorId:'brain',messageId:123},{connectorId:123,messageId:'exact-1'},null,{}, {connectorId:'brain',messageId:'bad/id'}, {connectorId:'brain',messageId:'exact-1',actor:'owner'}])await assert.rejects(bridge.receipt(input),/INVALID_RECEIPT_QUERY/);
++});
