@@ -1,51 +1,69 @@
 import {testDeviceAI} from './device-ai.mjs';
-import {demoEvents,filterEvents,eventHistory,acceptReadback,escapeHTML as esc} from './workspace-model.mjs';
+import {demoEvents,acceptReadback,escapeHTML as esc,trackingKey,trackingStatus,filterTracking,acceptTracking,requestTracking,renderTrackingRow,itemsAfterReadFailure,trackingTime as format} from './workspace-model.mjs';
 const $=selector=>document.querySelector(selector);
-let mode='demo',liveItems=[],selectedId=demoEvents[0].sourceEventId,aiConfig=null,aiBusy=false,readSequence=0,aiController=null;
-const items=()=>mode==='demo'?demoEvents:liveItems;
-const format=value=>Number.isFinite(Date.parse(value))?new Date(value).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'ยังไม่มีข้อมูล';
+// The retained request endpoint has no namespace argument. Remember its last
+// successful exact identity rather than clearing other sources with the same ID.
+const requestReadRefs=new Map();
+let mode='live',liveItems=[],selectedId=null,aiConfig=null,aiBusy=false,readSequence=0,aiController=null,listSequence=0,detailSequence=0,listScroll=0,lastRow=null;
+const demoItems=demoEvents.map(e=>({...requestTracking(e),ref:{sourceSystem:e.ownerSource,resourceType:'EVENT',resourceId:e.sourceEventId}}));
+const items=()=>mode==='demo'?demoItems:liveItems;
 function view(name){
- if(!['overview','events','detail','ai'].includes(name))return;
- document.querySelectorAll('[data-panel]').forEach(panel=>panel.hidden=panel.dataset.panel!==name);
- document.querySelectorAll('.workspace-nav [data-view]').forEach(button=>{if(button.dataset.view===name)button.setAttribute('aria-current','page');else button.removeAttribute('aria-current');});
- $('#view-title').textContent={overview:'ภาพรวม',events:'เหตุการณ์',detail:'รายละเอียดเหตุการณ์',ai:'Local AI Lab'}[name];
+ if(!['events','detail','settings','ai'].includes(name))return;
+ document.querySelectorAll('[data-panel]').forEach(p=>p.hidden=p.dataset.panel!==name);
+ document.querySelectorAll('.workspace-nav [data-view]').forEach(b=>{if(b.dataset.view===name)b.setAttribute('aria-current','page');else b.removeAttribute('aria-current');});
+ $('#view-title').textContent={events:'งานของฉัน',detail:'รายละเอียด',settings:'การตั้งค่า',ai:'Local AI Lab'}[name];
  if(name==='detail')renderDetail();
+ if(name==='events'){renderList();requestAnimationFrame(()=>{window.scrollTo(0,listScroll);lastRow=[...document.querySelectorAll('[data-tracking]')].find(row=>row.dataset.tracking===selectedId);lastRow?.focus({preventScroll:true});});}else $('#view-title').focus({preventScroll:true});
 }
-function row(item){return `<button class="event-row" data-event="${esc(item.sourceEventId)}"><span class="event-symbol">${item.category==='REQUEST_SUBMITTED'?'↗':'≡'}</span><span><strong>${esc(item.title)}</strong><small>${esc(item.sourceEventId)} · ${esc(item.ownerSource)}</small></span><span class="event-tag">${esc(item.category)}</span><time>${esc(format(item.occurredAt))}</time><span aria-hidden="true">→</span></button>`;}
 function renderList(){
- const results=filterEvents(items(),{query:$('#event-search').value,category:$('#category-filter').value,source:$('#source-filter').value});
- $('#event-count').textContent=results.length+' รายการ'+(mode==='demo'?' · DEMO':' · เฉพาะที่อ่านแล้ว');
- $('#event-results').innerHTML=results.length?results.map(row).join(''):'<div class="empty"><h3>ไม่มีรายการตรงกับตัวกรอง</h3><p>ลองเปลี่ยนคำค้น หรืออ่านคำขอที่ระบุจากระบบเจ้าของ</p></div>';
+ const rows=filterTracking(items(),{query:$('#event-search').value,status:$('#category-filter').value,source:$('#source-filter').value});
+ $('#event-count').textContent=rows.length+' รายการที่ตรงตัวกรอง · '+items().length+' รายการในชุดที่อ่านได้ · ไม่ทราบจำนวนทั้งหมด';
+ $('#event-results').innerHTML=rows.length?rows.map(renderTrackingRow).join(''):'<div class="empty"><h3>ไม่มีรายการที่แสดงได้</h3><p>ตรวจสถานะการเชื่อมต่อหรือเปลี่ยนตัวกรอง · ไม่มีการเติมข้อมูลตัวอย่างอัตโนมัติ</p></div>';
 }
 function render(){
- $('#data-banner').textContent=mode==='demo'?'DEMO · ข้อมูลสังเคราะห์สำหรับทดลองหน้าจอ ไม่ใช่กิจกรรมจริง':'LIVE READBACK · เฉพาะคำขอที่อ่านกลับแล้ว ยังไม่มีรายการสดหรือสถิติรวมทั้งระบบ';
+ $('#data-banner').textContent=mode==='demo'?'DEMO · ข้อมูลสังเคราะห์สำหรับทดลองหน้าจอ ไม่ใช่งานหรือผลลัพธ์จริง':'LIVE · รายการจากแหล่งที่เชื่อมต่อ · ช่วงล่าสุดที่อ่านได้ ไม่ครบทุกงาน';
  $('#data-banner').classList.toggle('live',mode==='live');
- $('#count-label').textContent=mode==='demo'?'รายการตัวอย่าง':'คำขอที่อ่านกลับในหน้านี้';
- $('#visible-count').textContent=mode==='demo'||liveItems.length?items().length:'—';
- const last=items().map(i=>i.occurredAt).sort().at(-1);$('#latest-time').textContent=last?format(last):'ยังไม่ได้รับข้อมูล';
- $('#recent-events').innerHTML=items().length?items().slice(-3).reverse().map(row).join(''):'<div class="empty"><h3>ยังไม่มีผลอ่านกลับจริง</h3><p>เปิดหน้าเหตุการณ์เพื่อระบุ Request ID · ไม่มีการแทนที่ด้วยข้อมูลตัวอย่าง</p></div>';
- $('#source-filter').innerHTML='<option value="">ทุกแหล่งข้อมูล</option>'+[...new Set(items().map(i=>i.ownerSource))].map(s=>`<option value="${esc(s)}">${esc(s)}</option>`).join('');
- renderList();renderDetail();
+ const source=$('#source-filter').value;
+ $('#source-filter').innerHTML='<option value="">ทุกแหล่งข้อมูล</option>'+[...new Set(items().map(i=>i.ref.sourceSystem))].map(v=>`<option value="${esc(v)}">${esc(v)}</option>`).join('');
+ $('#source-filter').value=source;renderList();renderDetail();
 }
 function renderDetail(){
- const item=items().find(i=>i.sourceEventId===selectedId);
- if(!item){$('#event-detail').innerHTML='<div class="detail-card empty"><h2>เลือกรายการเพื่อดูหลักฐาน</h2><p>รายละเอียดและประวัติจะแสดงเฉพาะรายการในชุดข้อมูลที่เลือก</p><button class="text-button" data-view="events">กลับไปหน้าเหตุการณ์ →</button></div>';return;}
- const history=eventHistory(items(),item);
- $('#event-detail').innerHTML=`<button class="text-button" data-view="events">← กลับรายการเหตุการณ์</button><div class="detail-head"><div><p class="eyebrow">${mode==='demo'?'DEMO · SYNTHETIC EVENT':'OWNER HTTP READBACK'}</p><h2>${esc(item.title)}</h2><code>${esc(item.sourceEventId)}</code></div><span class="pill pill--unknown">${esc(item.category)}</span></div><div class="detail-layout"><article class="detail-card"><h3>ที่มาและเวลา</h3><dl><dt>ระบบต้นทาง</dt><dd>${esc(item.ownerSource)}</dd><dt>Request ID</dt><dd>${esc(item.correlationId)}</dd><dt>เวลาเกิดเหตุการณ์</dt><dd>${esc(format(item.occurredAt))}<br><small>${esc(item.occurredAt)}</small></dd><dt>เวลาบันทึกจากต้นทาง</dt><dd>${esc(item.persistedAt)}</dd><dt>ความใหม่</dt><dd>UNKNOWN · เวลาเหตุการณ์ไม่ยืนยันความใหม่ของทั้งระบบ</dd></dl></article><article class="detail-card"><h3>หลักฐานที่อ้างอิง</h3><p class="boundary-note">${mode==='demo'?'ตัวอย่างอ้างอิงเท่านั้น ไม่ใช่หลักฐานจริง':'อ้างอิงจากผลอ่านกลับของ GO ไม่ได้เปิดหรือดาวน์โหลดเอกสารอัตโนมัติ'}</p>${item.evidence.map(ref=>`<code class="evidence-ref">${esc(ref)}</code>`).join('')}<dl><dt>Hub receipt</dt><dd>MISSING · ยังไม่มีใบรับจาก Hub</dd><dt>การลงมือ</dt><dd>NOT_ASSERTED · ไม่ยืนยันผลการทำงาน</dd></dl></article><article class="detail-card"><h3>ประวัติในชุดที่อ่านได้</h3><ol class="timeline">${history.map(h=>`<li><strong>${esc(h.title)}</strong><small>${esc(format(h.occurredAt))} · ${esc(h.sourceEventId)}</small></li>`).join('')}</ol><p class="boundary-note">${mode==='demo'?'ลำดับเหตุการณ์ตัวอย่างสังเคราะห์':'มีเฉพาะ submission ที่ API นี้ส่งกลับ ไม่ใช่ประวัติทั้งหมดของคำขอ'}</p></article></div>`;
+ const item=items().find(i=>trackingKey(i.ref)===selectedId);
+ if(!item){$('#event-detail').innerHTML='<button class="text-button" data-view="events">← กลับรายการ</button><p>ยังไม่มีรายละเอียดที่อ่านยืนยันได้</p>';return;}
+ const status=trackingStatus(item);
+ $('#event-detail').innerHTML=`<button class="text-button" data-view="events">← กลับรายการ</button><p id="detail-state" role="status" aria-live="polite"></p><article class="detail-card"><p class="eyebrow">${mode==='demo'?'DEMO · SYNTHETIC':esc(item.ref.resourceType)}</p><h2>${esc(item.title)}</h2>${item.scope?.kind==='STATION'?'<p class="boundary-note">STATION · ข้อมูลการส่งของสถานี · สิทธิ์และเจ้าของ Work: UNRESOLVED</p>':''}<h3>สิ่งที่ควรทำต่อ</h3><p>${esc(item.nextAction||'ต้นทางยังไม่ระบุสิ่งที่ต้องทำต่อ')}</p><p><strong>${esc(status.label)}</strong></p><button id="item-refresh" class="button" type="button" ${mode==='demo'?'disabled':''}>อ่านสถานะรายการนี้ใหม่</button></article><div class="detail-layout"><article class="detail-card"><h3>สถานะตามต้นทาง</h3><p class="boundary-note">แสดงข้อเท็จจริงแต่ละมิติ · ใบรับไม่ยืนยัน Work เสร็จ · ไม่มีเปอร์เซ็นต์สังเคราะห์</p><dl>${item.statusFacts.map(f=>`<dt>${esc(f.dimension)}</dt><dd>${esc(f.value)}<br>ต้นทางอัปเดต: ${esc(format(f.sourceUpdatedAt))}<br>ตรวจอ่าน: ${esc(format(f.observedAt))}</dd>`).join('')||'<dd>ยังไม่มีข้อเท็จจริงสถานะ</dd>'}</dl></article><article class="detail-card"><h3>ผลและหลักฐาน</h3><p>สถานะผล: ${esc(item.result.availability)}</p><p class="boundary-note">แสดงเฉพาะอ้างอิงที่ต้นทางส่งกลับ · ไม่เปิด URL หรือดาวน์โหลดหลักฐานอัตโนมัติ</p><details><summary>อ้างอิงและที่มาทางเทคนิค</summary><dl><dt>ระบบ / ประเภท / รหัส</dt><dd>${esc(item.ref.sourceSystem)} / ${esc(item.ref.resourceType)} / ${esc(item.ref.resourceId)}</dd><dt>แหล่งข้อมูล</dt><dd>${esc(item.provenance.sourceSystem)} · ${esc(item.provenance.sourceRef)}</dd><dt>ความพร้อมของแหล่ง</dt><dd>${esc(item.provenance.availability)} · ตรวจอ่าน ${esc(format(item.provenance.observedAt))}</dd><dt>ใบรับ</dt><dd>${esc(item.result.receiptRef||'ยังไม่มีใบรับที่ยืนยัน')}</dd><dt>หลักฐานผล</dt><dd>${esc(item.result.evidenceRef||'ยังไม่มีหลักฐานผลที่ยืนยัน')}</dd></dl>${item.requestEvent?item.requestEvent.evidence.map(r=>`<code class="evidence-ref">${esc(r)}</code>`).join(''):''}${(item.links||[]).map(l=>`<code class="evidence-ref">${esc(typeof l==='string'?l:JSON.stringify(l))}</code>`).join('')}</details></article></div>`;
 }
-document.addEventListener('click',event=>{const nav=event.target.closest('[data-view]');if(nav)view(nav.dataset.view);const entry=event.target.closest('[data-event]');if(entry){selectedId=entry.dataset.event;view('detail');}});
-$('#data-mode').addEventListener('change',()=>{mode=$('#data-mode').value;selectedId=items()[0]?.sourceEventId;render();});
+const failure=response=>[401,403].includes(response.status)?'ไม่มีสิทธิ์อ่านหรือเซสชันยังไม่พร้อม':response.status===404?'ไม่พบรายการที่มีสิทธิ์อ่าน':'แหล่งข้อมูลยังไม่เชื่อมต่อหรือไม่พร้อมอ่าน';
+async function loadTracking(){
+ if(mode!=='live')return;const sequence=++listSequence;$('#tracking-refresh').disabled=true;$('#tracking-state').textContent='กำลังอ่านข้อมูลจริง…';
+ try{const response=await fetch('/api/greenhouse/tracking?limit=30',{method:'GET',cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)});const body=await response.json();if(!response.ok)throw Error(failure(response));acceptTracking(body);if(sequence!==listSequence||mode!=='live')return;
+ ++detailSequence;liveItems=body.items;$('#tracking-state').textContent=(body.items.length?'อ่านช่วงรายการล่าสุดแล้ว':'เชื่อมต่อแล้ว · ต้นทางส่งรายการว่าง')+' · ตรวจอ่าน '+format(body.observedAt)+' · ไม่ครอบคลุมทุกงาน';render();
+ }catch(error){if(sequence!==listSequence||mode!=='live')return;++detailSequence;liveItems=[];$('#tracking-state').textContent=(error.message==='TRACKING_INVALID'?'รูปแบบข้อมูลไม่ตรงสัญญา':error.name==='TimeoutError'?'หมดเวลารอแหล่งข้อมูล':error.message.startsWith('แหล่ง')||error.message.startsWith('ไม่มีสิทธิ์')?error.message:'อ่านข้อมูลไม่สำเร็จ')+' · ยังไม่ยืนยันรายการจริง';render();}
+ finally{if(sequence===listSequence)$('#tracking-refresh').disabled=false;}
+}
+async function refreshItem(){
+ const item=items().find(i=>trackingKey(i.ref)===selectedId);if(!item||mode!=='live')return;const key=selectedId,sequence=++detailSequence;$('#item-refresh').disabled=true;$('#detail-state').textContent='กำลังอ่านรายการที่เลือก…';
+ try{let fresh;if(item.requestEvent){const r=await fetch('/api/greenhouse/requests/'+encodeURIComponent(item.ref.resourceId),{method:'GET',cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Object.assign(Error(failure(r)),{status:r.status});fresh=requestTracking(acceptReadback(await r.json(),item.ref.resourceId));if(trackingKey(fresh.ref)!==key)throw Error('TRACKING_INVALID');}else{const r=await fetch('/api/greenhouse/tracking/item?'+new URLSearchParams(item.ref),{method:'GET',cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)});if(!r.ok)throw Object.assign(Error(failure(r)),{status:r.status});fresh=acceptTracking(await r.json(),item.ref).items[0];}
+ if(sequence!==detailSequence||selectedId!==key||mode!=='live')return;liveItems=liveItems.map(i=>trackingKey(i.ref)===key?fresh:i);renderDetail();if($('#detail-state'))$('#detail-state').textContent='อัปเดตข้อมูลรายการนี้แล้ว';
+ }catch(error){if(sequence!==detailSequence||selectedId!==key||mode!=='live')return;if(item.scope?.kind==='STATION'&&[401,403].includes(error.status)){++listSequence;$('#tracking-refresh').disabled=false;}liveItems=itemsAfterReadFailure(liveItems,item.ref,error.status);if([401,403,404].includes(error.status)){selectedId=null;render();$('#event-detail').innerHTML='<button class="text-button" data-view="events">← กลับรายการ</button><p role="status">ไม่พบรายการที่มีสิทธิ์อ่าน · ล้างรายละเอียดที่อ่านไว้ก่อนหน้าแล้ว</p>';}else if($('#detail-state'))$('#detail-state').textContent='อ่านรายการนี้ไม่สำเร็จ · รายละเอียดด้านล่างเป็นผลอ่านก่อนหน้า อาจเก่า โปรดตรวจเวลาอ่านเดิม';}
+ finally{if(sequence===detailSequence&&$('#item-refresh'))$('#item-refresh').disabled=false;}
+}
+document.addEventListener('click',event=>{const nav=event.target.closest('[data-view]');if(nav)view(nav.dataset.view);const entry=event.target.closest('[data-tracking]');if(entry){listScroll=window.scrollY;lastRow=entry;selectedId=entry.dataset.tracking;view('detail');if(mode==='live'&&!items().find(i=>trackingKey(i.ref)===selectedId)?.requestEvent)refreshItem();}if(event.target.closest('#item-refresh'))refreshItem();});
+$('#data-mode').addEventListener('change',()=>{mode=$('#data-mode').value;++readSequence;++listSequence;++detailSequence;selectedId=null;$('#read-request').disabled=false;$('#tracking-refresh').disabled=false;$('#tracking-state').textContent=mode==='demo'?'กำลังดูข้อมูลสังเคราะห์เท่านั้น':'กำลังอ่านข้อมูลจริง…';render();view('events');if(mode==='live')loadTracking();});
 for(const selector of ['#event-search','#category-filter','#source-filter'])$(selector).addEventListener('input',renderList);
+$('#tracking-refresh').addEventListener('click',loadTracking);
 $('#request-read-form').addEventListener('submit',async event=>{
- event.preventDefault();const requestId=$('#request-id').value.trim();if(!/^[A-Za-z0-9:_-]{1,120}$/.test(requestId))return;
- const sequence=++readSequence;$('#read-request').disabled=true;$('#read-message').textContent='กำลังอ่านจากระบบเจ้าของ…';
- try{
-  const response=await fetch('/api/greenhouse/requests/'+encodeURIComponent(requestId),{cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)});const body=await response.json();
-  if(!response.ok)throw Error([401,403].includes(response.status)?'ต้องเชื่อมตัวอ่านที่ยืนยันตัวตนฝั่งเซิร์ฟเวอร์ก่อน · ไม่ต้องกรอก token ในหน้านี้':response.status===404?'ไม่พบคำขอหรือ route ยังไม่พร้อม':'ระบบเจ้าของยังไม่พร้อมอ่านกลับ');
-  const item=acceptReadback(body,requestId);if(sequence!==readSequence)return;
-  liveItems=[...liveItems.filter(i=>i.correlationId!==requestId),item];mode='live';$('#data-mode').value='live';selectedId=item.sourceEventId;render();$('#read-message').textContent='อ่านกลับแล้ว · ยังไม่มี Hub receipt';view('detail');
- }catch(error){$('#read-message').textContent=error.name==='TimeoutError'?'หมดเวลารอผลอ่านกลับ':error.message==='READBACK_INVALID'?'รูปแบบผลอ่านกลับไม่ตรงตามสัญญา':['ต้องเชื่อมตัวอ่านที่ยืนยันตัวตนฝั่งเซิร์ฟเวอร์ก่อน · ไม่ต้องกรอก token ในหน้านี้','ไม่พบคำขอหรือ route ยังไม่พร้อม','ระบบเจ้าของยังไม่พร้อมอ่านกลับ'].includes(error.message)?error.message:'การเชื่อมต่อไม่พร้อม ลองอีกครั้ง';}
- finally{$('#read-request').disabled=false;}
+ event.preventDefault();const requestId=$('#request-id').value.trim();if(!/^[A-Za-z0-9:_-]{1,120}$/.test(requestId))return;const sequence=++readSequence;$('#read-request').disabled=true;$('#read-message').textContent='กำลังอ่านจากระบบเจ้าของ…';
+ try{const response=await fetch('/api/greenhouse/requests/'+encodeURIComponent(requestId),{method:'GET',cache:'no-store',credentials:'same-origin',signal:AbortSignal.timeout(10000)});if(!response.ok)throw Object.assign(Error(failure(response)),{status:response.status});const item=requestTracking(acceptReadback(await response.json(),requestId));if(sequence!==readSequence)return;++listSequence;mode='live';$('#data-mode').value='live';selectedId=trackingKey(item.ref);requestReadRefs.set(requestId,item.ref);liveItems=[...liveItems.filter(i=>trackingKey(i.ref)!==selectedId),item];$('#tracking-state').textContent='มีคำขอที่อ่านโดยระบุรหัสในหน้านี้ · ไม่ใช่รายการ Work ทั้งหมด';render();$('#read-message').textContent='อ่านคำขอแล้ว · ยังไม่ยืนยัน Work หรือผลการลงมือ';view('detail');}
+ catch(error){
+  if(sequence!==readSequence)return;
+  const previousRef=requestReadRefs.get(requestId);
+  if(previousRef&&[401,403,404].includes(error.status)){
+   liveItems=itemsAfterReadFailure(liveItems,previousRef,error.status);requestReadRefs.delete(requestId);
+   if(selectedId===trackingKey(previousRef)){++detailSequence;selectedId=null;}
+   render();$('#read-message').textContent='ไม่พบคำขอที่มีสิทธิ์อ่าน · ล้างรายละเอียดและหลักฐานที่อ่านไว้แล้ว';
+  }else $('#read-message').textContent=previousRef?'อ่านคำขอไม่สำเร็จ · ผลอ่านก่อนหน้าอาจเก่า โปรดตรวจเวลาอ่านเดิม':'อ่านคำขอไม่สำเร็จ · ยังไม่ยืนยันผลอ่านกลับ';
+ }finally{if(sequence===readSequence)$('#read-request').disabled=false;}
 });
 function updateRun(){
  const device=$('#ai-route').value==='device';
@@ -97,4 +115,4 @@ $('#ai-form').addEventListener('submit',async event=>{
   $('#ai-state').textContent=code;$('#overview-ai').textContent='ทดสอบยังไม่พร้อม';
  }finally{clearTimeout(timeout);$('#ai-time').textContent=Math.round(performance.now()-started)+' ms';aiBusy=false;aiController=null;$('#ai-clear').disabled=false;$('#ai-refresh').disabled=false;$('#ai-route').disabled=false;$('#ai-cancel').hidden=true;updateRun();}
 });
-render();aiStatus();
+render();loadTracking();aiStatus();

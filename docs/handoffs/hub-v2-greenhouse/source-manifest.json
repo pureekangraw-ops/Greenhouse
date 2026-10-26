@@ -1,0 +1,135 @@
+{
+  "hub": {
+    "repository": "https://gitlab.com/pureekangraw/hubstation",
+    "branch": "go/work-hub-provider-capability-20261026",
+    "baseSha": "e4d7a9c1898f62858cde5bdb957fdc6c8612b111",
+    "baseFilesSha256": {
+      "package-lock.json": "b568803a03b438928b203a21169e007040983a174617ab8b25b19420ea7f73b8",
+      "wrangler.jsonc": "75a3fa6d758c8558cec59f843319d256b8c2c25d902ca94a81489da23f828481",
+      "package.json": "1994863d13fb23bf35c78248e4a9912463c4aec15b828aa585d3a8a5bcf90af2",
+      "test/worker.test.js": "2b2dd518a5e083fda904e6ef8565e6bb41bcd0ad78b02f496a825dc7306c3921",
+      "test/credential-failure.test.js": "3edbf257cb35b054e584fbf76ecbdaf089b51b0a1dee148e1c623d7796af3dcf",
+      "test/provider-dispatch.test.js": "2d408c006d06861b8eb947f0e044ea99b0d898acb4c9f348c65d412ce73efbd4",
+      "test/private.test.js": "fd29cc9740de928be69a00d1a216fce45d7d7dcdf81903b67ff77df65f63a2a2",
+      "test/chromium.js": "7d10ba32be0f76f85cd15a761581f3b858aaf3afd93b3080f57934bea92b10fc",
+      "test/panel.browser.js": "129fd2fdfed8808453d1981b2d947425fa5f64d5e89ffd6965a30b1fcbeb9031",
+      "test/provider-contract.test.js": "ca30aba4e308ba6cfc3ede5b037b186814d2dc866d85218fa10e7cb4f781e910",
+      "test/protocols.test.js": "71ceaf676947200f3fff6fb73e4629bac8a62d09aa119f1e6b2e52766f370bad",
+      "test/provider-work.test.js": "6eeb9053e5e20775e659689b3c5c43662b74a86ca7610b231fc1b72bba404c83",
+      "test/hub.test.js": "9e2524d405e1996383de357b83ff4497bbbcce25fb62356e094ac466fd2c4e6d",
+      "test/private-runtime.mjs": "f65a1573e99c5dc95bd617e30ac5f8a8354e8ddcc146f9158cff3c5652e2ed7b",
+      "test/provider-cutover.test.js": "ed5e83d72715c2af06e6fa19283fc1824064b5dce181ea9cc5d5f5b6ce44367a",
+      "test/provider-legacy-contract.test.js": "fdaa808bf1c603f9e3b85c5d484aa345dc3f4b6b8bf5955ba5f57324f5e52027",
+      "test/provider-delivery.test.js": "9978687a1f008f98fb4bc5c9998815e66887371431f630e9d60c6f71d544727a",
+      "test/provider-release.test.js": "06b02f59b6795068f47673f020de31ad0c24bc558734c9808fcf97a513d3fbbd",
+      "test/slack-status-diagnostics.test.js": "c77710a649fef8dfad17e31fdfb041a25a05db372481ce85f968bba873017a57",
+      "test/schema-refresh.test.js": "433a20884809974ac6e3e3da6e44220750ccf1c4681784dc72a70edf98fc59c9",
+      "test/db.js": "7ea22a0f1bddc888389e31cdb6f284564eea94d9a4b0ec57eb564c51df0a15e5",
+      "test/toolchain.test.js": "c2a24f1bcf4e2bcb4f09b435782700dc92dfaeac1472ca17a32b16dba26643bd",
+      "test/provider-read-edit.test.js": "8cb10ec46503fb0217f9dc6ba95512052e6de5a92fa5291582c847d9b59a91dc",
+      "src/panel-client.js": "b5b73401fa9027e282418bf3da2a0f3bd3e622c92e9f01006b9d0b71a721b216",
+      "src/owner.js": "97fd3b83f848ff5bbe08f734ffb7afffe3f4d97254f3df8cab511491898fa661",
+      "src/hub.js": "2a55833df1fa75af7d88f12eb6424e43a110b96158e949ac85576b401dc26927",
+      "src/net.js": "931d514d84835175f465e102f703af6149c3b02c64b7f0f6e9ddc99b38efbecd",
+      "src/entry.js": "0b142e15ce510088fe73ba8a1be4da9ae0a5e4230ce25031bc3b599430939fea",
+      "src/protocols.js": "8eb55739766447d44996f9ee5502d91cdc1ce2c24fa3079750f31f216ef012fc",
+      "src/worker.js": "3c6fd4b113548c2082f4e374902cb01780e10ba50963054146ca2bd6dc1a4883",
+      "src/store.js": "84a3cac71773bdda869e5005a2d302210a081e983bee9bceb5b08ac07527d2b8",
+      "src/private.js": "c96c3a7c888f347d4039679d3269e03343d75913000984be52f43f271d788490",
+      "src/panel.js": "d4649b525ffe8dd8af2839f116a21ccaef8b203e3eecbfa45d7f5877ab2fef93",
+      "src/schema-refresh.js": "e79eefeff1d39c972f98a9df50d7c3d8d7a0597faf56a449d49db496dc489bab",
+      "scripts/patch-wrangler.cjs": "58dbc81e90ea8fd7101c03c2dd4df4be59c2b9b7830779b56c1260f0d8ce4733",
+      "scripts/prepare-provider-release.mjs": "fe5af8aeca782454b19e986c8f188a3e24724496bb4abd9fdc8dd09a47a7629c",
+      "scripts/export-approved-artifact.mjs": "523365dffdc2975441916c6d6b84b1dff2943be87020f8fd704f31f11f1fc668",
+      "migrations/0001_hub.sql": "cf1dfff98f0bd3ee7675e0939946b0181e13af2aa08fd9feacf9d88d7a6945ab",
+      "releases/go-provider-candidate.json": "090e7f3183eeb28c53b6dffeeadc8ca94f9da5c7de385fbe928144fbb2ae0315",
+      "releases/provider-credential-audit.json": "7ea0110e78629a90dbfe61f79a0ed5f69e71a336d3a5b6477deaebcf2ec61503",
+      "src/providers/credentials.js": "6e13c383bbfa006690d60f3e013fc7d6af878dee5c64b5358d8541e8691c7d92",
+      "src/providers/write-catalog.js": "c27fb58929e0a82ea79e0519142734f12b0dc5b390c099fa73fa1ae0d0c23709",
+      "src/providers/catalog.js": "28928711bc7229de42f379080d1f95b575f0b29cfc66e0d72d339fa9706d1dea",
+      "src/providers/status.js": "1ca5ee5d4fa6ac5ffa0af49fc27f0a0063de8980e9fa85932ca82ad6d1818488",
+      "src/providers/operations.js": "dbb2f623ba4e0fe6ce465badefbcb1c4bd8efb0f2c74545ee7171d4dd9c9d2ba",
+      "src/providers/mcp.js": "81599517db1ac2971c41eaeb6f239e7ab514893b94ea26e0e6a020b7323f46cb"
+    }
+  },
+  "go": {
+    "repository": "https://github.com/pureekangraw-ops/Go-Together",
+    "branch": "go/work-provider-actions-20261026",
+    "baseSha": "d5ba9dd20a0c0967d922c1b01fa6bfa9c00eb745",
+    "baseFilesSha256": {
+      "portable-factory-report-integration.mjs": "ca4bc811efbc747e29f8129afa5f7336f4561256d2358e364f638f146a82c74c",
+      "wrangler.jsonc": "9754f8039b17e579c9250d3eb69b259c097f33482ea3f8a018736f62351f61ed",
+      "portable-factory-report.mjs": "1a92b2adfb42f3e4045ffae638cbf8628c3fa5b5896d12bd7822374b3b840f82",
+      "schema.sql": "dd1a3f21445324a1584aaaea9cdf76392cef76d39394e453eddef3947d0f4953",
+      "worker/index.js": "183e908ca9a93a3d9801bcb5da57486515001adf2aa36dcb648b669fc28bb3f4",
+      "worker/mcp-oauth.mjs": "968198b5289d99500db087625bf64e832c8474832c1f0fa8af339ab18b0d343b",
+      "worker/provider-catalog.mjs": "6ec5b1fb31f90b2f21d44f14ae160f05ee83c2939a31ad2e7579ce9db4f35f02",
+      "worker/hub-entry.mjs": "f5aed5d60babc0fe30aff3b87b24b61c5bc128076b8e0678e369733a448668b9",
+      "worker/factory-direct.mjs": "8fbcb449c064d697baf33f13ce111234bb5122a2140362666a6af0bcc56960bc",
+      "worker/provider-write-catalog.mjs": "c27fb58929e0a82ea79e0519142734f12b0dc5b390c099fa73fa1ae0d0c23709",
+      "worker/hub-client.mjs": "1fcea1dbdd12d593c29dff9733bf740354c5e9a224b2faff95581e1914f6046c",
+      "worker/oauth-ledger.mjs": "464c388e3c33b5a7fb88c9cd30a77cc078ee85d0cb3a5b1318f4ad09fa71e4e2",
+      "worker/goview-direct.mjs": "6b4188e8d00468ff71ecb93a65665a08fcf31b868da3c4c0be8b811816e665fe",
+      "worker/observatory-direct.mjs": "d835287ce7e3e10f938edf44c4256ac1a1db36f545f9bc6367373560f1b45bf6",
+      "tests/direct-oauth.test.mjs": "e38c69da6261195e8daeb20181b50a33c5e4aad568c3e221eaa3016d70927b43",
+      "tests/revision-write.test.mjs": "7f1faf40c1f661ceb15054e65a94e7c00688c1599830e313c6adf7bac7b31f7b",
+      "tests/provider-delivery.test.mjs": "93b5dd81bc4bf40db013c0a561fea59f4d79b362561c6fcde3194e6c4a6e0543",
+      "tests/worker.test.mjs": "4ecf2e0282b110d75b3592ec0407b0305b775c75fa4627d491df366e6c3805a6",
+      "tests/factory-visual-upload.test.mjs": "fa23bf719fb24513931f46681d295b4a5cb8400684f4222ccfd3b37cf08bd913",
+      "tests/test_server.py": "15925735b384c164450e1381d94b866ee6c49e3750ce9a8505095dcfa1b31d83",
+      "tests/factory-auth-probe.test.mjs": "24eca4cdec02b31697f5d77a4cfe089a9194cd47c731fe8b3808e86499a60bbc",
+      "tests/factory-mcp.test.mjs": "eee073fa0d58d03b8cad4a2fa2f08e75e4d6af7ceec7dbb756e6cbc08c9a2d9d",
+      "tests/hub-fixture.mjs": "cdbb4034b0754c468891f6277d797d707c586f08b4356402b6ed2b63d9128769",
+      "tests/factory-direct-execute.test.mjs": "a6588cf1e8c6a4fc23da41906b69b6cdfe18b4367ddf03ff3478a2eabaae2551",
+      "tests/factory-hub-discovery.test.mjs": "3f610591363ed84d76d2717c1e53e2cede6baf0fefeeebd52518a2adeaaf22ae",
+      "tests/factory-visual-submit.test.mjs": "3c75bc856e00b7ea4a28f814be67a52f62ed33a97ed575e378da957c97f4b473",
+      "tests/observatory-direct.test.mjs": "1c8a16e636f7ed02a1bf6afb0c2b068026a895506a82b262bc99773606c103cd",
+      "tests/factory-direct.test.mjs": "a529a4ffef483b83681059dd5f8bd867e049ca1b66aaa4bafc1a6cf88daa893b",
+      "tests/current-routing.test.mjs": "ac52365fc43b6b4ed5df6dcaa245400dcccb8365dfc7eede016d50325e91d67e",
+      "tests/factory-integration.test.mjs": "2893db7249cc6ce1be6c84f0faf7f0ea81f7604b989e4ef23439a86ec1f05db5",
+      "tests/factory-visual-zip-chunk.test.mjs": "630e7f32b9d2480691aeb88db1ef2e323be7eb817af83b03f0ce186351ada100",
+      "tests/goview-direct.test.mjs": "fae25f7fe7379704fd2b88c3c91ae27179f05811302141a5b00ef56eb6e3f4aa",
+      "tests/factory-workshop.test.mjs": "bb13106583dbd966eadda6c5f6ac144b5213c385db61e8c77652bfde20fd2aff",
+      "static/index.html": "69be607091e5f91c6ab0a2096ec765e17dd8fc9af4f2cb71974c4e108b7e94df",
+      "scripts/assert-current-routing.mjs": "c77c28256bd5ae3be796e44ccbc2bfd908752bb3a873c149aa0d0e05d2963d87",
+      "migrations/0001_brain_direct_oauth.sql": "1980dabfcdc4cb43939c89ec22af332f44823701c323c2d32909a6a9cca73c9f"
+    }
+  },
+  "runtimeEquality": "UNVERIFIED",
+  "status": "OFFLINE_PATCH_PROPOSALS_ONLY",
+  "verification": {
+    "hub": {
+      "install": "npm ci --no-audit --no-fund",
+      "wrangler": "4.152.0",
+      "undici": "7.30.1",
+      "vendorRemediation": "existing exact SHA-pinned script applied and verified",
+      "tests": {
+        "pass": 94,
+        "fail": 0
+      },
+      "check": "PASS",
+      "dryRunBuild": "PASS; wrangler deploy --dry-run --outdir dist; exit0",
+      "deployed": false
+    },
+    "go": {
+      "tests": {
+        "pass": 94,
+        "fail": 0
+      },
+      "boundaryTests": {
+        "pass": 3,
+        "fail": 0
+      }
+    },
+    "namedEntrypointRuntime": "UNVERIFIED"
+  },
+  "patchSha256": {
+    "hub-read-only.patch": "c72b44dc7989e4d9be73096c488a4149a6c5bd404d3603e93d995975f3732d06",
+    "go-read-only.patch": "666c1e0d74121da4ca1f072f789f58b5b091ceb97c87ca2a4a700b29e4f02a3f"
+  },
+  "buildOutputsSha256": {
+    "hub-candidate/dist/README.md": "310d21cd5a26881be59fe0a23f088cb8e8801064c686748ee5e4317d57df58f3",
+    "hub-candidate/dist/entry.js": "7051a0c04f109d8dbc975471244310d5803693eb5695ac82fe067a2aec398c41",
+    "hub-candidate/dist/entry.js.map": "fa6f3111dfae89fb6a0432119fddfc58bb18bcaf291c02c1b3994df1d78619ed"
+  }
+}

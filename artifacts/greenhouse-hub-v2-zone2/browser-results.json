@@ -1,0 +1,43 @@
+{
+  "scope": "LOCAL_SYNTHETIC_SOURCE_HTTP_AND_BROWSER",
+  "reads": 24,
+  "results": [
+    {
+      "viewport": {
+        "width": 360,
+        "height": 800
+      },
+      "passed": true,
+      "apiRequests": 16,
+      "uncaughtErrors": []
+    },
+    {
+      "viewport": {
+        "width": 800,
+        "height": 360
+      },
+      "passed": true,
+      "apiRequests": 16,
+      "uncaughtErrors": []
+    },
+    {
+      "viewport": {
+        "width": 768,
+        "height": 1024
+      },
+      "passed": true,
+      "apiRequests": 16,
+      "uncaughtErrors": []
+    },
+    {
+      "viewport": {
+        "width": 1440,
+        "height": 900
+      },
+      "passed": true,
+      "apiRequests": 16,
+      "uncaughtErrors": []
+    }
+  ],
+  "productionVerified": false
+}

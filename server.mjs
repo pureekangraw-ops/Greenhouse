@@ -1,3 +1,4 @@
+import {handleTrackingRead,createLiveTrackingHttp} from './src/greenhouse/tracking-read.mjs';
 import { handleLocalAITest } from './src/greenhouse/local-ai-test.mjs';
 import { handleOwnerRequestRead } from './src/greenhouse/request-owner-http.mjs';
 import { createServer } from 'node:http';
@@ -109,7 +110,7 @@ function parseCommand(raw, session, allowedTargets, highImpactTargets) {
 export function createGreenhouseServer({
   token = '', fetchImpl = fetch, now = Date.now, sourceRegistry = {},
   localAIConnector = null, allowLocalEventEvidence = false, hubEventSink = null, ownerSessionResolver = null, inboxReader = null, operationsReader = null,
-  commandAuthorizer = null, hubCommandSubmitter = null,
+  trackingReader = null, liveTrackingEnv = null, commandAuthorizer = null, hubCommandSubmitter = null,
   allowedCommandTargets = [], highImpactCommandTargets = [],
 } = {}) {
   if (!Array.isArray(allowedCommandTargets) || !Array.isArray(highImpactCommandTargets) ||
@@ -117,6 +118,7 @@ export function createGreenhouseServer({
       highImpactCommandTargets.some(target => !allowedCommandTargets.includes(target))) {
     throw new Error('COMMAND_POLICY_INVALID');
   }
+  const liveTracking=liveTrackingEnv?createLiveTrackingHttp({env:liveTrackingEnv,fetchImpl,now}):null;
   const commandTargets = new Set(allowedCommandTargets);
   const highImpactTargets = new Set(highImpactCommandTargets);
   return createServer(async (request, response) => {
@@ -125,6 +127,21 @@ export function createGreenhouseServer({
     try { url = new URL(request.url || '/', 'http://127.0.0.1'); }
     catch { return send(response, 400, {code:'REQUEST_INVALID'}); }
 
+    if(liveTracking&&['/api/greenhouse/tracking','/api/greenhouse/tracking/item','/api/greenhouse/status'].includes(url.pathname)){
+      if(request.method!=='GET')return send(response,405,{code:'READ_ONLY'});
+      const result=await liveTracking(new Request('http://'+request.headers.host+request.url,{method:request.method,headers:request.headers}));
+      return send(response,result.status,await result.json());
+    }
+    if (['/api/greenhouse/tracking','/api/greenhouse/tracking/item'].includes(url.pathname)) {
+      if (request.method !== 'GET') return send(response,405,{code:'READ_ONLY'});
+      let session = null;
+      if (trackingReader && ownerSessionResolver) {
+        try { session = await ownerSessionResolver(request); } catch { /* denied */ }
+      }
+      const result = await handleTrackingRead(new Request('http://' + request.headers.host + request.url, {headers:request.headers}),
+        {reader: ownerSessionResolver ? trackingReader : null, session, item:url.pathname.endsWith('/item')});
+      return send(response,result.status,await result.json());
+    }
     if (url.pathname === '/api/greenhouse/local-ai') {
       if (!['GET','POST'].includes(request.method)) return send(response,405,{code:'METHOD_NOT_ALLOWED'});
       try {

@@ -1,0 +1,65 @@
+{
+  "schema": "greenhouse.live-read.verification.v1",
+  "parentCommit": "ed5f8ce9903e8328c0327c3ae945b4c5affb8ebc",
+  "sourceSha256": {
+    "docs/plans/2026-10-26-private-station-read.md": "fdc4975de772e2c902a3fd44f7e72a1a7185ad1fcd3c2dadfb53e2861ae2a2a8",
+    "docs/private-station-read-contract.md": "44b6ddee36ab3218240e557f5763aa2483ae7d5049ffa9e52d5b7a40ae8275e7",
+    "functions/api/greenhouse/[[path]].js": "43217aa26470cec5ade1b1d65495234107ec3fc26f1dd7b574a691e55336b77f",
+    "functions/api/greenhouse/status.js": "a240dee2464620d71579805025d412d92e37e8a1bbf12e3e91a53e3c18b3e155",
+    "functions/api/greenhouse/tracking.js": "a240dee2464620d71579805025d412d92e37e8a1bbf12e3e91a53e3c18b3e155",
+    "functions/api/greenhouse/tracking/item.js": "a1f39dcd92ec1ea0a662df5c4751703f0532170c04ff05018a4ca8c9be33afb7",
+    "greenhouse/workspace-model.mjs": "d942c46269d1b497a0f9f3d826943e527c49bfa841ab8c0f7c4443f6efd7bca6",
+    "greenhouse/workspace.mjs": "4675ee4dd0b1c3d21ab730ecbddb729e832afd00f42c6b41ab529a522aad3b9d",
+    "server.mjs": "e7b96c2a4666b7e626794a7a5c92242da7d9092e0b23930869fd1ceaf595eb85",
+    "src/greenhouse/tracking-read.mjs": "7a075e56e3e4f0b7a9379f20c89a3a5907db1867b7e74f6154598f412cd8a9cf",
+    "scripts/verify-live-tracking-runtime.mjs": "629fcc887f9ad357bfd4086db2548dc84fe795bc6c4c8a9b0273a5621e267d88",
+    "test/live-tracking.test.mjs": "3f1a3a6bd73b0983f6de19aaf89d638194b082558a56166cdb5e518d64459ec0"
+  },
+  "localBuildSha256": {
+    "greenhouse-live-pages-build/index.js": "e1d6271ea5d36ddf5115f4b77e2a87375b72dd4b81a934bdb32d0dd501b1be54",
+    "greenhouse-station-build/read-entry.js": "06f9d1bdf99b6620ad96255fc328bf09494a58ba67373817a666a8ba1982cf20"
+  },
+  "checks": {
+    "fullSuite": {
+      "pass": 170,
+      "fail": 0,
+      "skip": 0
+    },
+    "syntax": "PASS",
+    "diff": "PASS",
+    "pagesBuild": "PASS",
+    "workerDryRun": "PASS",
+    "runtimeBrowser": {
+      "result": "PASS",
+      "actualPagesBundle": true,
+      "realSignedOwnerSession": true,
+      "namedPrivateBinding": true,
+      "actualLocalD1": true,
+      "browserLiveListDetail": true,
+      "viewports": [
+        360,
+        1440
+      ],
+      "anonymousDenied": true,
+      "crossOriginDenied": true,
+      "missingCapabilityDenied": true,
+      "revocationPurgesAllStationRows": true,
+      "overlappingListDetailSafe": true,
+      "staleListCannotUndoDenial": true,
+      "workUnresolved": true,
+      "resultUnavailable": true,
+      "ledgerUnchanged": true
+    }
+  },
+  "tools": {
+    "node": "24.22.1",
+    "wrangler": "4.152.0",
+    "miniflare": "5.20261019.2-beta",
+    "playwrightCore": "1.64.1",
+    "chromium": "153.0.0"
+  },
+  "identity": "Synthetic RSA/JWKS fixture; production Greenhouse Access configuration unset",
+  "effects": "Local ephemeral D1 and browsers only; no production deploy/binding/grant/queue activation",
+  "workAuthority": "UNRESOLVED",
+  "resultEvidence": "UNAVAILABLE"
+}

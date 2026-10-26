@@ -1,0 +1,45 @@
+{
+  "stage": "ZONE2_SOURCE_BUILD",
+  "upstreamBase": "5d3646e8bd40b44320854851d0e26aca4bb05ab0",
+  "upstreamBaseTree": "dfec1e7e2fd936f083da438ee2dd3f2c2b42a901",
+  "checks": {
+    "GreenhouseTests": {
+      "passed": 163,
+      "failed": 0,
+      "skipped": 0
+    },
+    "offlinePolicyDrills": {
+      "passed": 16,
+      "total": 16
+    },
+    "localBrowserViewports": [
+      "360x800",
+      "800x360",
+      "768x1024",
+      "1440x900"
+    ],
+    "GoProposalTests": {
+      "passed": 94,
+      "failed": 0
+    },
+    "HubProposalTests": {
+      "passed": 94,
+      "failed": 0
+    },
+    "GoGreenhouseBoundaryTests": {
+      "passed": 3,
+      "failed": 0
+    },
+    "ActualHubReadChainTests": {
+      "passed": 1,
+      "failed": 0
+    },
+    "HubDryRunBuild": "PASS_NO_DEPLOY"
+  },
+  "liveGreenhouseHubIntegration": "NOT_DEPLOYED",
+  "currentWorkAuthority": "UNRESOLVED",
+  "productionQueue": "NOT_CHANGED",
+  "browserFonts": "Synthetic fixture: Noto Sans Thai injected locally because Linux test image lacked Thai fonts",
+  "physicalAndroid": "NOT_TESTED",
+  "historicalPngFiles": "7 upstream generated screenshots omitted locally; upstream base tree preserves all seven"
+}
