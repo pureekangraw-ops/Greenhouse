@@ -40,3 +40,33 @@ node scripts/verify-private-station-runtime.mjs dist/read-entry.js
 ```
 
 `MINIFLARE_MODULE` may point to an already installed Miniflare package directory; no particular workspace path is required. The script creates ephemeral local Workers and D1 only, imports the existing migrations, and closes the runtime. It must print all assertions as true. It does not invoke deployed bindings, production databases, queues, or provider APIs. The grant declaration and synthetic data inside this test are local fixtures only.
+
+## LIVE browser HTTP connection
+
+The actual Pages tracking list/item/status routes now call `createLiveTrackingHttp` in `src/greenhouse/tracking-read.mjs`. It verifies a genuine Cloudflare Access RS256 assertion against a fixed, separately configured Greenhouse issuer JWKS endpoint. It checks signature, exact issuer, Greenhouse audience, allowlisted owner email, subject, expiry and not-before. GO Brain OAuth and Office bearer credentials are not accepted. The source never trusts caller-provided identity headers without signature verification.
+
+The following application configuration is deliberately **unset** in repository deployment files:
+
+| Setting | Meaning |
+| --- | --- |
+| `GREENHOUSE_UI_ORIGIN` | Exact browser application origin; HTTPS, or explicit loopback HTTP for local preview |
+| `GREENHOUSE_ACCESS_TEAM_DOMAIN` | Existing authorized Cloudflare Access team hostname ending in `.cloudflareaccess.com` |
+| `GREENHOUSE_ACCESS_AUD` | Separately authorized Greenhouse Access application audience |
+| `GREENHOUSE_OWNER_EMAIL` | Owner identity allowed by that application policy |
+| `GREENHOUSE_READ` | Private Service Binding to `greenhouse-transport`, named `GreenhouseRead` |
+
+Missing identity configuration returns503; missing/invalid signed owner assertion401; cross-origin requests403; absent private read capability503. Browser assertions are never forwarded to the delivery source. The adapter sends only exact read-tool arguments to the fixed internal MCP URL, bounds source bodies, verifies correlated JSON-RPC responses, and maps source station scope to `greenhouse.tracking.v1`. Source timestamps remain separate from the time of actual read. The UI explicitly displays `STATION` and `Work UNRESOLVED`; only delivery facts appear and result availability stays `UNAVAILABLE`.
+
+The Node preview accepts `liveTrackingEnv` to use the same real verifier and private runtime capability. Existing injected adapters remain compatible for other workflows. It does not manufacture a binding from a public HTTP URL or an environment string. Node CLI defaults and unconfigured Pages remain denied until actual authorized application configuration exists.
+
+Browser list/detail cache generations are invalidated on replacement and denial. Station session401/403 purges every cached station row; an exact404 purges only that row. Older list/detail requests cannot resurrect revoked rows. Other independently scoped request-source records retain their existing boundaries.
+
+Reproduce the HTTP/browser integration with the exact development tools above, plus Playwright Core1.64.1 or the installed compatible Playwright Core and Chromium153:
+
+```sh
+npx wrangler pages functions build functions --outdir dist/pages
+npx wrangler deploy --dry-run --outdir dist
+node scripts/verify-live-tracking-runtime.mjs dist/pages/index.js dist/read-entry.js
+```
+
+`PLAYWRIGHT_MODULE`, `CHROMIUM_EXECUTABLE_PATH`, and optional `CHROMIUM_MODULE` select locally installed browser tools; default module resolution works with a normal installation. The script runs the **actual built Pages router**, genuine synthetic RSA identity/JWKS, named private Worker binding, existing D1 migrations, and real Chromium LIVE list/detail at360px/1440px. It also delays real in-flight source responses to verify list/detail denial races, anonymous/cross-origin/missing-capability denial, full station cache purge and ledger immutability. Provider APIs and deployed runtimes are not contacted. Local fixture identity configuration is not an installed production grant.

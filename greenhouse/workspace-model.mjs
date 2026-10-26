@@ -49,6 +49,9 @@ export function requestTracking(event){return {ref:{sourceSystem:event.ownerSour
 export function trackingTime(value){return Number.isFinite(Date.parse(value))?new Date(value).toLocaleString('th-TH',{dateStyle:'medium',timeStyle:'short'}):'ยังไม่ทราบเวลา';}
 export function renderTrackingRow(item){
  const esc=escapeHTML,status=trackingStatus(item),updated=item.statusFacts.map(f=>f.sourceUpdatedAt).filter(Boolean).sort().at(-1);
- return `<button class="tracking-row" data-tracking="${esc(trackingKey(item.ref))}"><strong>${esc(item.title)}</strong><span class="tracking-status">${esc(status.label)}</span><small>${esc(item.ref.sourceSystem)} · ${esc(item.ref.resourceType)} · ${esc(item.ref.resourceId)}</small><span>${esc(item.nextAction||'ยังไม่มีสิ่งที่ต้นทางระบุให้ทำต่อ')}</span><time>ต้นทางอัปเดต: ${esc(trackingTime(updated))}</time><small>ตรวจอ่าน: ${esc(trackingTime(item.provenance.observedAt))} · ${esc(item.provenance.availability)}</small></button>`;
+ return `<button class="tracking-row" data-tracking="${esc(trackingKey(item.ref))}"><strong>${esc(item.title)}</strong>${item.scope?.kind==='STATION'?'<small>STATION · ข้อมูลการส่งของสถานี · Work UNRESOLVED</small>':''}<span class="tracking-status">${esc(status.label)}</span><small>${esc(item.ref.sourceSystem)} · ${esc(item.ref.resourceType)} · ${esc(item.ref.resourceId)}</small><span>${esc(item.nextAction||'ยังไม่มีสิ่งที่ต้นทางระบุให้ทำต่อ')}</span><time>ต้นทางอัปเดต: ${esc(trackingTime(updated))}</time><small>ตรวจอ่าน: ${esc(trackingTime(item.provenance.observedAt))} · ${esc(item.provenance.availability)}</small></button>`;
 }
-export function itemsAfterReadFailure(items,ref,status){return [401,403,404].includes(status)?items.filter(item=>trackingKey(item.ref)!==trackingKey(ref)):items;}
+export function itemsAfterReadFailure(items,ref,status){
+ if([401,403].includes(status)&&items.some(item=>trackingKey(item.ref)===trackingKey(ref)&&item.scope?.kind==='STATION'))return items.filter(item=>item.scope?.kind!=='STATION');
+ return [401,403,404].includes(status)?items.filter(item=>trackingKey(item.ref)!==trackingKey(ref)):items;
+}
